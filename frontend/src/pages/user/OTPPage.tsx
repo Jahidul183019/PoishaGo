@@ -10,7 +10,13 @@ export const OTPPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, verifyUserOTP } = useAuthStore();
-  const email = location.state?.email || user?.email || 'user@email.com';
+  const isPasswordReset = location.state?.isPasswordReset;
+  const initialEmail = location.state?.email || (isPasswordReset ? '' : user?.email || 'user@email.com');
+  
+  const [email, setEmail] = useState(initialEmail);
+  const [step, setStep] = useState<'enter_email' | 'enter_otp'>(
+    initialEmail ? 'enter_otp' : 'enter_email'
+  );
 
   const [counter, setCounter] = useState(45);
   const [canResend, setCanResend] = useState(false);
@@ -20,13 +26,40 @@ export const OTPPage: React.FC = () => {
   // Decrement counter clock
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (counter > 0) {
+    if (counter > 0 && step === 'enter_otp') {
       timer = setTimeout(() => setCounter(prev => prev - 1), 1000);
-    } else {
+    } else if (counter === 0) {
       setCanResend(true);
     }
     return () => clearTimeout(timer);
-  }, [counter]);
+  }, [counter, step]);
+
+  const handleSendEmailOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setIsVerifying(true);
+    setErrorText('');
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send OTP');
+      }
+      
+      setStep('enter_otp');
+      setCounter(45);
+    } catch (err: any) {
+      setErrorText(err.message || 'Something went wrong while sending the email.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const handleOTPComplete = async (code: string) => {
     setIsVerifying(true);
@@ -77,8 +110,8 @@ export const OTPPage: React.FC = () => {
       </nav>
 
       {/* Main Content Canvas */}
-      <main className="flex-grow flex items-center justify-center pt-16 pb-4 px-4 md:px-12 w-full h-full min-h-[calc(100vh-64px)]">
-        <div className="w-full max-w-[1400px] flex flex-col md:flex-row gap-8 lg:gap-16 items-center justify-center">
+      <main className="flex-grow flex justify-center pt-24 pb-12 px-4 md:px-12 w-full">
+        <div className="w-full max-w-[1400px] flex flex-col md:flex-row gap-10 lg:gap-20 items-center justify-center my-auto">
           
           {/* Hero Side (Desktop) */}
           <div className="hidden md:flex flex-col space-y-3 flex-grow self-start -mt-8 lg:-mt-16 max-w-[700px]">
@@ -121,23 +154,52 @@ export const OTPPage: React.FC = () => {
                   <ShieldCheck size={24} />
                 </div>
                 <h1 className="font-sora font-extrabold text-2xl text-[var(--text-primary)]">
-                  Authorization Code
+                  {step === 'enter_email' ? 'Reset Password' : 'Authorization Code'}
                 </h1>
                 <p className="text-xs text-[var(--text-secondary)] px-4 leading-relaxed pb-4">
-                  We sent a 6-digit confirmation code to your registered email address:
-                  <span className="block font-bold text-[var(--text-primary)] font-mono mt-1 text-sm">
-                    {email}
-                  </span>
+                  {step === 'enter_email' 
+                    ? 'Enter your registered email address below to receive a password reset OTP code.' 
+                    : 'We sent a 6-digit confirmation code to your registered email address:'}
+                  {step === 'enter_otp' && (
+                    <span className="block font-bold text-[var(--text-primary)] font-mono mt-1 text-sm">
+                      {email}
+                    </span>
+                  )}
                 </p>
               </div>
 
               {/* Main Verification Card */}
               <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-b-2xl p-6 shadow-xl flex flex-col gap-6 relative z-20">
                 
-                {/* OTP Digit Inputs */}
-                <div className="py-2">
-                  <OTPInput length={6} onComplete={handleOTPComplete} />
-                </div>
+                {step === 'enter_email' ? (
+                  <form onSubmit={handleSendEmailOTP} className="flex flex-col gap-4 py-2">
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrorText('');
+                      }}
+                      className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-medium text-[var(--text-primary)] transition-all"
+                      placeholder="Email Address" 
+                      required 
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={isVerifying}
+                      className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-50"
+                    >
+                      {isVerifying ? 'Sending...' : 'Send OTP'}
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    {/* OTP Digit Inputs */}
+                    <div className="py-2">
+                      <OTPInput length={6} onComplete={handleOTPComplete} />
+                    </div>
+                  </>
+                )}
 
                 {/* Verification indicator */}
                 {isVerifying && (
@@ -154,24 +216,25 @@ export const OTPPage: React.FC = () => {
                   </p>
                 )}
 
-                {/* Counter widget footer */}
-                <div className="border-t border-[var(--border)] pt-4 flex flex-col items-center justify-center gap-2 select-none">
-                  {canResend ? (
-                    <button
-                      onClick={handleResendCode}
-                      className="flex items-center gap-1.5 text-xs font-bold text-[#00C9A7] hover:underline"
-                      id="btn-otp-resend"
-                    >
-                      <MessageSquare size={14} />
-                      <span>Resend Code</span>
-                    </button>
-                  ) : (
-                    <p className="text-xs text-[var(--text-secondary)] font-semibold flex items-center gap-1.5">
-                      <RefreshCw size={12} className="text-[var(--text-secondary)]" />
-                      <span>Resend available in {counter}s</span>
-                    </p>
-                  )}
-                </div>
+                {step === 'enter_otp' && (
+                  <div className="border-t border-[var(--border)] pt-4 flex flex-col items-center justify-center gap-2 select-none">
+                    {canResend ? (
+                      <button
+                        onClick={handleResendCode}
+                        className="flex items-center gap-1.5 text-xs font-bold text-[#00C9A7] hover:underline"
+                        id="btn-otp-resend"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Resend Code</span>
+                      </button>
+                    ) : (
+                      <p className="text-xs text-[var(--text-secondary)] font-semibold flex items-center gap-1.5">
+                        <RefreshCw size={12} className="text-[var(--text-secondary)]" />
+                        <span>Resend available in {counter}s</span>
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>

@@ -12,6 +12,12 @@ export const LoginPage: React.FC = () => {
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [errorMSG, setErrorMSG] = useState('');
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+
+  const handleForgotPassword = () => {
+    // Navigate directly to OTP page for password reset flow
+    navigate('/otp', { state: { isPasswordReset: true } });
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,19 +57,19 @@ export const LoginPage: React.FC = () => {
       </nav>
 
       {/* Main Content Canvas */}
-      <main className="flex-grow flex items-center justify-center pt-24 pb-10 px-4 md:px-12 w-full">
-        <div className="w-full max-w-[1600px] flex flex-col md:flex-row gap-10 lg:gap-24 items-center justify-between">
+      <main className="flex-grow flex justify-center pt-24 pb-12 px-4 md:px-12 w-full">
+        <div className="w-full max-w-[1400px] flex flex-col md:flex-row gap-8 lg:gap-16 items-center justify-center my-auto">
           
           {/* Hero Side (Desktop) */}
-          <div className="hidden md:flex flex-col space-y-4 flex-grow self-start mt-0 xl:-mt-6 max-w-[800px]">
-            <h1 className="font-sora text-5xl font-bold text-[var(--text-primary)] leading-tight tracking-tight">
+          <div className="hidden md:flex flex-col space-y-3 flex-grow self-start mt-0 xl:-mt-6 max-w-[700px]">
+            <h1 className="font-sora text-4xl lg:text-5xl font-bold text-[var(--text-primary)] leading-tight tracking-tight">
               Your money,<br/>
               <span className="text-[#2563EB]">moving faster.</span>
             </h1>
-            <p className="text-xl text-[var(--text-secondary)] max-w-lg">
+            <p className="text-lg lg:text-xl text-[var(--text-secondary)] max-w-lg leading-relaxed">
               Experience the next generation of financial freedom in Bangladesh. Simple, secure, and lightning-fast transactions for the modern economy.
             </p>
-            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-8">
+            <div className="relative w-[90%] max-w-[580px] aspect-[16/9] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-2">
               <img 
                 className="w-full h-full object-cover" 
                 alt="PoishaGo App Interface" 
@@ -72,9 +78,12 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Vertical Divider */}
+          <div className="hidden md:block w-[2px] bg-slate-300 dark:bg-slate-700 rounded-full h-[400px] lg:h-[480px] flex-shrink-0 opacity-70 mx-2"></div>
+
           {/* Auth Form Container */}
-          <div className="flex-shrink-0 flex justify-center md:justify-end w-full md:w-auto">
-            <div className="w-full md:w-[440px] bg-[var(--bg-card)] p-8 md:p-10 rounded-2xl shadow-xl border border-[var(--border)] relative overflow-hidden transition-all duration-300">
+          <div className="flex-shrink-0 flex justify-center w-full md:w-auto">
+            <div className="w-full md:w-[440px] bg-[var(--bg-card)] p-8 rounded-2xl shadow-xl border border-[var(--border)] relative overflow-hidden transition-all duration-300">
               
               <div className="space-y-8">
                 <div className="space-y-1">
@@ -108,7 +117,14 @@ export const LoginPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Password</label>
-                      <button type="button" className="text-[#2563EB] text-xs font-medium hover:underline outline-none">Forgot?</button>
+                      <button 
+                        type="button" 
+                        onClick={handleForgotPassword}
+                        disabled={isSendingOTP}
+                        className="text-[#2563EB] text-xs font-medium hover:underline outline-none disabled:opacity-50"
+                      >
+                        {isSendingOTP ? 'Sending...' : 'Forgot?'}
+                      </button>
                     </div>
                     <div className="relative">
                       <input 
