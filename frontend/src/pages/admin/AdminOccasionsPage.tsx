@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore, CashbackCampaign } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 
 export const AdminOccasionsPage: React.FC = () => {
-  const { campaigns, toggleCampaignStatus, createCampaign, deleteCampaign } = useWalletStore();
+  const { campaigns, toggleCampaignStatus, createCampaign, deleteCampaign, fetchCampaigns } = useWalletStore();
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   // Create Modal triggers State
   const [isModalOpen, setIsModalOpen] = useState(false);

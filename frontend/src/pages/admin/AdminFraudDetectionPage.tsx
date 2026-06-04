@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useWalletStore, FraudFlag } from '../../store/useWalletStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -13,7 +13,11 @@ import {
 } from 'lucide-react';
 
 export const AdminFraudDetectionPage: React.FC = () => {
-  const { fraudFlags, toggleFraudFlagStatus, toggleCitizenStatus } = useWalletStore();
+  const { fraudFlags, toggleFraudFlagStatus, toggleCitizenStatus, fetchFraudFlags } = useWalletStore();
+
+  useEffect(() => {
+    fetchFraudFlags();
+  }, [fetchFraudFlags]);
 
   // Compute stats
   const activeCount = fraudFlags.filter(f => !f.reviewed).length;
@@ -53,7 +57,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Active Threats</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{activeCount} Cases</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{activeCount} Cases</h3>
           </div>
         </Card>
 
@@ -63,7 +67,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Critical (Risk &gt; 80%)</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{criticalCount} Flagged</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{criticalCount} Flagged</h3>
           </div>
         </Card>
 
@@ -73,7 +77,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Resolved Cases</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{resolvedCount} Settled</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{resolvedCount} Settled</h3>
           </div>
         </Card>
 
@@ -138,7 +142,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-200 mt-2 font-semibold">
+                      <p className="text-xs text-[var(--text-primary)] mt-2 font-semibold">
                         Alert: <span className="text-[var(--text-secondary)] font-normal">{flag.rule_triggered}</span>
                       </p>
                       <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 font-mono">

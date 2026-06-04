@@ -75,6 +75,7 @@ interface WalletState {
   users: UserAccount[];
   mockCitizens: CitizenAccount[];
   transactions: WalletTransaction[];
+  adminTransactions: WalletTransaction[];
   fraudFlags: FraudFlag[];
   cashbacks: CashbackCampaign[];
   campaigns: CashbackCampaign[];
@@ -89,7 +90,6 @@ interface WalletState {
   reviewFraudFlag: (flagId: number) => void;
   toggleCampaignActive: (id: number) => void;
   addNewCampaign: (campaign: Omit<CashbackCampaign, 'id' | 'created_at'>) => void;
-  redeemPoints: (points: number, bdt: number) => boolean;
 
   // Extra Actions
   toggleCitizenStatus: (walletNumber: string) => void;
@@ -104,70 +104,37 @@ interface WalletState {
   markAllAsRead: () => void;
   clearNotification: (id: number) => void;
   clearAllNotifications: () => void;
+  
+  // New Network Fetch Actions
+  fetchTransactions: () => Promise<void>;
+  fetchAdminTransactions: () => Promise<void>;
+  fetchNotifications: () => Promise<void>;
+  fetchRewardOptions: () => Promise<void>;
+  fetchBillCategories: () => Promise<void>;
+  fetchRewardsHistory: () => Promise<void>;
+  fetchUsers: () => Promise<void>;
+  fetchFraudFlags: () => Promise<void>;
+  fetchCampaigns: () => Promise<void>;
+  
+  // Admin Config Actions
+  addRewardOption: (option: any) => Promise<void>;
+  addBillCategory: (category: any) => Promise<void>;
+  deleteRewardOption: (id: number) => Promise<void>;
+  deleteBillCategory: (id: string) => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
-  users: [
-    { user_id: 1, full_name: 'Ahmed Hassan', phone: '01711000001', email: 'ahmed@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00001', balance: 100000.00, tier: 'gold', current_points: 2450, status: 'active' },
-    { user_id: 2, full_name: 'Fatema Begum', phone: '01711000002', email: 'fatema@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00002', balance: 42000.50, tier: 'silver', current_points: 2800, status: 'active' },
-    { user_id: 3, full_name: 'Rafiq Ahmed', phone: '01711000003', email: 'rafiq@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00003', balance: 85000.00, tier: 'bronze', current_points: 850, status: 'active' },
-    { user_id: 4, full_name: 'Kamrul Islam', phone: '01711000004', email: 'kamrul@email.com', user_type: 'personal', is_verified: false, wallet_number: 'PG-WAL-00004', balance: 15300.20, tier: 'bronze', current_points: 120, status: 'active' },
-    { user_id: 5, full_name: 'Nusrat Jahan', phone: '01811000005', email: 'nusrat@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00005', balance: 67300.00, tier: 'platinum', current_points: 5400, status: 'active' },
-    { user_id: 6, full_name: 'Siddikur Rahman', phone: '01911000006', email: 'siddikur@email.com', user_type: 'agent', is_verified: true, wallet_number: 'PG-WAL-00006', balance: 250000.00, tier: 'gold', current_points: 1900, status: 'active' },
-    { user_id: 7, full_name: 'Mizanur Agent', phone: '01911000007', email: 'mizan@email.com', user_type: 'agent', is_verified: true, wallet_number: 'PG-WAL-00007', balance: 180000.00, tier: 'silver', current_points: 800, status: 'active' }
-  ],
-  mockCitizens: [
-    { user_id: 1, full_name: 'Ahmed Hassan', phone: '01711000001', email: 'ahmed@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00001', balance: 100000.00, tier: 'gold', current_points: 2450, status: 'active' },
-    { user_id: 2, full_name: 'Fatema Begum', phone: '01711000002', email: 'fatema@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00002', balance: 42000.50, tier: 'silver', current_points: 2800, status: 'active' },
-    { user_id: 3, full_name: 'Rafiq Ahmed', phone: '01711000003', email: 'rafiq@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00003', balance: 85000.00, tier: 'bronze', current_points: 850, status: 'active' },
-    { user_id: 4, full_name: 'Kamrul Islam', phone: '01711000004', email: 'kamrul@email.com', user_type: 'personal', is_verified: false, wallet_number: 'PG-WAL-00004', balance: 15300.20, tier: 'bronze', current_points: 120, status: 'active' },
-    { user_id: 5, full_name: 'Nusrat Jahan', phone: '01811000005', email: 'nusrat@email.com', user_type: 'personal', is_verified: true, wallet_number: 'PG-WAL-00005', balance: 67300.00, tier: 'platinum', current_points: 5400, status: 'active' },
-    { user_id: 6, full_name: 'Siddikur Rahman', phone: '01911000006', email: 'siddikur@email.com', user_type: 'agent', is_verified: true, wallet_number: 'PG-WAL-00006', balance: 250000.00, tier: 'gold', current_points: 1900, status: 'active' },
-    { user_id: 7, full_name: 'Mizanur Agent', phone: '01911000007', email: 'mizan@email.com', user_type: 'agent', is_verified: true, wallet_number: 'PG-WAL-00007', balance: 180000.00, tier: 'silver', current_points: 800, status: 'active' }
-  ],
-  transactions: [
-    { txn_id: 43, sender_wallet_id: 'PG-WAL-00004', sender_name: 'Kamrul Islam', receiver_wallet_id: 'PG-WAL-00001', receiver_name: 'Ahmed Hassan', amount: 48000.00, txn_type: 'send_money', status: 'completed', fee: 0, reference_no: 'TXN85938104', txn_at: '2026-06-03T14:32:00Z' },
-    { txn_id: 42, sender_wallet_id: 'PG-WAL-00005', sender_name: 'Nusrat Jahan', receiver_wallet_id: 'PG-WAL-00002', receiver_name: 'Fatema Begum', amount: 12000.00, txn_type: 'send_money', status: 'completed', fee: 0, reference_no: 'TXN85938102', txn_at: '2026-06-03T09:12:00Z' },
-    { txn_id: 41, sender_wallet_id: 'PG-WAL-00006', sender_name: 'Siddikur Rahman', receiver_wallet_id: 'PG-WAL-00001', receiver_name: 'Ahmed Hassan', amount: 50000.00, txn_type: 'cash_in', status: 'completed', fee: 0, reference_no: 'TXN85938099', txn_at: '2026-06-02T16:45:00Z' },
-    { txn_id: 40, sender_wallet_id: 'PG-WAL-00001', sender_name: 'Ahmed Hassan', receiver_wallet_id: 'PG-WAL-00007', receiver_name: 'Mizanur Agent', amount: 20000.00, txn_type: 'cash_out', status: 'completed', fee: 300, reference_no: 'TXN85938088', txn_at: '2026-06-02T11:22:00Z' },
-    { txn_id: 39, sender_wallet_id: 'PG-WAL-00001', sender_name: 'Ahmed Hassan', receiver_wallet_id: 'PG-WAL-BILL', receiver_name: 'DESCO (Electricity)', amount: 3500.00, txn_type: 'bill_pay', status: 'completed', fee: 0, reference_no: 'TXN85938077', txn_at: '2026-06-01T19:10:00Z', company_name: 'DESCO Bill Pay' },
-    { txn_id: 38, sender_wallet_id: 'PG-WAL-00002', sender_name: 'Fatema Begum', receiver_wallet_id: 'PG-WAL-BILL', receiver_name: 'WASA (Water)', amount: 1500.00, txn_type: 'bill_pay', status: 'completed', fee: 0, reference_no: 'TXN85938066', txn_at: '2026-06-01T15:05:00Z', company_name: 'WASA water' },
-    { txn_id: 37, sender_wallet_id: 'PG-WAL-00003', sender_name: 'Rafiq Ahmed', receiver_wallet_id: 'PG-WAL-00001', receiver_name: 'Ahmed Hassan', amount: 15000.00, txn_type: 'send_money', status: 'completed', fee: 0, reference_no: 'TXN85938055', txn_at: '2026-05-30T10:45:00Z' }
-  ],
-  fraudFlags: [
-    { flag_id: 1, txn_id: 43, user_name: 'Kamrul Islam', phone: '01711000004', rule_triggered: 'Large Transaction Amount (> ৳40,000)', risk_score: 85, reviewed: false, flagged_at: '2026-06-03T14:32:00Z' },
-    { flag_id: 2, txn_id: 41, user_name: 'Siddikur Rahman', phone: '01911000006', rule_triggered: 'Rapid Multi-source Deposit', risk_score: 92, reviewed: false, flagged_at: '2026-06-02T16:45:00Z' },
-    { flag_id: 3, txn_id: 40, user_name: 'Ahmed Hassan', phone: '01711000001', rule_triggered: 'Night Cash Out Profile', risk_score: 42, reviewed: true, flagged_at: '2026-06-02T11:22:00Z' }
-  ],
-  cashbacks: [
-    { id: 1, name: 'Eid-ul-Adha Cashback Double', type: 'Send Money', percent: 1.5, max_limit: 500, min_txn_amount: 1000, is_active: true, end_date: '2026-06-25', created_at: '2026-06-01' },
-    { id: 2, name: 'Monsoon Utility Relief Promo', type: 'Bill Pay', percent: 5.0, max_limit: 200, min_txn_amount: 1500, is_active: true, end_date: '2026-06-15', created_at: '2026-06-02' },
-    { id: 3, name: 'Pohela Boishakh Centenary Gift', type: 'Cash In', percent: 2.0, max_limit: 1000, min_txn_amount: 5000, is_active: false, end_date: '2026-04-14', created_at: '2026-04-01' },
-    { id: 4, name: 'Agent Network Cashout Booster', type: 'Cash Out', percent: 0.5, max_limit: 300, min_txn_amount: 8000, is_active: false, end_date: '2026-03-31', created_at: '2026-03-10' }
-  ],
-  campaigns: [
-    { id: 1, name: 'Eid-ul-Adha Cashback Double', type: 'Send Money', percent: 1.5, max_limit: 500, min_txn_amount: 1000, is_active: true, end_date: '2026-06-25', created_at: '2026-06-01' },
-    { id: 2, name: 'Monsoon Utility Relief Promo', type: 'Bill Pay', percent: 5.0, max_limit: 200, min_txn_amount: 1500, is_active: true, end_date: '2026-06-15', created_at: '2026-06-02' },
-    { id: 3, name: 'Pohela Boishakh Centenary Gift', type: 'Cash In', percent: 2.0, max_limit: 1000, min_txn_amount: 5000, is_active: false, end_date: '2026-04-14', created_at: '2026-04-01' },
-    { id: 4, name: 'Agent Network Cashout Booster', type: 'Cash Out', percent: 0.5, max_limit: 300, min_txn_amount: 8000, is_active: false, end_date: '2026-03-31', created_at: '2026-03-10' }
-  ],
-  notifications: [
-    { id: 1, title: '⭐ Level Up: Gold Tier achieved!', message: 'Congratulations Ahmed! Your activity has unlocked Gold Tier. Enjoy lower transaction fees on utilities.', notif_type: 'reward', is_read: false, created_at: '2026-06-03T10:00:00Z' },
-    { id: 2, title: 'Received ৳48,000.00', message: 'You have received ৳48,000.00 from Kamrul Islam (01711000004). Ref: TXN85938104', notif_type: 'credit', is_read: false, created_at: '2026-06-03T14:32:00Z' },
-    { id: 3, title: 'Utility Bill Successful', message: 'Bill of ৳3,500.00 paid to DESCO. Ref: TXN85938077. Thank you for using PoishaGo.', notif_type: 'debit', is_read: true, created_at: '2026-06-01T19:10:00Z' },
-    { id: 4, title: 'System Security Alert', message: 'Your login credentials were verified from a new browser session. If this wasn\'t you, update your PIN immediately.', notif_type: 'system', is_read: true, created_at: '2026-05-28T08:15:00Z' }
-  ],
-  rewardOptions: [
-    { id: 1, title: '৳100 Direct Wallet Cashback', pointsRequired: 1000, valueBDT: 100, category: 'cashback' },
-    { id: 2, title: '৳500 Mega Wallet Cashback', pointsRequired: 4500, valueBDT: 500, category: 'cashback' },
-    { id: 3, title: '৳1000 Super Premium Cashback', pointsRequired: 8500, valueBDT: 1000, category: 'cashback' },
-    { id: 4, title: 'Daraz Gift Voucher ৳200', pointsRequired: 1800, valueBDT: 200, category: 'voucher' },
-    { id: 5, title: 'Chaldal Grocery Voucher ৳300', pointsRequired: 2700, valueBDT: 300, category: 'voucher' }
-  ],
-  pointsRedeemedHistory: [
-    { id: 1, points: 1000, bdt: 100, date: '2026-05-20' },
-    { id: 2, points: 1800, bdt: 180, date: '2026-05-10' }
-  ],
+  users: [],
+  mockCitizens: [],
+  transactions: [],
+  adminTransactions: [],
+  fraudFlags: [],
+  cashbacks: [],
+  campaigns: [],
+  notifications: [],
+  rewardOptions: [],
+  billCategories: [],
+  pointsRedeemedHistory: [],
 
   addTransaction: (txn) => {
     const nextTxnId = get().transactions.length > 0 ? Math.max(...get().transactions.map(t => t.txn_id)) + 1 : 1;
@@ -265,26 +232,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }));
   },
 
-  redeemPoints: (pointsToRedeem, bdtValue) => {
-    // Deduct from current user points, add BDT to balance
-    // This is modeled on Ahmed Hassan
-    const success = true; // simulation bypass
-    set((state) => {
-      const nextId = state.pointsRedeemedHistory.length > 0 ? Math.max(...state.pointsRedeemedHistory.map(r => r.id)) + 1 : 1;
-      return {
-        pointsRedeemedHistory: [
-          {
-            id: nextId,
-            points: pointsToRedeem,
-            bdt: bdtValue,
-            date: new Date().toISOString().split('T')[0]
-          },
-          ...state.pointsRedeemedHistory
-        ]
-      };
-    });
-    return success;
-  },
+
 
   toggleCitizenStatus: (walletNumber) => {
     set((state) => {
@@ -384,5 +332,184 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   clearAllNotifications: () => {
     set({ notifications: [] });
+  },
+
+    fetchAdminTransactions: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/admin/transactions');
+      if (response.ok) {
+        const data = await response.json();
+        set({ adminTransactions: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch admin transactions', e);
+    }
+  },
+
+  fetchTransactions: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/transactions', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        set({ transactions: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch transactions', e);
+    }
+  },
+
+  fetchNotifications: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        set({ notifications: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch notifications', e);
+    }
+  },
+
+    fetchBillCategories: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/bill/categories');
+      if (response.ok) {
+        const data = await response.json();
+        set({ billCategories: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch bill categories', e);
+    }
+  },
+
+  fetchRewardOptions: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/options');
+      if (response.ok) {
+        const data = await response.json();
+        set({ rewardOptions: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch reward options', e);
+    }
+  },
+
+  fetchRewardsHistory: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/history', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        set({ pointsRedeemedHistory: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch rewards history', e);
+    }
+  },
+
+  fetchUsers: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        set({ mockCitizens: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch users', e);
+    }
+  },
+
+  fetchFraudFlags: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/fraud-flags');
+      if (response.ok) {
+        const data = await response.json();
+        set({ fraudFlags: data });
+      }
+    } catch (e) {
+      console.error('Failed to fetch fraud flags', e);
+    }
+  },
+
+  fetchCampaigns: async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/campaigns');
+      if (response.ok) {
+        const data = await response.json();
+        set({ campaigns: data, cashbacks: data }); // Set both for backwards compatibility
+      }
+    } catch (e) {
+      console.error('Failed to fetch campaigns', e);
+    }
+  },
+
+  addRewardOption: async (option: any) => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/admin/rewards/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(option)
+      });
+      if (response.ok) {
+        get().fetchRewardOptions(); // Refresh the list
+      }
+    } catch (e) {
+      console.error('Failed to add reward option', e);
+    }
+  },
+
+  
+  deleteRewardOption: async (id: number) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/rewards/options/${id}`, { method: 'DELETE' });
+      if (response.ok) get().fetchRewardOptions();
+    } catch (e) {
+      console.error('Failed to delete reward option', e);
+    }
+  },
+
+  deleteBillCategory: async (id: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/bill/categories/${id}`, { method: 'DELETE' });
+      if (response.ok) get().fetchBillCategories();
+    } catch (e) {
+      console.error('Failed to delete bill category', e);
+    }
+  },
+
+  addBillCategory: async (category: any) => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/admin/bill/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(category)
+      });
+      if (response.ok) {
+        // Typically we would fetch bill categories here, but we don't have a fetch action for it yet in the store.
+        // For now, it will apply on reload or we can add fetchBillCategories later if needed.
+        console.log('Bill category added successfully');
+      get().fetchBillCategories();
+      }
+    } catch (e) {
+      console.error('Failed to add bill category', e);
+    }
   }
+
 }));

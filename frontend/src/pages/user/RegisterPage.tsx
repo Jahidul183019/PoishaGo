@@ -58,10 +58,16 @@ export const RegisterPage: React.FC = () => {
     setErrorMsg('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/send-otp', {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ 
+          full_name: fullName, 
+          phone: phone, 
+          email: email, 
+          pin: pin, 
+          user_type: userType 
+        })
       });
 
       if (!response.ok) {

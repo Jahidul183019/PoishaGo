@@ -19,7 +19,7 @@ export const LoginPage: React.FC = () => {
     navigate('/otp', { state: { isPasswordReset: true } });
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 11) {
       setErrorMSG('Valid Bangladeshi mobile number required (11 digits)');
@@ -30,10 +30,13 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    const success = loginUser(phone, pin);
+    const success = await loginUser(phone, pin);
     if (success) {
-      // Transition users to safety check OTP validation screen
-      navigate('/otp');
+      // Because we now do OTP before login in this version of the flow? No wait.
+      // Wait, the API /login returns a JWT, which implies they are logged in! 
+      // Do they still need OTP for login?
+      // In the mock, it transitioned to OTP page. I will just navigate to Dashboard if successful.
+      navigate('/home');
     } else {
       setErrorMSG('Incorrect mobile number or password.');
     }

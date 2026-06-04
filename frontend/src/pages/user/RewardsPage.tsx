@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
@@ -20,30 +20,43 @@ import {
 
 export const RewardsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserPoints, updateUserBalance } = useAuthStore();
-  const { redeemPoints, pointsRedeemedHistory } = useWalletStore();
+  const { user, updateUserPoints, updateUserBalance, token, fetchUserProfile } = useAuthStore();
+  const { pointsRedeemedHistory } = useWalletStore();
 
   const [activeTab, setActiveTab] = useState<'rewards' | 'leaderboard' | 'history'>('rewards');
 
-  // Live points slider redemption state
   const [pointsRedeemValue, setPointsRedeemValue] = useState(1000); // starts at 1,000 pts
   const [redeemSuccess, setRedeemSuccess] = useState('');
   const [redeemError, setRedeemError] = useState('');
 
-  // Live calculation: cashback = points * 0.10 BDT
-  const convertedCashbackBDT = pointsRedeemValue * 0.10;
+  const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
+  const [rewardTiers, setRewardTiers] = useState<any[]>([]);
+  const [rewardConfig, setRewardConfig] = useState<any>({ conversion_rate: 0.10, slider_min: 100, slider_max: 5000, slider_step: 100 });
 
-  // Bangladeshi Leaderboard Citizens List
-  const leaderboardUsers = [
-    { rank: 1, name: 'Adnan Chowdhury', points: 15400, tier: 'platinum', medal: '🥇' },
-    { rank: 2, name: 'Sultana Razia', points: 11200, tier: 'platinum', medal: '🥈' },
-    { rank: 3, name: 'Ziaur Rahman', points: 8900, tier: 'platinum', medal: '🥉' },
-    { rank: 4, name: 'Nusrat Jahan', points: 5400, tier: 'platinum', medal: '' },
-    { rank: 5, name: 'Fatema Begum', points: 2800, tier: 'silver', medal: '' },
-    { rank: 6, name: 'Ahmed Hassan (You)', points: 2450, tier: 'gold', medal: '' },
-  ];
+  // Live calculation: cashback = points * conversion_rate
+  const convertedCashbackBDT = pointsRedeemValue * rewardConfig.conversion_rate;
 
-  const handleRedeemPointsSubmit = () => {
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/leaderboard')
+      .then(res => res.json())
+      .then(data => setLeaderboardUsers(data))
+      .catch(err => console.error(err));
+
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/tiers')
+      .then(res => res.json())
+      .then(data => setRewardTiers(data))
+      .catch(err => console.error(err));
+
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/config')
+      .then(res => res.json())
+      .then(data => {
+        setRewardConfig(data);
+        if (pointsRedeemValue < data.slider_min) setPointsRedeemValue(data.slider_min);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  const handleRedeemPointsSubmit = async () => {
     setRedeemSuccess('');
     setRedeemError('');
 
@@ -54,18 +67,35 @@ export const RewardsPage: React.FC = () => {
       return;
     }
 
-    // Success transaction
-    const success = redeemPoints(pointsRedeemValue, convertedCashbackBDT);
-    if (success) {
-      const remainingPoints = user.current_points - pointsRedeemValue;
-      const creditBalance = user.balance + convertedCashbackBDT;
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/rewards/redeem', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          points: pointsRedeemValue,
+          bdt_value: convertedCashbackBDT
+        })
+      });
 
-      // Update auth stores reactively
-      updateUserPoints(remainingPoints);
-      updateUserBalance(creditBalance);
+      if (!response.ok) {
+        const err = await response.json();
+        setRedeemError(err.detail || 'Redemption failed');
+        return;
+      }
+
+      // Fetch user profile again to update points and balance from DB
+      await fetchUserProfile();
+      
+      // Also refetch history to show new transaction
+      const { fetchRewardsHistory } = useWalletStore.getState();
+      if (fetchRewardsHistory) await fetchRewardsHistory();
 
       setRedeemSuccess(`Successfully redeemed ${pointsRedeemValue} points for ${formatBDT(convertedCashbackBDT)} BDT direct wallet cashback!`);
-    } else {
+    } catch (e) {
+      console.error(e);
       setRedeemError('An error occurred during redemption processing. Try again.');
     }
   };
@@ -156,17 +186,17 @@ export const RewardsPage: React.FC = () => {
             <div className="flex flex-col gap-1.5 select-none">
               <input
                 type="range"
-                min={100}
-                max={5000}
-                step={100}
+                min={rewardConfig.slider_min}
+                max={rewardConfig.slider_max}
+                step={rewardConfig.slider_step}
                 value={pointsRedeemValue}
                 onChange={(e) => setPointsRedeemValue(parseInt(e.target.value))}
                 className="w-full h-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
               />
               <div className="flex justify-between text-[10px] font-mono font-bold text-[var(--text-secondary)]">
-                <span>100 PTS (৳10)</span>
-                <span>2,500 PTS (৳250)</span>
-                <span>5,000 PTS (৳500)</span>
+                <span>{rewardConfig.slider_min} PTS (৳{rewardConfig.slider_min * rewardConfig.conversion_rate})</span>
+                <span>{rewardConfig.slider_max / 2} PTS (৳{rewardConfig.slider_max / 2 * rewardConfig.conversion_rate})</span>
+                <span>{rewardConfig.slider_max} PTS (৳{rewardConfig.slider_max * rewardConfig.conversion_rate})</span>
               </div>
             </div>
 
@@ -200,43 +230,22 @@ export const RewardsPage: React.FC = () => {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 select-none">
-              
-              {/* Bronze */}
-              <div className="bg-gradient-to-br from-orange-950/40 via-orange-900/10 to-transparent border border-orange-500/10 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-orange-500">🥉 Bronze Tier</span>
-                <p className="text-xs text-[var(--text-secondary)] leading-normal">
-                  Threshold: <strong>0 - 999 pts</strong>. Holds base account levels, standard transactional fee rates.
-                </p>
-              </div>
-
-              {/* Silver */}
-              <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/10 to-transparent border border-slate-400/10 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-slate-500">🥈 Silver Tier</span>
-                <p className="text-xs text-[var(--text-secondary)] leading-normal">
-                  Threshold: <strong>1,000 - 2,499 pts</strong>. Unlocks <strong>5% points commission multiplier bonus</strong>.
-                </p>
-              </div>
-
-              {/* Gold */}
-              <div className="bg-gradient-to-br from-yellow-950/40 via-yellow-900/10 to-transparent border border-yellow-500/10 p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
-                <div className="absolute right-1 top-1 w-10 h-10 bg-yellow-500/5 rounded-full blur-md" />
-                <span className="font-sora font-semibold text-xs text-yellow-500 flex items-center gap-1">
-                  <span>🥇 Gold Tier</span>
-                  <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-1 rounded">Active</span>
-                </span>
-                <p className="text-xs text-[var(--text-secondary)] leading-normal">
-                  Threshold: <strong>2,500 - 4,999 pts</strong>. Offers <strong>10% higher multi-points</strong>, zero utility surcharge.
-                </p>
-              </div>
-
-              {/* Platinum */}
-              <div className="bg-gradient-to-br from-blue-950/40 via-blue-900/10 to-transparent border border-blue-500/15 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-blue-500">💎 Platinum Tier</span>
-                <p className="text-xs text-[var(--text-secondary)] leading-normal">
-                  Threshold: <strong>5,000+ pts</strong>. Dedicated 24/7 hotline support, instant priority cashout pipelines.
-                </p>
-              </div>
-
+              {rewardTiers.map(tier => (
+                <div key={tier.id} className={`bg-gradient-to-br ${tier.bgClass} to-transparent border ${tier.borderClass} p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden`}>
+                  {tier.id === 'gold' && (
+                    <div className="absolute right-1 top-1 w-10 h-10 bg-yellow-500/5 rounded-full blur-md" />
+                  )}
+                  <span className={`font-sora font-semibold text-xs text-${tier.colorStyle}-500 flex items-center gap-1`}>
+                    <span>{tier.name}</span>
+                    {tier.id === 'gold' && (
+                      <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-1 rounded">Active</span>
+                    )}
+                  </span>
+                  <p className="text-xs text-[var(--text-secondary)] leading-normal">
+                    Threshold: <strong>{tier.threshold}</strong>. {tier.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

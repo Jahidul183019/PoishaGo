@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
@@ -23,7 +23,7 @@ import {
 
 export const BillPaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance } = useAuthStore();
+  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
   const { addTransaction, addNotification } = useWalletStore();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -35,14 +35,24 @@ export const BillPaymentPage: React.FC = () => {
   const [errorText, setErrorText] = useState('');
   const [receipt, setReceipt] = useState<any>(null);
 
-  const categories = [
-    { id: 'electricity', label: 'Electricity', icon: Zap, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-    { id: 'water', label: 'Water WASA', icon: Droplet, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-    { id: 'gas', label: 'Gas Titas', icon: Flame, color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
-    { id: 'internet', label: 'Internet', icon: Globe, color: 'text-[#00C9A7] bg-[#00C9A7]/10 border-[#00C9A7]/20' },
-    { id: 'education', label: 'Education', icon: BookOpen, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    { id: 'tv', label: 'DTH / Cable TV', icon: Tv, color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
-  ];
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/bill/categories')
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // Map icon_id strings to actual Lucide components
+  const iconMap: Record<string, any> = {
+    'Zap': Zap,
+    'Droplet': Droplet,
+    'Flame': Flame,
+    'Globe': Globe,
+    'BookOpen': BookOpen,
+    'Tv': Tv
+  };
 
   const categoryCompanies: Record<string, string[]> = {
     electricity: ['DESCO (Dhaka Electricity Supply)', 'DPDC (Dhaka Power)', 'NESCO (Northern Electricity)'],
@@ -86,39 +96,44 @@ export const BillPaymentPage: React.FC = () => {
     setCurrentStep(4); // Trigger PIN input OTP view
   };
 
-  const handleOTPComplete = (code: string) => {
-    // Progress directly to success
-    if (user) {
+  const handleOTPComplete = async (code: string) => {
+    try {
       const payAmount = parseFloat(amount);
-      const refNo = 'TXN_BILL_' + Math.floor(10000000 + Math.random() * 90000000);
-
-      // Mutate User Balance inside Auth store
-      const newBal = user.balance - payAmount;
-      updateUserBalance(newBal);
-
-      // Logs transaction under Wallet Ledger
-      addTransaction({
-        sender_wallet_id: user.wallet_number,
-        sender_name: user.full_name,
-        receiver_wallet_id: 'PG-WAL-BILL-CLEAR',
-        receiver_name: selectedCompany,
-        amount: payAmount,
-        txn_type: 'bill_pay',
-        status: 'completed',
-        fee: 0,
-        reference_no: refNo,
-        company_name: selectedCompany
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/transactions/bill', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          biller_name: selectedCompany,
+          account_number: customerID,
+          amount: payAmount,
+          pin: code
+        })
       });
+
+      if (!response.ok) {
+        const err = await response.json();
+        setErrorText(err.detail || 'Bill payment failed');
+        setCurrentStep(3); // Go back to form
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Update local balance
+      await fetchUserProfile();
 
       // Inbox notification trigger
       addNotification(
         `Utility bill paid to ${selectedCompany}`,
-        `Payment of ${formatBDT(payAmount)} to bill account: ${customerID} settled successfully. Reference: ${refNo}. Current balance: ${formatBDT(newBal)}`,
+        `Payment of ${formatBDT(payAmount)} to bill account: ${customerID} settled successfully. Reference: ${data.transaction_id}.`,
         'debit'
       );
 
       setReceipt({
-        ref: refNo,
+        ref: data.transaction_id,
         amount: payAmount,
         company: selectedCompany,
         customer: customerID,
@@ -127,6 +142,10 @@ export const BillPaymentPage: React.FC = () => {
       });
 
       setCurrentStep(5);
+    } catch (e) {
+      console.error(e);
+      setErrorText('Network error processing bill payment');
+      setCurrentStep(3);
     }
   };
 
@@ -171,7 +190,7 @@ export const BillPaymentPage: React.FC = () => {
       {currentStep === 1 && (
         <div className="grid grid-cols-2 gap-4 select-none">
           {categories.map((cat) => {
-            const Icon = cat.icon;
+            const IconComp = iconMap[cat.icon_id];
             return (
               <button
                 key={cat.id}
@@ -179,7 +198,7 @@ export const BillPaymentPage: React.FC = () => {
                 className="bg-[var(--bg-card)] border border-[var(--border)] hover:border-cyan-400/25 p-5 rounded-2xl flex flex-col gap-4 text-left transition-all hover:-translate-y-0.5 group outline-none"
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 duration-200 ${cat.color}`}>
-                  <Icon size={18} />
+                  {IconComp && <IconComp size={18} />}
                 </div>
                 <div>
                   <h4 className="font-sora font-bold text-sm text-[var(--text-primary)]">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, History, ShieldAlert, Award, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, History, ShieldAlert, Award, LogOut, ShieldCheck, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import ThemeToggle from '../ui/ThemeToggle';
 
@@ -15,6 +15,7 @@ export const AdminSidebar: React.FC = () => {
     { label: 'Transactions Ledger', path: '/admin/transactions', icon: History },
     { label: 'Fraud Detection', path: '/admin/fraud', icon: ShieldAlert },
     { label: 'Campaign Manager', path: '/admin/occasions', icon: Award },
+    { label: 'Configurations', path: '/admin/config', icon: Settings },
   ];
 
   const handleLogout = () => {

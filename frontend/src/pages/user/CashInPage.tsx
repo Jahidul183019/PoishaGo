@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
@@ -19,15 +19,17 @@ import {
 
 export const CashInPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance } = useAuthStore();
+  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
   const { addTransaction, addNotification } = useWalletStore();
 
-  // Selected agent suggestion lists
-  const agentsList = [
-    { id: '1', name: 'Siddikur Rahman Agent', location: 'Dhaka, Banani Block-C', phone: '01911000006' },
-    { id: '2', name: 'Mizanur Agent Store', location: 'Dhaka, Dhanmondi 27', phone: '01911000007' },
-    { id: '3', name: 'Karim Bazar Tele-com', location: 'Chittagong, GEC Circle', phone: '01955000008' },
-  ];
+  const [agentsList, setAgentsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/agents')
+      .then(res => res.json())
+      .then(data => setAgentsList(data))
+      .catch(err => console.error(err));
+  }, []);
 
   const [selectedAgentId, setSelectedAgentId] = useState('1');
   const [amount, setAmount] = useState('');
@@ -52,51 +54,58 @@ export const CashInPage: React.FC = () => {
     setIsOTPModalOpen(true);
   };
 
-  const handleOTPComplete = (code: string) => {
+  const handleOTPComplete = async (code: string) => {
     setIsOTPModalOpen(false);
     setCurrentStep('processing');
 
-    // Simulate agent handing over real cash coordinates with mock timing
-    setTimeout(() => {
-      if (user) {
-        const cashInAmt = parseFloat(amount);
-        const refNo = 'TXN_IN_' + Math.floor(10000000 + Math.random() * 90000000);
-
-        // Add to active balance inside Auth Store
-        const newBal = user.balance + cashInAmt;
-        updateUserBalance(newBal);
-
-        // Add to global ledger in Wallet Store
-        addTransaction({
-          sender_wallet_id: 'PG-WAL-AGENT-' + selectedAgent.phone.slice(-4),
-          sender_name: selectedAgent.name,
-          receiver_wallet_id: user.wallet_number,
-          receiver_name: user.full_name,
+    try {
+      const cashInAmt = parseFloat(amount);
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/transactions/cashin', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          agent_phone: selectedAgent.phone,
           amount: cashInAmt,
-          txn_type: 'cash_in',
-          status: 'completed',
-          fee: 0,
-          reference_no: refNo
-        });
+          pin: code
+        })
+      });
 
-        // Add to inbox messages
-        addNotification(
-          `Cashed In ৳${cashInAmt} successfully`,
-          `Received BDT ${cashInAmt} from ${selectedAgent.name}. Reference ID: ${refNo}. Current balance: ${formatBDT(newBal)}`,
-          'credit'
-        );
-
-        setReceipt({
-          ref: refNo,
-          amount: cashInAmt,
-          agent: selectedAgent.name,
-          location: selectedAgent.location,
-          date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
-        });
-
-        setCurrentStep('success');
+      if (!response.ok) {
+        const err = await response.json();
+        setErrorText(err.detail || 'Cash in failed');
+        setCurrentStep('input');
+        return;
       }
-    }, 1500);
+
+      const data = await response.json();
+      
+      // Update local balance
+      await fetchUserProfile();
+
+      // Trigger in-app alerts
+      addNotification(
+        `Cashed In ৳${cashInAmt} successfully`,
+        `Received BDT ${cashInAmt} from ${selectedAgent.name}. Reference ID: ${data.transaction_id}.`,
+        'credit'
+      );
+
+      setReceipt({
+        ref: data.transaction_id,
+        amount: cashInAmt,
+        agent: selectedAgent.name,
+        location: selectedAgent.location,
+        date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
+
+      setCurrentStep('success');
+    } catch (e) {
+      console.error(e);
+      setErrorText('Network error processing cash in');
+      setCurrentStep('input');
+    }
   };
 
   return (

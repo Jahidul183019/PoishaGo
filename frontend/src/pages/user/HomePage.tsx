@@ -18,7 +18,8 @@ import {
   Bell, 
   ArrowUpRight, 
   ShieldAlert,
-  Download
+  Download,
+  Smartphone
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
@@ -212,6 +213,20 @@ export const HomePage: React.FC = () => {
             <div>
               <h4 className="font-sora font-bold text-sm text-[var(--text-primary)]">Pay Bills</h4>
               <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Electricity, Water & Gas</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleQuickAction('/recharge')}
+            className="bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-purple-500/40 rounded-2xl p-5 flex flex-col gap-3 items-start text-left transition-all duration-200 outline-none hover:-translate-y-0.5 group"
+            id="action-mobile-recharge"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-purple-500/15 transition-transform duration-200">
+              <Smartphone size={18} />
+            </div>
+            <div>
+              <h4 className="font-sora font-bold text-sm text-[var(--text-primary)]">Recharge</h4>
+              <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Mobile top-up instantly</p>
             </div>
           </button>
 

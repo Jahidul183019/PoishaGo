@@ -21,6 +21,7 @@ import TransactionHistoryPage from './pages/user/TransactionHistoryPage';
 import RewardsPage from './pages/user/RewardsPage';
 import NotificationsPage from './pages/user/NotificationsPage';
 import ProfilePage from './pages/user/ProfilePage';
+import MobileRechargePage from './pages/user/MobileRechargePage';
 
 // PAGES (ADMIN)
 import AdminLoginPage from './pages/admin/AdminLoginPage';
@@ -29,6 +30,7 @@ import AdminUserTxnMgmtPage from './pages/admin/AdminUserTxnMgmtPage';
 import AdminFraudDetectionPage from './pages/admin/AdminFraudDetectionPage';
 import AdminOccasionsPage from './pages/admin/AdminOccasionsPage';
 import AdminTransactionsPage from './pages/admin/AdminTransactionsPage';
+import { AdminConfigPage } from './pages/admin/AdminConfigPage';
 
 // SECURITY GUARD: Authenticated customers/admins only
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ 
@@ -102,6 +104,7 @@ export const App: React.FC = () => {
           <Route path="rewards" element={<RewardsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="recharge" element={<MobileRechargePage />} />
         </Route>
 
         {/* Private Admin operations terminal routes */}
@@ -120,6 +123,7 @@ export const App: React.FC = () => {
           <Route path="transactions" element={<AdminTransactionsPage />} />
           <Route path="fraud" element={<AdminFraudDetectionPage />} />
           <Route path="occasions" element={<AdminOccasionsPage />} />
+          <Route path="config" element={<AdminConfigPage />} />
         </Route>
 
         {/* Catch-all fallback */}

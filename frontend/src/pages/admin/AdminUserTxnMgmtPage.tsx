@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWalletStore, CitizenAccount } from '../../store/useWalletStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
@@ -24,8 +24,13 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
     toggleCitizenStatus, 
     adjustCitizenBalance, 
     addNotification, 
-    addTransaction 
+    addTransaction,
+    fetchUsers
   } = useWalletStore();
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const { user: currentLoggedUser, updateUserBalance } = useAuthStore();
 
@@ -161,17 +166,17 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                 </tr>
               ) : (
                 filteredCitizens.map((citizen) => (
-                  <tr key={citizen.walletNumber} className="hover:bg-[var(--bg-secondary)]/30 transition-colors">
+                  <tr key={citizen.wallet_number} className="hover:bg-[var(--bg-secondary)]/30 transition-colors">
                     
                     {/* Name */}
                     <td className="py-4 px-6">
-                      <h4 className="font-bold text-[var(--text-primary)]">{citizen.fullName}</h4>
-                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 capitalize">Role: {citizen.userType}</p>
+                      <h4 className="font-bold text-[var(--text-primary)]">{citizen.full_name}</h4>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 capitalize">Role: {citizen.user_type}</p>
                     </td>
 
                     {/* Phone details */}
                     <td className="py-4 px-6 font-mono text-slate-300">
-                      <div>{citizen.walletNumber}</div>
+                      <div>{citizen.wallet_number}</div>
                       <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{citizen.phone}</div>
                     </td>
 
@@ -206,7 +211,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
 
                         {/* Status Toggle Blockers */}
                         <button
-                          onClick={() => toggleCitizenStatus(citizen.walletNumber)}
+                          onClick={() => toggleCitizenStatus(citizen.wallet_number)}
                           className={`flex items-center gap-1 py-1.5 px-3 rounded-lg font-bold border transition-all outline-none cursor-pointer ${
                             citizen.status === 'active'
                               ? 'bg-rose-500/10 border-rose-500/15 hover:bg-rose-500/25 text-rose-400'

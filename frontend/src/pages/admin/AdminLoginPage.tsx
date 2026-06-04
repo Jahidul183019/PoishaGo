@@ -13,12 +13,12 @@ export const AdminLoginPage: React.FC = () => {
   const [passcode, setPasscode] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleAdminLoginSubmit = (e: React.FormEvent) => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
     // Call store mutation
-    const success = adminLogin(username, passcode);
+    const success = await adminLogin(username, passcode);
     if (success) {
       navigate('/admin/dashboard');
     } else {
@@ -153,12 +153,7 @@ export const AdminLoginPage: React.FC = () => {
 
                 </form>
 
-                {/* Fallback references */}
-                <div className="border-t border-[var(--border)] pt-5 text-center mt-4">
-                  <p className="text-[11px] text-[var(--text-secondary)] tracking-wide font-mono">
-                    Demo admin ID is <strong className="text-cyan-500 font-bold">admin</strong> & passcode is <strong className="text-cyan-500 font-bold">admin123</strong>
-                  </p>
-                </div>
+                {/* Fallback references removed for security */}
               </div>
 
             </div>

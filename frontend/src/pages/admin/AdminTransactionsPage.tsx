@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore, WalletTransaction } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
@@ -19,9 +19,15 @@ import {
 
 export const AdminTransactionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { transactions } = useWalletStore();
+  const { adminTransactions, fetchAdminTransactions } = useWalletStore();
 
   const [expandedTxnId, setExpandedTxnId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchAdminTransactions();
+  }, [fetchAdminTransactions]);
+
+
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +43,7 @@ export const AdminTransactionsPage: React.FC = () => {
 
   // Memoized filters computation
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(txn => {
+    return adminTransactions.filter(txn => {
       // 1. Search term match reference or counterpart name
       const query = searchTerm.toLowerCase();
       const matchQuery = 
@@ -69,7 +75,7 @@ export const AdminTransactionsPage: React.FC = () => {
 
       return matchQuery && matchType && matchStatus && matchDate;
     });
-  }, [transactions, searchTerm, typeFilter, statusFilter, dateFilter]);
+  }, [adminTransactions, searchTerm, typeFilter, statusFilter, dateFilter]);
 
   // Pagination parameters
   const paginatedTxns = useMemo(() => {

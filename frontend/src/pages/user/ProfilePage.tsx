@@ -36,10 +36,10 @@ export const ProfilePage: React.FC = () => {
   const [pinSuccess, setPinSuccess] = useState('');
 
   // Editable fields simulation
-  const [fullName, setFullName] = useState(user?.full_name || 'Ahmed Hassan');
-  const [email, setEmail] = useState(user?.email || 'ahmed@isoc.org.bd');
-  const [address, setAddress] = useState('Dhanmondi, Dhaka, Bangladesh');
-  const [language, setLanguage] = useState<'English' | 'Bangla'>('English');
+  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [address, setAddress] = useState('');
+  const [language, setLanguage] = useState<'English'>('English');
   const [editSuccess, setEditSuccess] = useState('');
 
   const handleProfileSave = (e: React.FormEvent) => {
@@ -114,7 +114,7 @@ export const ProfilePage: React.FC = () => {
             </h3>
             
             <p className="text-xs font-mono text-[var(--text-secondary)] mt-1">
-              Wallet ID: <span className="text-[var(--text-primary)] font-bold">{user?.wallet_number || 'PG-WAL-00001'}</span>
+              Wallet ID: <span className="text-[var(--text-primary)] font-bold">{user?.wallet_number || 'N/A'}</span>
             </p>
 
             <div className="mt-3">
@@ -133,7 +133,7 @@ export const ProfilePage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span>Available Purse Balance:</span>
-                <span className="text-[var(--text-primary)] font-bold">{formatBDT(user?.balance ?? 100000)}</span>
+                <span className="text-[var(--text-primary)] font-bold">{formatBDT(user?.balance ?? 0)}</span>
               </div>
             </div>
           </Card>
@@ -165,7 +165,6 @@ export const ProfilePage: React.FC = () => {
                 className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg py-1 px-2.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] cursor-pointer"
               >
                 <option value="English">English</option>
-                <option value="Bangla">বাংলা (Bangla)</option>
               </select>
             </div>
           </Card>
@@ -213,7 +212,7 @@ export const ProfilePage: React.FC = () => {
                     <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
                       type="tel"
-                      value={user?.phone || '01711000001'}
+                      value={user?.phone || ''}
                       className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl py-2.5 pl-10 pr-4 text-xs font-mono font-bold text-[var(--text-secondary)] outline-none cursor-not-allowed"
                       disabled
                     />

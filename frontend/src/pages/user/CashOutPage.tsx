@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
@@ -18,14 +18,17 @@ import {
 
 export const CashOutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance } = useAuthStore();
+  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
   const { addTransaction, addNotification } = useWalletStore();
 
-  const agentsList = [
-    { id: '1', name: 'Siddikur Rahman Agent', location: 'Dhaka, Banani Block-C', phone: '01911000006' },
-    { id: '2', name: 'Mizanur Agent Store', location: 'Dhaka, Dhanmondi 27', phone: '01911000007' },
-    { id: '3', name: 'Karim Bazar Tele-com', location: 'Chittagong, GEC Circle', phone: '01955000008' },
-  ];
+  const [agentsList, setAgentsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/agents')
+      .then(res => res.json())
+      .then(data => setAgentsList(data))
+      .catch(err => console.error(err));
+  }, []);
 
   const [selectedAgentId, setSelectedAgentId] = useState('1');
   const [amount, setAmount] = useState('');
@@ -65,55 +68,63 @@ export const CashOutPage: React.FC = () => {
     setIsOTPModalOpen(true);
   };
 
-  const handleOTPComplete = (code: string) => {
+  const handleOTPComplete = async (code: string) => {
     setIsOTPModalOpen(false);
     setCurrentStep('processing');
 
-    // Simulate Agent connection approvals
-    setTimeout(() => {
-      if (user) {
-        const cashOutAmt = parseFloat(amount);
-        const feeAmt = cashOutAmt * 0.015;
-        const totalDebited = cashOutAmt + feeAmt;
-        const refNo = 'TXN_OUT_' + Math.floor(10000000 + Math.random() * 90000000);
+    try {
+      const cashOutAmt = parseFloat(amount);
+      const feeAmt = cashOutAmt * 0.015;
+      const totalDebited = cashOutAmt + feeAmt;
+      
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/transactions/cashout', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          agent_phone: selectedAgent.phone,
+          amount: totalDebited, // The API deducts the amount given. Cash-out deducts amount + fee.
+          pin: code
+        })
+      });
 
-        // Deduct balance inside Auth Store
-        const newBal = user.balance - totalDebited;
-        updateUserBalance(newBal);
-
-        // Ledger transaction inside Wallet Store
-        addTransaction({
-          sender_wallet_id: user.wallet_number,
-          sender_name: user.full_name,
-          receiver_wallet_id: 'PG-WAL-AGENT-' + selectedAgent.phone.slice(-4),
-          receiver_name: selectedAgent.name,
-          amount: cashOutAmt,
-          txn_type: 'cash_out',
-          status: 'completed',
-          fee: feeAmt,
-          reference_no: refNo
-        });
-
-        // Trigger SMS alert in notification logs
-        addNotification(
-          `Cashed Out ৳${cashOutAmt} successfully`,
-          `Withdrew ৳${cashOutAmt} at ${selectedAgent.name}. Fee charged: ৳${feeAmt}. Total deducted: ৳${totalDebited}. Reference ID: ${refNo}. Current balance: ${formatBDT(newBal)}`,
-          'debit'
-        );
-
-        setReceipt({
-          ref: refNo,
-          amount: cashOutAmt,
-          fee: feeAmt,
-          total: totalDebited,
-          agent: selectedAgent.name,
-          location: selectedAgent.location,
-          date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
-        });
-
-        setCurrentStep('success');
+      if (!response.ok) {
+        const err = await response.json();
+        setErrorText(err.detail || 'Cash out failed');
+        setCurrentStep('input');
+        return;
       }
-    }, 1500);
+
+      const data = await response.json();
+      
+      // Update local balance
+      await fetchUserProfile();
+
+      // Trigger SMS alert in notification logs
+      addNotification(
+        `Cashed Out ৳${cashOutAmt} successfully`,
+        `Withdrew ৳${cashOutAmt} at ${selectedAgent.name}. Fee charged: ৳${feeAmt}. Reference ID: ${data.transaction_id}.`,
+        'debit'
+      );
+
+      setReceipt({
+        ref: data.transaction_id,
+        amount: cashOutAmt,
+        fee: feeAmt,
+        total: totalDebited,
+        agent: selectedAgent.name,
+        location: selectedAgent.location,
+        date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
+
+      setCurrentStep('success');
+    } catch (e) {
+      console.error(e);
+      setErrorText('Network error processing cash out');
+      setCurrentStep('input');
+    }
   };
 
   return (

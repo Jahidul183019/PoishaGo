@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useWalletStore } from './useWalletStore';
 
 export interface UserProfile {
   user_id: number;
@@ -23,7 +24,13 @@ interface AuthState {
   admin: AdminProfile | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
-  loginUser: (phone: string, pin: string) => boolean;
+  token: string | null;
+  
+  // Async API Actions
+  loginUser: (phone: string, pin: string) => Promise<boolean>;
+  fetchUserProfile: () => Promise<void>;
+  
+  // Keep some sync for now
   registerUser: (name: string, phone: string, email: string, userType: 'personal' | 'agent', pin?: string) => void;
   verifyUserOTP: (code: string) => boolean;
   loginAdmin: (username: string, r: 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'RISK_MANAGER') => void;
@@ -32,59 +39,59 @@ interface AuthState {
   updateUserBalance: (newBalance: number) => void;
   updateUserPoints: (newPoints: number) => void;
   updateUserPIN: (oldPin: string, newPin: string) => boolean;
-  adminLogin: (username: string, passcode: string) => boolean;
+  adminLogin: (username: string, passcode: string) => Promise<boolean>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   admin: null,
   isLoggedIn: false,
   isAdmin: false,
+  token: localStorage.getItem('token') || null,
 
-  loginUser: (phone, pin) => {
-    // Basic verification logic matching mock
-    if (phone && pin === '123456') {
-      set({
-        user: {
-          user_id: 1,
-          full_name: phone === '01711000001' ? 'Ahmed Hassan' : 'New User',
-          phone: phone,
-          email: 'user@poishago.com',
-          user_type: 'personal',
-          is_verified: true,
-          wallet_number: 'PG-WAL-00001',
-          balance: 100000.00,
-          tier: 'gold',
-          current_points: 2450
-        },
-        isLoggedIn: true,
-        isAdmin: false,
-        admin: null
+  loginUser: async (phone, pin) => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin })
       });
-      return true;
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        set({ token: data.access_token });
+        await get().fetchUserProfile();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error(e);
+      return false;
     }
-    // Fail safe, also allow custom pin logins
-    if (phone) {
-      set({
-        user: {
-          user_id: 2,
-          full_name: 'Demo Bangladeshi User',
-          phone: phone,
-          email: 'demo@poishago.com',
-          user_type: 'personal',
-          is_verified: true,
-          wallet_number: 'PG-WAL-00002',
-          balance: 32000.50,
-          tier: 'bronze',
-          current_points: 450
-        },
-        isLoggedIn: true,
-        isAdmin: false,
-        admin: null
+  },
+  
+  fetchUserProfile: async () => {
+    const { token } = get();
+    if (!token) return;
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      return true;
+      if (response.ok) {
+        const user = await response.json();
+        set({ user, isLoggedIn: true, isAdmin: false, admin: null });
+        
+        // Also hydrate wallet store tables
+        await useWalletStore.getState().fetchTransactions();
+        await useWalletStore.getState().fetchNotifications();
+        await useWalletStore.getState().fetchRewardOptions();
+        await useWalletStore.getState().fetchRewardsHistory();
+      } else {
+        get().logoutUser();
+      }
+    } catch (e) {
+      console.error(e);
     }
-    return false;
   },
 
   registerUser: (name, phone, email, userType, pin) => {
@@ -97,7 +104,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         user_type: userType,
         is_verified: false,
         wallet_number: 'PG-WAL-' + Math.floor(10000 + Math.random() * 90000),
-        balance: 500.00, // starting balance
+        balance: 500.00,
         tier: 'bronze',
         current_points: 100
       },
@@ -129,11 +136,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    set({ user: null, admin: null, isLoggedIn: false, isAdmin: false });
+    localStorage.removeItem('token');
+    set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
   },
 
   logoutUser: () => {
-    set({ user: null, admin: null, isLoggedIn: false, isAdmin: false });
+    localStorage.removeItem('token');
+    set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
   },
 
   updateUserBalance: (newBalance) => {
@@ -155,20 +164,31 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updateUserPIN: (oldPin, newPin) => {
-    // Basic verification/update simulation
     return true;
   },
 
-  adminLogin: (username, passcode) => {
-    if (username === 'admin' && passcode === 'admin123') {
-      set({
-        user: null,
-        admin: { username, role: 'SUPER_ADMIN' },
-        isLoggedIn: true,
-        isAdmin: true
+  adminLogin: async (username, passcode) => {
+    try {
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, passcode })
       });
-      return true;
+      if (response.ok) {
+        const data = await response.json();
+        set({
+          token: data.access_token,
+          isAdmin: true,
+          isLoggedIn: true,
+          admin: { username, role: data.role },
+          user: null
+        });
+        // Also fetch admin details like mock data if needed, but this is enough
+        return true;
+      }
+    } catch (e) {
+      console.error('Admin login failed:', e);
     }
     return false;
-  }
+  },
 }));

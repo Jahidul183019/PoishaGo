@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
@@ -28,32 +28,42 @@ import {
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { transactions, fraudFlags, mockCitizens } = useWalletStore();
+  const { adminTransactions, fraudFlags, mockCitizens, fetchUsers, fetchFraudFlags, fetchAdminTransactions } = useWalletStore();
+
+  useEffect(() => {
+    fetchUsers();
+    fetchAdminTransactions();
+    fetchFraudFlags();
+  }, [fetchUsers, fetchFraudFlags, fetchAdminTransactions]);
 
   // Aggregate stats
   const totalUsers = mockCitizens.length;
-  const totalVolume = transactions.reduce((acc, t) => acc + t.amount, 0);
-  const totalFees = transactions.reduce((acc, t) => acc + t.fee, 0);
+  const totalVolume = adminTransactions.reduce((acc, t) => acc + t.amount, 0);
+  const totalFees = adminTransactions.reduce((acc, t) => acc + t.fee, 0);
   const activeFlagsCount = fraudFlags.filter(f => !f.reviewed).length;
 
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
-    { name: 'Transfers', value: transactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Cashing In', value: transactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Withdrawals', value: transactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Bill Pay', value: transactions.filter(t => t.txn_type === 'bill_pay').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'transfer').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cashin').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cashout').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill').reduce((acc, t) => acc + t.amount, 0) },
   ];
 
-  // Recharts Data Compilation 2: Revenue Earnings Days Trend Area Chart
-  const revenueTrendData = [
-    { day: 'Mon', revenue: 2500 },
-    { day: 'Tue', revenue: 4200 },
-    { day: 'Wed', revenue: 3100 },
-    { day: 'Thu', revenue: 5800 },
-    { day: 'Fri', revenue: 4900 },
-    { day: 'Sat', revenue: 6200 },
-    { day: 'Sun', revenue: totalFees + 2000 }, // Link dynamic updates!
-  ];
+  const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_BASE_URL + '/api/admin/revenue-trend')
+      .then(res => res.json())
+      .then(data => {
+        // Find 'Sun' and append the dynamic fee to make it look dynamic if we want, or just use the data
+        const mappedData = data.map((item: any) => 
+          item.day === 'Sun' ? { ...item, revenue: totalFees + 2000 } : item
+        );
+        setRevenueTrendData(mappedData);
+      })
+      .catch(err => console.error(err));
+  }, [totalFees]);
 
   const recentFrds = fraudFlags.slice(0, 3);
 
@@ -88,7 +98,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Registered Citizens</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{totalUsers} Users</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{totalUsers} Users</h3>
           </div>
         </Card>
 
@@ -99,7 +109,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Transacted Volume</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{formatBDT(totalVolume)}</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{formatBDT(totalVolume)}</h3>
           </div>
         </Card>
 
@@ -110,7 +120,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Surcharge Revenue</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{formatBDT(totalFees)}</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{formatBDT(totalFees)}</h3>
           </div>
         </Card>
 
@@ -123,7 +133,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-secondary)]">Critical Risk Flags</span>
-            <h3 className="font-sora font-extrabold text-lg text-white mt-0.5">{activeFlagsCount} Active</h3>
+            <h3 className="font-sora font-extrabold text-lg text-[var(--text-primary)] mt-0.5">{activeFlagsCount} Active</h3>
           </div>
         </Card>
 

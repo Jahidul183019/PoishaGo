@@ -15,28 +15,91 @@ import {
   CheckCircle, 
   History, 
   Copy, 
-  ChevronRight 
+  ChevronRight,
+  UserPlus,
+  X
 } from 'lucide-react';
 
 export const SendMoneyPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance } = useAuthStore();
+  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
   const { addTransaction, addNotification } = useWalletStore();
 
-  // Receivers suggestions
-  const suggestedContacts = [
-    { name: 'Fatema Begum', phone: '01711000002', initials: 'FB' },
-    { name: 'Rafiq Ahmed', phone: '01711000003', initials: 'RA' },
-    { name: 'Kamrul Islam', phone: '01711000004', initials: 'KI' },
-    { name: 'Nusrat Jahan', phone: '01811000005', initials: 'NJ' },
-  ];
+  const [suggestedContacts, setSuggestedContacts] = useState<{contact_id?: number, name: string, phone: string, initials: string}[]>([]);
+
+  const fetchContacts = () => {
+    if (token) {
+      fetch(import.meta.env.VITE_API_BASE_URL + '/api/contacts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setSuggestedContacts(data);
+      })
+      .catch(console.error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchContacts();
+  }, [token]);
+
+  // Add contact modal state
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [newContactNickname, setNewContactNickname] = useState('');
+  const [addContactError, setAddContactError] = useState('');
+  const [addContactLoading, setAddContactLoading] = useState(false);
+
+  const handleAddContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddContactError('');
+    if (newContactPhone.length < 11) {
+      setAddContactError('Please enter a valid 11-digit phone number.');
+      return;
+    }
+    setAddContactLoading(true);
+    try {
+      const res = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ phone: newContactPhone, nickname: newContactNickname })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAddContactError(data.detail || 'Failed to add contact.');
+      } else {
+        setIsAddContactOpen(false);
+        setNewContactPhone('');
+        setNewContactNickname('');
+        fetchContacts(); // Refresh the list
+      }
+    } catch {
+      setAddContactError('Network error. Please try again.');
+    } finally {
+      setAddContactLoading(false);
+    }
+  };
+
+  const handleRemoveContact = async (contactId: number) => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchContacts();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 
   const [recipientPhone, setRecipientPhone] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [errorText, setErrorText] = useState('');
-  
+
   // OTP modal triggers
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<'input' | 'processing' | 'success'>('input');
@@ -72,51 +135,73 @@ export const SendMoneyPage: React.FC = () => {
     setIsOTPModalOpen(true);
   };
 
-  const handleOTPCompleteComp = (otpCode: string) => {
+  const handleOTPCompleteComp = async (otpCode: string) => {
     setIsOTPModalOpen(false);
     setCurrentStep('processing');
 
-    setTimeout(() => {
-      if (user) {
-        const transferAmt = parseFloat(amount);
-        const resolvedName = recipientName || `Wallet (${recipientPhone})`;
-        const refNo = 'TXN' + Math.floor(10000000 + Math.random() * 90000000);
-
-        // Deduct sender balance inside Auth Store
-        const newBal = user.balance - transferAmt;
-        updateUserBalance(newBal);
-
-        // Record Ledger transaction inside Wallet Store
-        const ledgerTxn = addTransaction({
-          sender_wallet_id: user.wallet_number,
-          sender_name: user.full_name,
-          receiver_wallet_id: 'PG-WAL-' + recipientPhone.slice(-5),
-          receiver_name: resolvedName,
+    try {
+      const transferAmt = parseFloat(amount);
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/transactions/send', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          receiver_phone: recipientPhone,
           amount: transferAmt,
-          txn_type: 'send_money',
-          status: 'completed',
-          fee: 0,
-          reference_no: refNo
-        });
+          pin: otpCode
+        })
+      });
 
-        // Trigger in-app alerts
-        addNotification(
-          `Sent ${formatBDT(transferAmt)} to ${resolvedName}`,
-          `Successfully debited ${formatBDT(transferAmt)} from your wallet. Reference: ${refNo}. Current balance: ${formatBDT(newBal)}`,
-          'debit'
-        );
-
-        setGeneratedReceipt({
-          ref: refNo,
-          amount: transferAmt,
-          receiver: resolvedName,
-          phone: recipientPhone,
-          date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
-        });
-
-        setCurrentStep('success');
+      if (!response.ok) {
+        const err = await response.json();
+        setErrorText(err.detail || 'Transaction failed');
+        setCurrentStep('input');
+        return;
       }
-    }, 1500);
+
+      const data = await response.json();
+      
+      // Update local balance
+      await fetchUserProfile();
+      
+      const resolvedName = recipientName || `Wallet (${recipientPhone})`;
+
+      // Record Ledger transaction inside Wallet Store for UI history
+      addTransaction({
+        sender_wallet_id: user?.wallet_number || '',
+        sender_name: user?.full_name || '',
+        receiver_wallet_id: 'PG-WAL-' + recipientPhone.slice(-5),
+        receiver_name: resolvedName,
+        amount: transferAmt,
+        txn_type: 'send_money',
+        status: 'completed',
+        fee: 0,
+        reference_no: data.transaction_id
+      });
+
+      // Trigger in-app alerts
+      addNotification(
+        `Sent ${formatBDT(transferAmt)} to ${resolvedName}`,
+        `Successfully debited ${formatBDT(transferAmt)} from your wallet. Reference: ${data.transaction_id}.`,
+        'debit'
+      );
+
+      setGeneratedReceipt({
+        ref: data.transaction_id,
+        amount: transferAmt,
+        receiver: resolvedName,
+        phone: recipientPhone,
+        date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
+
+      setCurrentStep('success');
+    } catch (e) {
+      console.error(e);
+      setErrorText('Network error processing transaction');
+      setCurrentStep('input');
+    }
   };
 
   return (
@@ -144,30 +229,57 @@ export const SendMoneyPage: React.FC = () => {
         <>
           {/* HORIZONTAL SCROLL CONTACT SUGGESTIONS */}
           <div className="flex flex-col gap-2.5 select-none">
-            <h3 className="text-xs font-bold font-sora text-[var(--text-secondary)] uppercase tracking-widest pl-1">
-              Favorite Citizens
-            </h3>
-            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-              {suggestedContacts.map((contact) => (
-                <button
-                  key={contact.phone}
-                  onClick={() => selectSuggestedContact(contact.name, contact.phone)}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shrink-0 hover:border-[#00C9A7]/40 text-left transition-all outline-none"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#00C9A7] flex items-center justify-center font-sora text-xs font-bold text-white uppercase">
-                    {contact.initials}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-xs text-[var(--text-primary)] leading-none truncate max-w-[100px]">
-                      {contact.name}
-                    </h4>
-                    <p className="text-[9px] text-[var(--text-secondary)] font-mono mt-1 leading-none">
-                      {contact.phone}
-                    </p>
-                  </div>
-                </button>
-              ))}
+            <div className="flex items-center justify-between pl-1 pr-1">
+              <h3 className="text-xs font-bold font-sora text-[var(--text-secondary)] uppercase tracking-widest">
+                Favourite Contacts
+              </h3>
+              <button
+                onClick={() => { setIsAddContactOpen(true); setAddContactError(''); }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#00C9A7] hover:text-[#00C9A7]/80 transition-colors outline-none"
+                id="btn-add-contact"
+              >
+                <UserPlus size={13} />
+                Add Contact
+              </button>
             </div>
+            {suggestedContacts.length === 0 ? (
+              <div className="text-xs text-[var(--text-secondary)] pl-1 py-1">No contacts yet. Click "Add Contact" to save someone!</div>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                {suggestedContacts.map((contact) => (
+                  <div
+                    key={contact.phone}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shrink-0 hover:border-[#00C9A7]/40 transition-all relative group"
+                  >
+                    <button
+                      onClick={() => selectSuggestedContact(contact.name, contact.phone)}
+                      className="flex items-center gap-2.5 outline-none"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#00C9A7] flex items-center justify-center font-sora text-xs font-bold text-white uppercase">
+                        {contact.initials}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-xs text-[var(--text-primary)] leading-none truncate max-w-[90px]">
+                          {contact.name}
+                        </h4>
+                        <p className="text-[9px] text-[var(--text-secondary)] font-mono mt-1 leading-none">
+                          {contact.phone}
+                        </p>
+                      </div>
+                    </button>
+                    {contact.contact_id && (
+                      <button
+                        onClick={() => handleRemoveContact(contact.contact_id!)}
+                        className="opacity-0 group-hover:opacity-100 ml-1 p-0.5 rounded-full text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all outline-none"
+                        title="Remove contact"
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* INPUT FORM SCHEMATICS */}
@@ -385,6 +497,52 @@ export const SendMoneyPage: React.FC = () => {
             Safety tip: Never disclose your authorization PIN.
           </p>
         </div>
+      </Modal>
+
+      {/* ADD CONTACT MODAL */}
+      <Modal
+        isOpen={isAddContactOpen}
+        onClose={() => { setIsAddContactOpen(false); setNewContactPhone(''); setNewContactNickname(''); setAddContactError(''); }}
+        title="Add Favourite Contact"
+      >
+        <form onSubmit={handleAddContact} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Phone Number *
+            </label>
+            <input
+              type="tel"
+              value={newContactPhone}
+              onChange={(e) => setNewContactPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[#00C9A7]/60 transition-colors"
+              placeholder="01XXXXXXXXX"
+              maxLength={11}
+              id="input-new-contact-phone"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Nickname <span className="normal-case font-normal text-slate-500">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={newContactNickname}
+              onChange={(e) => setNewContactNickname(e.target.value)}
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[#00C9A7]/60 transition-colors"
+              placeholder="e.g. Mum, Office Bhai..."
+              id="input-new-contact-nickname"
+            />
+          </div>
+          {addContactError && (
+            <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 px-3 py-2 rounded-lg border border-rose-500/20">
+              <AlertCircle size={13} />
+              {addContactError}
+            </div>
+          )}
+          <Button type="submit" className="w-full mt-1" disabled={addContactLoading}>
+            {addContactLoading ? 'Saving...' : 'Save Contact'}
+          </Button>
+        </form>
       </Modal>
 
       <style>{`
