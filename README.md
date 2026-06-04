@@ -79,8 +79,8 @@ PoishaGo
    ```
 6. Run the FastAPI server:
    ```bash
-   uvicorn main:app --reload
-   # Runs on http://127.0.0.1:8000
+   uvicorn main:app --reload --port 8080
+   # Runs on http://127.0.0.1:8080
    ```
 
 ### 3. Frontend Setup
@@ -88,6 +88,13 @@ PoishaGo
 2. Install Node modules: `npm install`
 3. Start the development server: `npm run dev`
 4. Access the app via `http://localhost:5173`
+
+### 4. Running the Entire App Easily
+We've provided a `run.sh` script in the root directory to run both the frontend and backend simultaneously.
+Simply run:
+```bash
+./run.sh
+```
 
 ## 🛡️ Architecture & Security
 - **Atomic Transactions:** Uses PostgreSQL transaction blocks (`conn.commit()` and `conn.rollback()`) to ensure no funds are lost or duplicated during concurrent transfers.
