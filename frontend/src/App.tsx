@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
+import { useThemeStore } from './store/useThemeStore';
 
 // LAYOUTS
 import UserLayout from './components/layout/UserLayout';
@@ -27,6 +28,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUserTxnMgmtPage from './pages/admin/AdminUserTxnMgmtPage';
 import AdminFraudDetectionPage from './pages/admin/AdminFraudDetectionPage';
 import AdminOccasionsPage from './pages/admin/AdminOccasionsPage';
+import AdminTransactionsPage from './pages/admin/AdminTransactionsPage';
 
 // SECURITY GUARD: Authenticated customers/admins only
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ 
@@ -65,6 +67,10 @@ const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    useThemeStore.getState().init();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -111,6 +117,7 @@ export const App: React.FC = () => {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUserTxnMgmtPage />} />
+          <Route path="transactions" element={<AdminTransactionsPage />} />
           <Route path="fraud" element={<AdminFraudDetectionPage />} />
           <Route path="occasions" element={<AdminOccasionsPage />} />
         </Route>

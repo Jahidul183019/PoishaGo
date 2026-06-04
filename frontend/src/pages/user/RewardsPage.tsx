@@ -203,16 +203,16 @@ export const RewardsPage: React.FC = () => {
               
               {/* Bronze */}
               <div className="bg-gradient-to-br from-orange-950/40 via-orange-900/10 to-transparent border border-orange-500/10 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-orange-400">🥉 Bronze Tier</span>
-                <p className="text-xs text-slate-300 leading-normal">
+                <span className="font-sora font-semibold text-xs text-orange-500">🥉 Bronze Tier</span>
+                <p className="text-xs text-[var(--text-secondary)] leading-normal">
                   Threshold: <strong>0 - 999 pts</strong>. Holds base account levels, standard transactional fee rates.
                 </p>
               </div>
 
               {/* Silver */}
               <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/10 to-transparent border border-slate-400/10 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-slate-300">🥈 Silver Tier</span>
-                <p className="text-xs text-slate-300 leading-normal">
+                <span className="font-sora font-semibold text-xs text-slate-500">🥈 Silver Tier</span>
+                <p className="text-xs text-[var(--text-secondary)] leading-normal">
                   Threshold: <strong>1,000 - 2,499 pts</strong>. Unlocks <strong>5% points commission multiplier bonus</strong>.
                 </p>
               </div>
@@ -220,19 +220,19 @@ export const RewardsPage: React.FC = () => {
               {/* Gold */}
               <div className="bg-gradient-to-br from-yellow-950/40 via-yellow-900/10 to-transparent border border-yellow-500/10 p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
                 <div className="absolute right-1 top-1 w-10 h-10 bg-yellow-500/5 rounded-full blur-md" />
-                <span className="font-sora font-semibold text-xs text-yellow-400 flex items-center gap-1">
+                <span className="font-sora font-semibold text-xs text-yellow-500 flex items-center gap-1">
                   <span>🥇 Gold Tier</span>
-                  <span className="text-[8px] bg-yellow-500/10 text-yellow-400 px-1 rounded">Active</span>
+                  <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-1 rounded">Active</span>
                 </span>
-                <p className="text-xs text-slate-300 leading-normal">
+                <p className="text-xs text-[var(--text-secondary)] leading-normal">
                   Threshold: <strong>2,500 - 4,999 pts</strong>. Offers <strong>10% higher multi-points</strong>, zero utility surcharge.
                 </p>
               </div>
 
               {/* Platinum */}
               <div className="bg-gradient-to-br from-blue-950/40 via-blue-900/10 to-transparent border border-blue-500/15 p-5 rounded-2xl flex flex-col gap-3">
-                <span className="font-sora font-semibold text-xs text-blue-400">💎 Platinum Tier</span>
-                <p className="text-xs text-slate-300 leading-normal">
+                <span className="font-sora font-semibold text-xs text-blue-500">💎 Platinum Tier</span>
+                <p className="text-xs text-[var(--text-secondary)] leading-normal">
                   Threshold: <strong>5,000+ pts</strong>. Dedicated 24/7 hotline support, instant priority cashout pipelines.
                 </p>
               </div>
@@ -268,8 +268,12 @@ export const RewardsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4 text-xs">
-                  {/* Tier badge representation */}
-                  <span className="text-[10px] uppercase font-mono bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-[var(--border)]">
+                  <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded border ${
+                    leader.tier === 'platinum' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                    leader.tier === 'gold' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                    leader.tier === 'silver' ? 'bg-slate-500/10 text-slate-500 border-slate-500/20' :
+                    'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                  }`}>
                     {leader.tier}
                   </span>
                   

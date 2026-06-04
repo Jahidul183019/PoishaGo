@@ -35,11 +35,9 @@ export const Sidebar: React.FC = () => {
           className="flex items-center gap-3 cursor-pointer group"
           id="desktop-brand-header"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#2563EB] to-[#00C9A7] flex items-center justify-center font-sora font-bold text-white text-xl shadow-lg shadow-blue-500/10">
-            ৳
-          </div>
+          <img src="/logo.png" alt="PoishaGo Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-blue-500/10" />
           <div>
-            <h1 className="font-sora font-extrabold text-xl tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent group-hover:from-cyan-400 group-hover:to-blue-400 transition-all duration-300">
+            <h1 className="font-sora font-extrabold text-xl tracking-tight text-[var(--text-primary)] transition-all duration-300">
               Poisha<span className="text-[#00C9A7]">Go</span>
             </h1>
             <p className="text-[9px] font-mono tracking-wider text-[var(--text-secondary)] uppercase">

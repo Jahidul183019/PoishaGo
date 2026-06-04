@@ -19,7 +19,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'User Directory', path: '/admin/users', icon: Users },
     { label: 'Transactions History', path: '/admin/transactions', icon: History },
     { label: 'Fraud Alerts', path: '/admin/fraud', icon: ShieldAlert },
-    { label: 'Rewards & Cashbacks', path: '/admin/cashbacks', icon: Award },
+    { label: 'Rewards & Cashbacks', path: '/admin/occasions', icon: Award },
   ];
 
   const handleLogout = () => {
@@ -28,24 +28,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#040D1A] text-slate-100 flex">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex">
       {/* Sidebar - Desktop */}
       <AdminSidebar />
 
       {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#071428] border-b border-red-500/10 flex items-center justify-between px-6 z-40">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-secondary)] border-b border-[var(--border)] flex items-center justify-between px-6 z-40">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-sora font-semibold text-white">
-            ★
-          </div>
-          <span className="font-sora font-bold text-base tracking-tight text-white">
+          <img src="/logo.png" alt="PoishaHQ Logo" className="w-8 h-8 object-contain rounded-lg" />
+          <span className="font-sora font-bold text-base tracking-tight text-[var(--text-primary)]">
             Poisha<span className="text-amber-400">HQ</span>
           </span>
         </div>
         
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-slate-300 hover:text-white"
+          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -58,16 +56,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsMobileMenuOpen(false)} />
           
           {/* Menu Panel */}
-          <div className="relative w-[280px] bg-[#071428] h-full p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative w-[280px] bg-[var(--bg-secondary)] h-full p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
             <div className="flex flex-col gap-8">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-sora font-semibold text-white">
-                    ★
-                  </div>
-                  <span className="font-sora font-bold text-[#F8FAFF]">PoishaHQ</span>
+                  <img src="/logo.png" alt="PoishaHQ Logo" className="w-8 h-8 object-contain rounded-lg" />
+                  <span className="font-sora font-bold text-[var(--text-primary)]">PoishaHQ</span>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                   <X size={20} />
                 </button>
               </div>
@@ -82,7 +78,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         navigate(item.path);
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50"
+                      className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
                     >
                       <Icon size={18} className="text-amber-400" />
                       <span>{item.label}</span>
@@ -92,10 +88,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </nav>
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-slate-800 pt-4">
+            <div className="flex flex-col gap-4 border-t border-[var(--border)] pt-4">
               {admin && (
-                <div className="p-3 bg-slate-900 rounded-lg">
-                  <p className="font-bold text-xs text-white pb-1">{admin.username}</p>
+                <div className="p-3 bg-[var(--bg-card)] rounded-lg">
+                  <p className="font-bold text-xs text-[var(--text-primary)] pb-1">{admin.username}</p>
                   <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold font-mono tracking-wider bg-rose-500/10 text-rose-400">
                     {admin.role}
                   </span>

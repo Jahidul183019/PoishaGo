@@ -135,7 +135,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       user: null,
       admin: { username, role },
-      isLoggedIn: false,
+      isLoggedIn: true,
       isAdmin: true
     });
   },
@@ -176,7 +176,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         admin: { username, role: 'SUPER_ADMIN' },
-        isLoggedIn: false,
+        isLoggedIn: true,
         isAdmin: true
       });
       return true;

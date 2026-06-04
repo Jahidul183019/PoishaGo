@@ -104,7 +104,7 @@ export const ProfilePage: React.FC = () => {
         {/* Left Column: Avatar & Quick Stats */}
         <div className="flex flex-col gap-6">
           
-          <Card className="flex flex-col items-center text-center p-6 bg-gradient-to-tr from-[var(--bg-card)] to-slate-900/45">
+          <Card className="flex flex-col items-center text-center p-6 bg-gradient-to-tr from-[var(--bg-card)] to-[var(--accent-blue)]/10">
             <div className="w-18 h-18 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#00C9A7] flex items-center justify-center font-sora text-2xl font-extrabold text-white uppercase drop-shadow-[0_0_12px_rgba(37,99,235,0.25)] ring-2 ring-[var(--border)]">
               {fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
@@ -129,11 +129,11 @@ export const ProfilePage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span>Registration Mode:</span>
-                <span className="text-white capitalize">{user?.user_type || 'personal'}</span>
+                <span className="text-[var(--text-primary)] capitalize">{user?.user_type || 'personal'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Available Purse Balance:</span>
-                <span className="text-white font-bold">{formatBDT(user?.balance ?? 100000)}</span>
+                <span className="text-[var(--text-primary)] font-bold">{formatBDT(user?.balance ?? 100000)}</span>
               </div>
             </div>
           </Card>
@@ -349,7 +349,7 @@ export const ProfilePage: React.FC = () => {
               placeholder="••••••"
               value={oldPIN}
               onChange={(e) => setOldPIN(e.target.value.replace(/\D/g, ''))}
-              className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-white text-base font-extrabold"
+              className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-[var(--text-primary)] text-base font-extrabold"
               required
             />
           </div>
@@ -366,7 +366,7 @@ export const ProfilePage: React.FC = () => {
                 placeholder="••••••"
                 value={newPIN}
                 onChange={(e) => setNewPIN(e.target.value.replace(/\D/g, ''))}
-                className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-white text-base font-extrabold"
+                className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-[var(--text-primary)] text-base font-extrabold"
                 required
               />
             </div>
@@ -382,7 +382,7 @@ export const ProfilePage: React.FC = () => {
                 placeholder="••••••"
                 value={confirmPIN}
                 onChange={(e) => setConfirmPIN(e.target.value.replace(/\D/g, ''))}
-                className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-white text-base font-extrabold"
+                className="w-full text-center tracking-widest font-mono bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2 px-4 outline-none focus:border-[#00C9A7] text-[var(--text-primary)] text-base font-extrabold"
                 required
               />
             </div>

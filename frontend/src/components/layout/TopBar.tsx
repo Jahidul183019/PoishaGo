@@ -20,11 +20,7 @@ export const TopBar: React.FC = () => {
         className="flex items-center gap-2.5 cursor-pointer"
         id="mobile-brand-container"
       >
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-sora font-semibold text-white text-md ${
-          isAdminPath ? 'bg-gradient-to-tr from-amber-500 to-rose-500' : 'bg-gradient-to-tr from-[#2563EB] to-[#00C9A7]'
-        }`}>
-          {isAdminPath ? '★' : '৳'}
-        </div>
+        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
         <span className="font-sora font-bold text-base tracking-tight text-[var(--text-primary)]">
           {isAdminPath ? (
             <>Poisha<span className="text-amber-400">HQ</span></>

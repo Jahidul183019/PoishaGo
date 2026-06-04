@@ -14,7 +14,7 @@ export const AdminSidebar: React.FC = () => {
     { label: 'User Management', path: '/admin/users', icon: Users },
     { label: 'Transactions Ledger', path: '/admin/transactions', icon: History },
     { label: 'Fraud Detection', path: '/admin/fraud', icon: ShieldAlert },
-    { label: 'Campaign Manager', path: '/admin/cashbacks', icon: Award },
+    { label: 'Campaign Manager', path: '/admin/occasions', icon: Award },
   ];
 
   const handleLogout = () => {
@@ -23,7 +23,7 @@ export const AdminSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-[280px] bg-[#071428] border-r border-red-500/10 p-6 justify-between z-40">
+    <aside className="hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-secondary)] border-r border-[var(--border)] p-6 justify-between z-40">
       <div className="flex flex-col gap-8">
         {/* Brand Header */}
         <div 
@@ -31,11 +31,9 @@ export const AdminSidebar: React.FC = () => {
           className="flex items-center gap-3 cursor-pointer group"
           id="admin-brand-header"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-sora font-bold text-white text-xl shadow-lg">
-            ★
-          </div>
+          <img src="/logo.png" alt="PoishaHQ Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
           <div>
-            <h1 className="font-sora font-extrabold text-xl tracking-tight text-white group-hover:text-amber-400 transition-colors">
+            <h1 className="font-sora font-extrabold text-xl tracking-tight text-[var(--text-primary)] group-hover:text-amber-400 transition-colors">
               Poisha<span className="text-amber-400">HQ</span>
             </h1>
             <p className="text-[9px] font-mono tracking-wider text-rose-300 uppercase">
@@ -57,11 +55,11 @@ export const AdminSidebar: React.FC = () => {
                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
                   isActive
                     ? 'bg-amber-500/10 text-amber-400 border-l-2 border-amber-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]'
                 }`}
                 id={`admin-menu-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
-                <Icon size={18} className={isActive ? 'text-amber-400' : 'text-slate-400'} />
+                <Icon size={18} className={isActive ? 'text-amber-400' : 'text-[var(--text-secondary)]'} />
                 <span>{item.label}</span>
               </button>
             );
@@ -69,13 +67,13 @@ export const AdminSidebar: React.FC = () => {
         </nav>
       </div>
 
-      <div className="flex flex-col gap-4 mt-auto border-t border-slate-800 pt-4">
+      <div className="flex flex-col gap-4 mt-auto border-t border-[var(--border)] pt-4">
         {/* Active Administrator credentials */}
         {admin && (
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800">
+          <div className="bg-[var(--bg-card)] rounded-xl p-3 border border-[var(--border)]">
             <div className="flex items-center gap-2.5 mb-1.5">
               <ShieldCheck size={16} className="text-amber-400 shrink-0" />
-              <span className="font-sora font-semibold text-xs text-slate-200 truncate">
+              <span className="font-sora font-semibold text-xs text-[var(--text-primary)] truncate">
                 {admin.username}
               </span>
             </div>

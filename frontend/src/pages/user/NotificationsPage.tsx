@@ -94,7 +94,11 @@ export const NotificationsPage: React.FC = () => {
               className={`relative bg-[var(--bg-card)] border rounded-2xl p-4.5 transition-all duration-200 flex flex-col gap-3 group shadow ${
                 msg.is_read 
                   ? 'border-[var(--border)] opacity-65 hover:opacity-100' 
-                  : 'border-[#00C9A7]/25 shadow-md bg-gradient-to-r from-emerald-500/5 to-transparent'
+                  : msg.notif_type === 'debit'
+                    ? 'border-rose-500/30 shadow-md bg-gradient-to-r from-rose-500/5 to-transparent'
+                    : msg.notif_type === 'credit'
+                      ? 'border-emerald-500/30 shadow-md bg-gradient-to-r from-emerald-500/5 to-transparent'
+                      : 'border-blue-500/30 shadow-md bg-gradient-to-r from-blue-500/5 to-transparent'
               }`}
             >
               {/* Header icons + clear */}
@@ -120,7 +124,13 @@ export const NotificationsPage: React.FC = () => {
                   {!msg.is_read && (
                     <button
                       onClick={() => markAsRead(msg.id)}
-                      className="text-[10px] font-mono tracking-wide py-0.5 px-2 bg-[#00C9A7]/20 border border-[#00C9A7]/10 rounded text-[#00C9A7] font-bold hover:bg-[#00C9A7]/30 transition-all outline-none"
+                      className={`text-[10px] font-mono tracking-wide py-0.5 px-2 border rounded font-bold transition-all outline-none ${
+                        msg.notif_type === 'debit'
+                          ? 'bg-rose-500/20 border-rose-500/10 text-rose-500 hover:bg-rose-500/30'
+                          : msg.notif_type === 'credit'
+                            ? 'bg-emerald-500/20 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/30'
+                            : 'bg-blue-500/20 border-blue-500/10 text-blue-500 hover:bg-blue-500/30'
+                      }`}
                     >
                       New
                     </button>
@@ -136,7 +146,7 @@ export const NotificationsPage: React.FC = () => {
               </div>
 
               {/* Message Content descriptions */}
-              <p className="text-xs text-slate-300 font-semibold leading-relaxed pl-9.5 pr-4">
+              <p className="text-xs text-[var(--text-secondary)] font-semibold leading-relaxed pl-9.5 pr-4">
                 {msg.message}
               </p>
 
