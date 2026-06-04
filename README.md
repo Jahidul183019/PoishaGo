@@ -79,8 +79,8 @@ PoishaGo
    ```
 6. Run the FastAPI server:
    ```bash
-   python3 main.py
-   # Runs on http://0.0.0.0:8000
+   uvicorn main:app --reload
+   # Runs on http://127.0.0.1:8000
    ```
 
 ### 3. Frontend Setup
