@@ -42,7 +42,7 @@ PoishaGo is a modern, high-performance web application designed to emulate the c
 ## 🛠️ Project Structure
 
 ```
-poishago-2/
+PoishaGo
 ├── frontend/             # React (Vite) Application
 │   ├── src/
 │   │   ├── components/   # Reusable UI components (Modals, Icons, etc.)
