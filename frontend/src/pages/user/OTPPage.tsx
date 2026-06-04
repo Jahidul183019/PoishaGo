@@ -14,9 +14,12 @@ export const OTPPage: React.FC = () => {
   const initialEmail = location.state?.email || (isPasswordReset ? '' : user?.email || 'user@email.com');
   
   const [email, setEmail] = useState(initialEmail);
-  const [step, setStep] = useState<'enter_email' | 'enter_otp'>(
+  const [step, setStep] = useState<'enter_email' | 'enter_otp' | 'reset_pin'>(
     initialEmail ? 'enter_otp' : 'enter_email'
   );
+  
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
 
   const [counter, setCounter] = useState(45);
   const [canResend, setCanResend] = useState(false);
@@ -77,13 +80,32 @@ export const OTPPage: React.FC = () => {
         throw new Error(errorData.detail || 'Invalid verification code.');
       }
 
-      verifyUserOTP(code);
-      navigate('/home');
+      if (isPasswordReset) {
+        setStep('reset_pin');
+      } else {
+        verifyUserOTP(code);
+        navigate('/home');
+      }
     } catch (err: any) {
       setErrorText(err.message || 'Invalid verification code. Please request a new code or try again.');
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleResetPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.length !== 6 || confirmPin.length !== 6) {
+      setErrorText('PIN must be exactly 6 digits.');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setErrorText('PINs do not match.');
+      return;
+    }
+    
+    // Success: navigate back to login
+    navigate('/login');
   };
 
   const handleResendCode = () => {
@@ -154,11 +176,13 @@ export const OTPPage: React.FC = () => {
                   <ShieldCheck size={24} />
                 </div>
                 <h1 className="font-sora font-extrabold text-2xl text-[var(--text-primary)]">
-                  {step === 'enter_email' ? 'Reset Password' : 'Authorization Code'}
+                  {step === 'enter_email' ? 'Reset Password' : step === 'reset_pin' ? 'Create New PIN' : 'Authorization Code'}
                 </h1>
                 <p className="text-xs text-[var(--text-secondary)] px-4 leading-relaxed pb-4">
                   {step === 'enter_email' 
                     ? 'Enter your registered email address below to receive a password reset OTP code.' 
+                    : step === 'reset_pin'
+                    ? 'Your identity has been verified. Please enter a new 6-digit security PIN for your wallet.'
                     : 'We sent a 6-digit confirmation code to your registered email address:'}
                   {step === 'enter_otp' && (
                     <span className="block font-bold text-[var(--text-primary)] font-mono mt-1 text-sm">
@@ -171,7 +195,34 @@ export const OTPPage: React.FC = () => {
               {/* Main Verification Card */}
               <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-b-2xl p-6 shadow-xl flex flex-col gap-6 relative z-20">
                 
-                {step === 'enter_email' ? (
+                {step === 'reset_pin' ? (
+                  <form onSubmit={handleResetPin} className="flex flex-col gap-4 py-2">
+                    <input 
+                      type="password"
+                      maxLength={6}
+                      value={newPin}
+                      onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
+                      className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
+                      placeholder="New 6-digit PIN" 
+                      required 
+                    />
+                    <input 
+                      type="password"
+                      maxLength={6}
+                      value={confirmPin}
+                      onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
+                      className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
+                      placeholder="Confirm New PIN" 
+                      required 
+                    />
+                    <button 
+                      type="submit" 
+                      className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center mt-2"
+                    >
+                      Update Security PIN
+                    </button>
+                  </form>
+                ) : step === 'enter_email' ? (
                   <form onSubmit={handleSendEmailOTP} className="flex flex-col gap-4 py-2">
                     <input 
                       type="email" 
