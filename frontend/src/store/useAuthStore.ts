@@ -24,7 +24,7 @@ interface AuthState {
   isLoggedIn: boolean;
   isAdmin: boolean;
   loginUser: (phone: string, pin: string) => boolean;
-  registerUser: (name: string, phone: string, email: string, userType: 'personal' | 'agent') => void;
+  registerUser: (name: string, phone: string, email: string, userType: 'personal' | 'agent', pin?: string) => void;
   verifyUserOTP: (code: string) => boolean;
   loginAdmin: (username: string, r: 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'RISK_MANAGER') => void;
   logout: () => void;
@@ -36,21 +36,9 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  // Default logged in user for immediate experience: Ahmed Hassan as requested
-  user: {
-    user_id: 1,
-    full_name: 'Ahmed Hassan',
-    phone: '01711000001',
-    email: 'ahmed@email.com',
-    user_type: 'personal',
-    is_verified: true,
-    wallet_number: 'PG-WAL-00001',
-    balance: 100000.00,
-    tier: 'gold',
-    current_points: 2450
-  },
+  user: null,
   admin: null,
-  isLoggedIn: true,
+  isLoggedIn: false,
   isAdmin: false,
 
   loginUser: (phone, pin) => {
@@ -99,7 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     return false;
   },
 
-  registerUser: (name, phone, email, userType) => {
+  registerUser: (name, phone, email, userType, pin) => {
     set({
       user: {
         user_id: 3,

@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
             <p className="text-xl text-[var(--text-secondary)] max-w-lg">
               Experience the next generation of financial freedom in Bangladesh. Simple, secure, and lightning-fast transactions for the modern economy.
             </p>
-            <div className="relative w-[90%] aspect-[16/9] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-4">
+            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-8">
               <img 
                 className="w-full h-full object-cover" 
                 alt="PoishaGo App Interface" 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Phone, User, Mail, Upload, ArrowLeft, ArrowRight, CheckCircle, Shield } from 'lucide-react';
+import { Phone, User, Mail, Upload, ArrowLeft, ArrowRight, CheckCircle, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 
 export const RegisterPage: React.FC = () => {
@@ -11,10 +11,15 @@ export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [userType, setUserType] = useState<'personal' | 'agent'>('personal');
   const [nidUploaded, setNidUploaded] = useState(false);
   const [nidFileName, setNidFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,27 +30,55 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (fullName.trim().length === 0) {
       setErrorMsg('Full Name is required');
       return;
     }
-    if (phone.length < 11) {
-      setErrorMsg('Valid 11-digit Bangladeshi Mobile Number required');
+    if (!email) {
+      setErrorMsg('Email Address is required to receive OTP');
       return;
     }
     if (!nidUploaded) {
       setErrorMsg('Official National ID (NID) document upload is required for KYC compliance');
       return;
     }
+    if (pin.length !== 6) {
+      setErrorMsg('Security PIN must be exactly 6 digits');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setErrorMsg('Security PINs do not match');
+      return;
+    }
 
-    // Call store mutation
-    registerUser(fullName, phone, email, userType);
-    
-    // Auto guide to verification code gateway
-    navigate('/otp');
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch('http://localhost:8000/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send OTP');
+      }
+
+      // Call store mutation
+      registerUser(fullName, phone, email, userType, pin);
+
+      // Auto guide to verification code gateway
+      navigate('/otp', { state: { email } });
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Something went wrong while sending the email.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -68,20 +101,20 @@ export const RegisterPage: React.FC = () => {
       {/* Main Content Canvas */}
       <main className="flex-grow flex items-center justify-center pt-24 pb-10 px-4 md:px-12 w-full">
         <div className="w-full max-w-[1600px] flex flex-col md:flex-row gap-10 lg:gap-24 items-center justify-between">
-          
+
           {/* Hero Side (Desktop) */}
           <div className="hidden md:flex flex-col space-y-4 flex-grow self-start mt-0 xl:-mt-6 max-w-[800px]">
             <h1 className="font-sora text-5xl font-bold text-[var(--text-primary)] leading-tight tracking-tight">
-              Join the future of<br/>
+              Join the future of<br />
               <span className="text-[#00C9A7]">digital finance.</span>
             </h1>
             <p className="text-xl text-[var(--text-secondary)] max-w-lg">
               Open your PoishaGo wallet in just 2 minutes. Secure, fast, and fully compliant with Bangladesh Bank.
             </p>
-            <div className="relative w-[90%] aspect-[16/9] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-4">
-              <img 
-                className="w-full h-full object-cover" 
-                alt="PoishaGo App Interface" 
+            <div className="relative w-[100%] aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-8">
+              <img
+                className="w-full h-full object-cover"
+                alt="PoishaGo App Interface"
                 src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
               />
             </div>
@@ -89,12 +122,12 @@ export const RegisterPage: React.FC = () => {
 
           {/* Auth Form Container */}
           <div className="flex-shrink-0 flex justify-center md:justify-end w-full md:w-auto">
-            <div className="w-full md:w-[440px] bg-[var(--bg-card)] p-6 md:p-8 rounded-2xl shadow-xl border border-[var(--border)] relative overflow-hidden transition-all duration-300">
-              
-              <div className="space-y-6">
-                
+            <div className="w-full md:w-[380px] bg-[var(--bg-card)] p-5 md:p-6 rounded-2xl shadow-xl border border-[var(--border)] relative overflow-hidden transition-all duration-300">
+
+              <div className="space-y-4">
+
                 {/* Header & Back Link */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <button
                     onClick={() => navigate('/login')}
                     className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[#2563EB] transition-colors outline-none"
@@ -102,41 +135,39 @@ export const RegisterPage: React.FC = () => {
                     <ArrowLeft size={14} />
                     <span>Back to sign in</span>
                   </button>
-                  
+
                   <div>
                     <h2 className="font-sora text-2xl font-bold text-[var(--text-primary)]">Create Wallet Account</h2>
                     <p className="text-sm text-[var(--text-secondary)] mt-1">Sign up in 2 minutes with NID Card verification</p>
                   </div>
                 </div>
-                
+
                 {/* USER TYPE TOGGLE TABS */}
                 <div className="flex bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1">
                   <button
                     type="button"
                     onClick={() => setUserType('personal')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
-                      userType === 'personal'
-                        ? 'bg-[#00C9A7] text-white shadow-md'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${userType === 'personal'
+                      ? 'bg-[#00C9A7] text-white shadow-md'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
                   >
                     Personal Wallet
                   </button>
                   <button
                     type="button"
                     onClick={() => setUserType('agent')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
-                      userType === 'agent'
-                        ? 'bg-[#00C9A7] text-white shadow-md'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${userType === 'agent'
+                      ? 'bg-[#00C9A7] text-white shadow-md'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
                   >
                     Merchant / Agent
                   </button>
                 </div>
 
-                <form className="space-y-4" onSubmit={handleRegisterSubmit}>
-                  
+                <form className="space-y-3" onSubmit={handleRegisterSubmit}>
+
                   {/* Full name input */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Full Name (English)</label>
@@ -150,7 +181,7 @@ export const RegisterPage: React.FC = () => {
                           setFullName(e.target.value);
                           setErrorMsg('');
                         }}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
                         required
                       />
                     </div>
@@ -170,7 +201,7 @@ export const RegisterPage: React.FC = () => {
                           setPhone(e.target.value.replace(/\D/g, ''));
                           setErrorMsg('');
                         }}
-                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
+                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
                         required
                       />
                     </div>
@@ -178,7 +209,7 @@ export const RegisterPage: React.FC = () => {
 
                   {/* Email Address */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Email Address (Optional)</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Email Address</label>
                     <div className="relative">
                       <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                       <input
@@ -186,8 +217,68 @@ export const RegisterPage: React.FC = () => {
                         placeholder="e.g. rafiq@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
                       />
+                    </div>
+                  </div>
+
+                  {/* Security PIN */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex justify-between items-center">
+                      <span>Security PIN (6 Digits)</span>
+                      <span className="text-[10px] text-[#00C9A7] font-mono">Required</span>
+                    </label>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
+                      <input
+                        type={showPin ? "text" : "password"}
+                        placeholder="••••••"
+                        maxLength={6}
+                        value={pin}
+                        onChange={(e) => {
+                          setPin(e.target.value.replace(/\D/g, ''));
+                          setErrorMsg('');
+                        }}
+                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
+                        required
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors outline-none"
+                      >
+                        {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm PIN */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex justify-between items-center">
+                      <span>Confirm PIN</span>
+                      <span className="text-[10px] text-[#00C9A7] font-mono">Required</span>
+                    </label>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
+                      <input
+                        type={showConfirmPin ? "text" : "password"}
+                        placeholder="••••••"
+                        maxLength={6}
+                        value={confirmPin}
+                        onChange={(e) => {
+                          setConfirmPin(e.target.value.replace(/\D/g, ''));
+                          setErrorMsg('');
+                        }}
+                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
+                        required
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowConfirmPin(!showConfirmPin)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors outline-none"
+                      >
+                        {showConfirmPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
                   </div>
 
@@ -197,19 +288,18 @@ export const RegisterPage: React.FC = () => {
                       <span>National ID Card (NID)</span>
                       <span className="text-[10px] text-[#00C9A7] font-mono">Required</span>
                     </label>
-                    
-                    <div className={`relative border border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-200 ${
-                      nidUploaded 
-                        ? 'border-[#00C9A7]/50 bg-[#00C9A7]/5' 
-                        : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[#00C9A7]/50 hover:bg-[var(--bg-secondary)]/50'
-                    }`}>
+
+                    <div className={`relative border border-dashed rounded-xl p-3 text-center cursor-pointer transition-all duration-200 ${nidUploaded
+                      ? 'border-[#00C9A7]/50 bg-[#00C9A7]/5'
+                      : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[#00C9A7]/50 hover:bg-[var(--bg-secondary)]/50'
+                      }`}>
                       <input
                         type="file"
                         accept="image/*,application/pdf"
                         onChange={handleFileUpload}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      
+
                       {nidUploaded ? (
                         <div className="flex flex-col items-center gap-1.5 select-none">
                           <CheckCircle size={22} className="text-[#00C9A7]" />
@@ -250,10 +340,11 @@ export const RegisterPage: React.FC = () => {
                   {/* CTA */}
                   <button 
                     type="submit" 
-                    className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 outline-none"
+                    disabled={isLoading}
+                    className={`w-full h-11 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-3 outline-none ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
-                    Validate Bangladesh KYC
-                    <ArrowRight size={18} />
+                    {isLoading ? 'Sending OTP...' : 'Validate Bangladesh KYC'}
+                    {!isLoading && <ArrowRight size={18} />}
                   </button>
 
                 </form>

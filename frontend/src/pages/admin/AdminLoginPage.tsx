@@ -56,7 +56,7 @@ export const AdminLoginPage: React.FC = () => {
             <p className="text-xl text-[var(--text-secondary)] max-w-lg">
               Authorized administrative personnel only. Comprehensive oversight and management of the PoishaGo financial network.
             </p>
-            <div className="relative w-[90%] aspect-[16/9] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-4">
+            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-8">
               <img 
                 className="w-full h-full object-cover" 
                 alt="Admin Dashboard Analytics" 
