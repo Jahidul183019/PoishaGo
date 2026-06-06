@@ -262,66 +262,80 @@ export const AdminDashboardPage: React.FC = () => {
           </h3>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-            {/* User mgmt */}
-            <button
-              onClick={() => navigate('/admin/users')}
-              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-cyan-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-            >
-              <div className="flex items-center gap-3">
-                <Users size={16} className="text-cyan-400" />
-                <span className="text-xs font-bold text-[var(--text-primary)]">Citizens Management</span>
-              </div>
-              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-cyan-400 transition-colors" />
-            </button>
+            {/* Security Clearance Checker */}
+            {(() => {
+              const checkAccess = (perm: string) => {
+                if (admin?.role === 'SUPER_ADMIN') return true;
+                if (admin?.permissions?.includes(perm)) return true;
+                const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
+                alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+                return false;
+              };
 
-            {/* Fraud triggers */}
-            <button
-              onClick={() => navigate('/admin/fraud')}
-              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-rose-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-            >
-              <div className="flex items-center gap-3">
-                <ShieldAlert size={16} className="text-rose-400" />
-                <span className="text-xs font-bold text-[var(--text-primary)]">Risk & Fraud Audit</span>
-              </div>
-              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-rose-400 transition-colors" />
-            </button>
+              return (
+                <>
+                  {/* User mgmt */}
+                  <button
+                    onClick={() => checkAccess('VIEW_USERS') && navigate('/admin/users')}
+                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-cyan-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Users size={16} className="text-cyan-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">Citizens Management</span>
+                    </div>
+                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-cyan-400 transition-colors" />
+                  </button>
 
-            {/* Campaign cashbacks */}
-            <button
-              onClick={() => navigate('/admin/occasions')}
-              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-amber-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-            >
-              <div className="flex items-center gap-3">
-                <CalendarCheck2 size={16} className="text-amber-400" />
-                <span className="text-xs font-bold text-[var(--text-primary)]">Cashbacks & Occasions</span>
-              </div>
-              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
-            </button>
+                  {/* Fraud triggers */}
+                  <button
+                    onClick={() => checkAccess('REVIEW_FRAUD') && navigate('/admin/fraud')}
+                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-rose-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShieldAlert size={16} className="text-rose-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">Risk & Fraud Audit</span>
+                    </div>
+                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-rose-400 transition-colors" />
+                  </button>
 
-            {/* Transaction Ledger */}
-            <button
-              onClick={() => navigate('/admin/transactions')}
-              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-blue-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-            >
-              <div className="flex items-center gap-3">
-                <TrendingUp size={16} className="text-blue-400" />
-                <span className="text-xs font-bold text-[var(--text-primary)]">Transaction Ledger</span>
-              </div>
-              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-blue-400 transition-colors" />
-            </button>
+                  {/* Campaign cashbacks */}
+                  <button
+                    onClick={() => checkAccess('MANAGE_CAMPAIGNS') && navigate('/admin/occasions')}
+                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-amber-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck2 size={16} className="text-amber-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">Cashbacks & Occasions</span>
+                    </div>
+                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
+                  </button>
 
-            {/* System Configuration */}
-            <button
-              onClick={() => navigate('/admin/config')}
-              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-purple-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-            >
-              <div className="flex items-center gap-3">
-                <Settings size={16} className="text-purple-400" />
-                <span className="text-xs font-bold text-[var(--text-primary)]">System Configuration</span>
-              </div>
-              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-purple-400 transition-colors" />
-            </button>
+                  {/* Transaction Ledger */}
+                  <button
+                    onClick={() => checkAccess('MANAGE_TRANSACTIONS') && navigate('/admin/transactions')}
+                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-blue-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <TrendingUp size={16} className="text-blue-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">Transaction Ledger</span>
+                    </div>
+                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-blue-400 transition-colors" />
+                  </button>
 
+                  {/* System Configuration */}
+                  <button
+                    onClick={() => checkAccess('MANAGE_CONFIG') && navigate('/admin/config')}
+                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-purple-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings size={16} className="text-purple-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">System Configuration</span>
+                    </div>
+                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-purple-400 transition-colors" />
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
 

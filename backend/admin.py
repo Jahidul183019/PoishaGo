@@ -37,14 +37,10 @@ router = APIRouter(prefix="/api", tags=["Admin"])
 
 @router.get("/fraud-flags")
 def get_fraud_flags(
-    admin: dict = Depends(get_current_admin), 
+    admin: dict = Depends(require_permission("REVIEW_FRAUD")), 
     db: Session = Depends(get_db)
 ):
-    """
-    Returns fraud flags joined with user and transaction data
-    via the vw_fraud_dashboard view.
-    Maps the 'reviewed_by_name' to a boolean 'reviewed' for the frontend.
-    """
+    """Returns fraud flags joined with user and transaction data."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(
             text("""
@@ -81,16 +77,10 @@ def get_fraud_flags(
 
 @router.get("/campaigns")
 def get_campaigns(
-    admin: dict = Depends(get_current_admin), 
+    admin: dict = Depends(require_permission("MANAGE_CAMPAIGNS")), 
     db: Session = Depends(get_db)
 ):
-    """
-    Returns occasion cashback campaigns.
-    Maps DB column names to the frontend's CashbackCampaign interface:
-      occasion_name   → name / title
-      cashback_pct    → percentage_back / percent
-      max_cashback    → max_limit_bdt / max_limit
-    """
+    """Returns occasion cashback campaigns."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(
             text("""
@@ -132,7 +122,7 @@ def get_campaigns(
 @router.post("/users/{user_id}/toggle-status")
 def toggle_user_status(
     user_id: int, 
-    admin: dict = Depends(get_current_admin), 
+    admin: dict = Depends(require_permission("TOGGLE_USER_STATUS")), 
     db: Session = Depends(get_db)
 ):
     """Blocks or restores a user's wallet access."""
@@ -164,7 +154,7 @@ def toggle_user_status(
 def adjust_user_balance(
     user_id: int,
     req: BalanceAdjustmentRequest,
-    admin: dict = Depends(get_current_admin),
+    admin: dict = Depends(require_permission("ADJUST_BALANCE")),
     db: Session = Depends(get_db)
 ):
     """Administratively adjust a user's balance and log the audit trail."""
@@ -210,7 +200,7 @@ def adjust_user_balance(
 @router.post("/fraud-flags/{flag_id}/resolve")
 def resolve_fraud_flag(
     flag_id: int, 
-    admin: dict = Depends(get_current_admin), 
+    admin: dict = Depends(require_permission("REVIEW_FRAUD")), 
     db: Session = Depends(get_db)
 ):
     """Marks a suspicious activity flag as reviewed."""
@@ -233,7 +223,7 @@ def resolve_fraud_flag(
 @router.post("/campaigns")
 def create_campaign(
     req: CampaignRequest,
-    admin: dict = Depends(get_current_admin),
+    admin: dict = Depends(require_permission("MANAGE_CAMPAIGNS")),
     db: Session = Depends(get_db),
 ):
     """Creates a new cashback campaign and logs the action."""
@@ -275,3 +265,55 @@ def create_campaign(
         conn.commit()
 
     return {"message": "Campaign created", "id": occ_id}
+
+@router.delete("/campaigns/{occasion_id}")
+def delete_campaign(
+    occasion_id: int,
+    admin: dict = Depends(require_permission("MANAGE_CAMPAIGNS")),
+    db: Session = Depends(get_db)
+):
+    """Permanently removes a campaign and logs the action."""
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM occasion_cashbacks WHERE occasion_id = :oid"),
+            {"oid": occasion_id}
+        )
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id)
+                VALUES (:aid, 'DELETE_CAMPAIGN', 'occasion_cashbacks', :tid)
+            """),
+            {"aid": admin["admin_id"], "tid": occasion_id}
+        )
+        conn.commit()
+    return {"message": "Campaign deleted"}
+
+@router.post("/campaigns/{occasion_id}/toggle")
+def toggle_campaign(
+    occasion_id: int,
+    admin: dict = Depends(require_permission("MANAGE_CAMPAIGNS")),
+    db: Session = Depends(get_db)
+):
+    """Toggles the active status of a campaign."""
+    with db.connection().engine.connect() as conn:
+        res = conn.execute(
+            text("SELECT is_active FROM occasion_cashbacks WHERE occasion_id = :oid"),
+            {"oid": occasion_id}
+        ).first()
+        if not res:
+            raise HTTPException(404, "Campaign not found")
+        
+        new_status = not res[0]
+        conn.execute(
+            text("UPDATE occasion_cashbacks SET is_active = :status WHERE occasion_id = :oid"),
+            {"oid": occasion_id, "status": new_status}
+        )
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
+                VALUES (:aid, 'TOGGLE_CAMPAIGN', 'occasion_cashbacks', :tid, :val)
+            """),
+            {"aid": admin["admin_id"], "tid": occasion_id, "val": f'{{"is_active": {str(new_status).lower()}}}'}
+        )
+        conn.commit()
+    return {"message": "Campaign status updated", "is_active": new_status}

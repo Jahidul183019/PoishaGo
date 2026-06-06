@@ -26,6 +26,7 @@ export const AdminOccasionsPage: React.FC = () => {
   // Create Modal triggers State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
+  const [occasionType, setOccasionType] = useState('other');
   const [percentageBack, setPercentageBack] = useState('15');
   const [capacityCap, setCapacityCap] = useState('500');
   const [validUntilDate, setValidUntilDate] = useState('June 30, 2026');
@@ -54,10 +55,11 @@ export const AdminOccasionsPage: React.FC = () => {
     }
 
     // Add to store dataset
-    createCampaign(title, pct, maxCap, validUntilDate);
+    createCampaign(title, occasionType, pct, maxCap, validUntilDate);
 
     // Clean states & shut
     setTitle('');
+    setOccasionType('other');
     setPercentageBack('15');
     setCapacityCap('500');
     setValidUntilDate('June 30, 2026');
@@ -172,13 +174,13 @@ export const AdminOccasionsPage: React.FC = () => {
                     {/* Toggle switch visual */}
                     <button
                       onClick={() => toggleCampaignStatus(camp.id)}
-                      className={`relative w-10 h-5.5 rounded-full transition-colors ${
-                        camp.is_active ? 'bg-[#00C9A7]' : 'bg-slate-800'
+                      className={`relative w-10 h-5.5 rounded-full transition-colors duration-200 outline-none ${
+                        camp.is_active ? 'bg-[#00C9A7]' : 'bg-slate-700'
                       }`}
                       id={`toggle-campaign-${camp.id}`}
                     >
-                      <div className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-white transition-all transform ${
-                        camp.is_active ? 'right-0.5' : 'left-0.5'
+                      <div className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ${
+                        camp.is_active ? 'translate-x-4.5' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>
@@ -215,6 +217,25 @@ export const AdminOccasionsPage: React.FC = () => {
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400"
               required
             />
+          </div>
+
+          {/* Occasion Type */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+              Occasion Type
+            </label>
+            <select
+              value={occasionType}
+              onChange={(e) => setOccasionType(e.target.value)}
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400 appearance-none cursor-pointer"
+              required
+            >
+              <option value="eid">Eid Holiday</option>
+              <option value="puja">Puja Festival</option>
+              <option value="new_year">New Year</option>
+              <option value="independence">Independence Day</option>
+              <option value="other">Other / Special</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

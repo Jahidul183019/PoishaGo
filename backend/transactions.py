@@ -71,10 +71,10 @@ def _execute_transfer(
     amount: float,
     receiver_phone: str,
     txn_type: str,       # 'transfer' | 'cashout' | 'cashin' | 'bill'
-) -> str:
+) -> tuple[str, int]:
     """
     Core double-entry ledger update.
-    Returns the generated reference number.
+    Returns a tuple: (reference_no, txn_id).
     Raises HTTPException on any business-logic failure.
     """
     if amount <= 0:
@@ -174,20 +174,22 @@ def _execute_transfer(
 
     # Log transaction row
     ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
-    conn.execute(
+    res = conn.execute(
         text("""
             INSERT INTO transactions
                 (reference_no, sender_wallet_id, receiver_wallet_id,
                  txn_type, amount, fee, status)
             VALUES (:ref, :sw, :rw, :ttype, :amt, 0.00, 'success')
+            RETURNING txn_id
         """),
         {
             "ref": ref, "sw": sender_wallet_id, "rw": receiver_wallet_id,
             "ttype": txn_type, "amt": amount,
         },
     )
+    txn_id = res.first()[0]
 
-    return ref
+    return ref, txn_id
 
 
 # ── POST /api/transactions/send  (SendMoneyPage) ──────────────────────────────
@@ -229,7 +231,18 @@ def send_money(
         )
 
         # Now verify PIN and execute transfer
-        ref = _execute_transfer(conn, user_id, req.pin, req.amount, req.receiver_phone, "transfer")
+        ref, txn_id = _execute_transfer(conn, user_id, req.pin, req.amount, req.receiver_phone, "transfer")
+
+        # --- REAL-TIME FRAUD DETECTION ---
+        if req.amount >= 40000:
+            conn.execute(
+                text("""
+                    INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
+                    VALUES (:tid, :uid, :rule, :score)
+                """),
+                {"tid": txn_id, "uid": user_id, "rule": "Large Swift Transaction Flag (>= ৳40,000)", "score": random.randint(75, 95)}
+            )
+
         conn.commit()
     return {"message": "Transaction successful", "transaction_id": ref}
 
@@ -319,7 +332,18 @@ def cash_out(
         )
 
         # Now verify PIN and execute transfer
-        ref = _execute_transfer(conn, user_id, req.pin, req.amount, req.agent_phone, "cashout")
+        ref, txn_id = _execute_transfer(conn, user_id, req.pin, req.amount, req.agent_phone, "cashout")
+
+        # --- REAL-TIME FRAUD DETECTION ---
+        if req.amount >= 40000:
+            conn.execute(
+                text("""
+                    INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
+                    VALUES (:tid, :uid, :rule, :score)
+                """),
+                {"tid": txn_id, "uid": user_id, "rule": "Large Withdrawal Alert (>= ৳40,000)", "score": random.randint(80, 98)}
+            )
+
         conn.commit()
     return {"message": "Cash out successful", "transaction_id": ref}
 
@@ -492,15 +516,28 @@ def cash_in(
         )
 
         ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
-        conn.execute(
+        res = conn.execute(
             text("""
                 INSERT INTO transactions
                     (reference_no, sender_wallet_id, receiver_wallet_id,
                      txn_type, amount, fee, status)
                 VALUES (:ref, :aw, :uw, 'cashin', :amt, 0.00, 'success')
+                RETURNING txn_id
             """),
             {"ref": ref, "aw": agent_wallet[0], "uw": user_wallet[0], "amt": req.amount},
         )
+        txn_id = res.first()[0]
+
+        # --- REAL-TIME FRAUD DETECTION ---
+        if req.amount >= 40000:
+            conn.execute(
+                text("""
+                    INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
+                    VALUES (:tid, :uid, :rule, :score)
+                """),
+                {"tid": txn_id, "uid": user_id, "rule": "Large Deposit Flag (>= ৳40,000)", "score": random.randint(70, 90)}
+            )
+
         conn.commit()
 
     return {"message": "Cash in successful", "transaction_id": ref}
@@ -611,7 +648,7 @@ def pay_bill(
         ).first()
         sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
 
-        ref = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+        ref, _ = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
 
         # Update existing bill_payments table (linking to the transaction)
         txn_row = conn.execute(
@@ -674,7 +711,7 @@ def mobile_recharge(
         ).first()
         sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
 
-        ref = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+        ref, _ = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
 
         # Update existing bill_payments table (linking to the transaction)
         txn_row = conn.execute(
@@ -777,10 +814,7 @@ def get_transactions(
 # ── GET /api/admin/transactions  (AdminDashboardPage, AdminUserTxnMgmtPage) ──
 
 @router.get("/admin/transactions")
-def get_admin_transactions(
-    admin: dict = Depends(get_current_admin), 
-    db: Session = Depends(get_db)
-):
+def get_admin_transactions(admin: dict = Depends(require_permission("MANAGE_TRANSACTIONS")), db: Session = Depends(get_db)):
     """Returns up to 500 most recent transactions for the admin dashboard."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(
@@ -835,7 +869,7 @@ def get_admin_transactions(
 # ── GET /api/admin/revenue-trend  (AdminDashboardPage chart) ─────────────────
 
 @router.get("/admin/revenue-trend")
-def get_revenue_trend(admin: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
+def get_revenue_trend(admin: dict = Depends(require_permission("VIEW_REPORTS")), db: Session = Depends(get_db)):
     """Returns daily fee revenue for the last 7 days (for the area chart)."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(

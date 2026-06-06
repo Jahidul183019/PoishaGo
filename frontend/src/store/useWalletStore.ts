@@ -82,6 +82,7 @@ interface WalletState {
   campaigns: CashbackCampaign[];
   notifications: AppNotification[];
   rewardOptions: RewardRedeemOption[];
+  billCategories: any[];
   pointsRedeemedHistory: Array<{id: number, points: number, bdt: number, date: string}>;
   
   // Actions
@@ -95,10 +96,10 @@ interface WalletState {
   // Extra Actions
   toggleCitizenStatus: (walletNumber: string) => void;
   adjustCitizenBalance: (walletNumber: string, amount: number, type: 'credit' | 'debit') => boolean;
-  toggleCampaignStatus: (id: number) => void;
-  createCampaign: (title: string, percentageBack: number, maxLimitBDT: number, validUntil: string) => void;
-  deleteCampaign: (id: number) => void;
-  toggleFraudFlagStatus: (id: number) => void;
+  toggleCampaignStatus: (id: number) => Promise<void>;
+  createCampaign: (title: string, type: string, percentageBack: number, maxLimitBDT: number, validUntil: string) => Promise<void>;
+  deleteCampaign: (id: number) => Promise<void>;
+  toggleFraudFlagStatus: (id: number) => Promise<void>;
   toggleUserStatus?: (walletNumber: string) => void;
 
   markAsRead: (id: number) => void;
@@ -235,14 +236,30 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
 
 
-  toggleCitizenStatus: (walletNumber) => {
-    set((state) => {
-      const nextUsers: UserAccount[] = state.users.map(u => u.wallet_number === walletNumber ? { ...u, status: (u.status === 'blocked' ? 'active' : 'blocked') as 'active' | 'blocked' } : u);
-      return {
-        users: nextUsers,
-        mockCitizens: nextUsers
-      };
-    });
+  toggleCitizenStatus: async (walletNumber) => {
+    const token = localStorage.getItem('token');
+    // Support lookup by wallet number or phone (used in fraud detection page)
+    const citizen = get().mockCitizens.find(c => c.wallet_number === walletNumber || c.phone === walletNumber);
+    if (!citizen || !token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${citizen.user_id}/toggle-status`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.detail || "ACCESS DENIED: Insufficient clearance for status modification.");
+        return;
+      }
+      if (response.ok) {
+        await get().fetchUsers(); // Refresh the list from DB
+        const action = citizen.status === 'active' ? 'BLOCKED' : 'RESTORED';
+        alert(`SUCCESS: Account for ${citizen.full_name} (${citizen.phone}) has been ${action}.`);
+      }
+    } catch (e) {
+      console.error('Failed to toggle status', e);
+    }
   },
 
   adjustCitizenBalance: async (walletNumber, amount, type) => {
@@ -260,6 +277,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         },
         body: JSON.stringify({ amount, type })
       });
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.detail || "ACCESS DENIED: Insufficient clearance for balance adjustment.");
+        return false;
+      }
       if (response.ok) {
         await get().fetchUsers(); // Refresh list to get new DB balance
         return true;
@@ -270,45 +292,89 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     return false;
   },
 
-  toggleCampaignStatus: (id) => {
-    set((state) => {
-      const nextCashbacks = state.cashbacks.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c);
-      return {
-        cashbacks: nextCashbacks,
-        campaigns: nextCashbacks
-      };
-    });
+  toggleCampaignStatus: async (id) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // 🚀 OPTIMISTIC UPDATE: Toggle local state immediately for instant feedback
+    set((state) => ({
+      campaigns: state.campaigns.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c),
+      cashbacks: state.cashbacks.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c)
+    }));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/campaigns/${id}/toggle`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        await get().fetchCampaigns();
+      }
+    } catch (e) {
+      console.error('Failed to toggle campaign', e);
+    }
   },
 
-  createCampaign: (title, percentageBack, maxLimitBDT, validUntil) => {
-    const nextCampaign: CashbackCampaign = {
-      id: get().cashbacks.length > 0 ? Math.max(...get().cashbacks.map(c => c.id)) + 1 : 1,
-      name: title,
-      type: 'Cashback',
-      percent: percentageBack,
-      max_limit: maxLimitBDT,
-      min_txn_amount: 100,
-      is_active: true,
-      end_date: validUntil,
-      created_at: new Date().toISOString().split('T')[0]
-    };
-    set((state) => ({
-      cashbacks: [nextCampaign, ...state.cashbacks],
-      campaigns: [nextCampaign, ...state.campaigns]
-    }));
+  createCampaign: async (title, type, percentageBack, maxLimitBDT, validUntil) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          name: title,
+          type: type,
+          percent: percentageBack,
+          max_limit: maxLimitBDT,
+          min_txn_amount: 100,
+          eligible_txn_type: 'all',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: validUntil
+        })
+      });
+      if (response.ok) {
+        await get().fetchCampaigns();
+      }
+    } catch (e) {
+      console.error('Failed to create campaign', e);
+    }
   },
 
-  deleteCampaign: (id) => {
-    set((state) => ({
-      cashbacks: state.cashbacks.filter(c => c.id !== id),
-      campaigns: state.campaigns.filter(c => c.id !== id)
-    }));
+  deleteCampaign: async (id) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/campaigns/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        await get().fetchCampaigns();
+      }
+    } catch (e) {
+      console.error('Failed to delete campaign', e);
+    }
   },
 
-  toggleFraudFlagStatus: (id) => {
-    set((state) => ({
-      fraudFlags: state.fraudFlags.map(f => f.flag_id === id ? { ...f, reviewed: !f.reviewed } : f)
-    }));
+  toggleFraudFlagStatus: async (id) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/fraud-flags/${id}/resolve`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        await get().fetchFraudFlags(); // Refresh the list from DB
+      }
+    } catch (e) {
+      console.error('Failed to resolve fraud flag', e);
+    }
   },
 
   toggleUserStatus: (walletNumber) => {

@@ -133,17 +133,17 @@ def get_rewards_config():
 
 
 STATIC_REWARD_OPTIONS = [
-    {"id": 1, "title": "৳50 Mobile Recharge", "pointsRequired": 500, "valueBDT": 50.0, "category": "voucher"},
-    {"id": 2, "title": "৳100 Daraz Voucher", "pointsRequired": 1000, "valueBDT": 100.0, "category": "voucher"},
-    {"id": 3, "title": "৳200 Cash Back", "pointsRequired": 2000, "valueBDT": 200.0, "category": "cashback"},
-    {"id": 4, "title": "৳500 Superstore Coupon", "pointsRequired": 5000, "valueBDT": 500.0, "category": "voucher"},
+    {"id": 1, "title": "৳50 Wallet Cashback", "pointsRequired": 500, "valueBDT": 50.0, "category": "cashback"},
+    {"id": 2, "title": "৳100 Wallet Cashback", "pointsRequired": 1000, "valueBDT": 100.0, "category": "cashback"},
+    {"id": 3, "title": "৳200 Daraz Voucher", "pointsRequired": 2000, "valueBDT": 200.0, "category": "voucher"},
+    {"id": 4, "title": "৳500 Wallet Cashback", "pointsRequired": 5000, "valueBDT": 500.0, "category": "cashback"},
 ]
 
 # ── GET /api/rewards/options  (RewardsPage, AdminConfigPage) ─────────────────
 
 @router.get("/rewards/options")
 def get_reward_options(db: Session = Depends(get_db)):
-    """Returns all reward options from a static list to avoid schema dependency."""
+    """Returns reward options from static list to prevent DB crash."""
     return STATIC_REWARD_OPTIONS
 
 
@@ -257,14 +257,20 @@ def redeem_rewards(
 # ── Admin: POST /api/admin/rewards/options ────────────────────────────────────
 
 @router.post("/admin/rewards/options")
-def create_reward_option(req: RewardOptionRequest, admin: dict = Depends(get_current_admin)):
-    # Persistence disabled: reward_options table is missing from schema.sql
+def create_reward_option(
+    req: RewardOptionRequest, 
+    admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+):
+    # Persistence disabled: reward_options table missing from schema.sql
     return {"message": "Reward option added"}
 
 
 # ── Admin: DELETE /api/admin/rewards/options/{id} ────────────────────────────
 
 @router.delete("/admin/rewards/options/{option_id}")
-def delete_reward_option(option_id: int, admin: dict = Depends(get_current_admin)):
-    # Persistence disabled: reward_options table is missing from schema.sql
+def delete_reward_option(
+    option_id: int, 
+    admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+):
+    # Persistence disabled: reward_options table missing from schema.sql
     return {"message": "Reward option deleted"}

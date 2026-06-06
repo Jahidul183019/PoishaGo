@@ -9,13 +9,22 @@ export const AdminSidebar: React.FC = () => {
   const location = useLocation();
   const { admin, logout } = useAuthStore();
 
+  const checkAccess = (perm: string) => {
+    if (admin?.role === 'SUPER_ADMIN') return true;
+    if (!perm) return true; // Always allow dashboard
+    if (admin?.permissions?.includes(perm)) return true;
+    const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
+    alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+    return false;
+  };
+
   const menuItems = [
-    { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'User Management', path: '/admin/users', icon: Users },
-    { label: 'Transactions Ledger', path: '/admin/transactions', icon: History },
-    { label: 'Fraud Detection', path: '/admin/fraud', icon: ShieldAlert },
-    { label: 'Campaign Manager', path: '/admin/occasions', icon: Award },
-    { label: 'Configurations', path: '/admin/config', icon: Settings },
+    { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, perm: '' },
+    { label: 'User Management', path: '/admin/users', icon: Users, perm: 'VIEW_USERS' },
+    { label: 'Transactions Ledger', path: '/admin/transactions', icon: History, perm: 'MANAGE_TRANSACTIONS' },
+    { label: 'Fraud Detection', path: '/admin/fraud', icon: ShieldAlert, perm: 'REVIEW_FRAUD' },
+    { label: 'Campaign Manager', path: '/admin/occasions', icon: Award, perm: 'MANAGE_CAMPAIGNS' },
+    { label: 'Configurations', path: '/admin/config', icon: Settings, perm: 'MANAGE_CONFIG' },
   ];
 
   const handleLogout = () => {
@@ -52,7 +61,7 @@ export const AdminSidebar: React.FC = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => checkAccess(item.perm) && navigate(item.path)}
                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
                   isActive
                     ? 'bg-amber-500/10 text-amber-400 border-l-2 border-amber-400'

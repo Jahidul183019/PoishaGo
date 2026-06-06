@@ -15,7 +15,8 @@ import {
   Globe, 
   BookOpen, 
   Tv, 
-  ChevronRight, 
+  ChevronRight,
+  Tag,
   User, 
   Receipt, 
   CheckCircle, 
@@ -29,7 +30,8 @@ const iconMap: Record<string, any> = {
   'Flame': Flame,
   'Globe': Globe,
   'BookOpen': BookOpen,
-  'Tv': Tv
+  'Tv': Tv,
+  'Tag': Tag
 };
 
 const categoryCompanies: Record<string, string[]> = {
@@ -43,8 +45,8 @@ const categoryCompanies: Record<string, string[]> = {
 
 export const BillPaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
-  const { addTransaction, addNotification } = useWalletStore();
+  const { user, token, fetchUserProfile } = useAuthStore();
+  const { addNotification, billCategories, fetchBillCategories } = useWalletStore();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -58,20 +60,12 @@ export const BillPaymentPage: React.FC = () => {
   const [receipt, setReceipt] = useState<any>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(API_BASE_URL + '/api/bill/categories')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else {
-          setCategories([]);
-        }
-      })
-      .catch(err => console.error(err));
-  }, []);
+    if (billCategories.length === 0) {
+      fetchBillCategories();
+    }
+  }, [billCategories, fetchBillCategories]);
 
   const handleSelectCategory = (catId: string) => {
     setSelectedCategory(catId);
@@ -214,7 +208,7 @@ export const BillPaymentPage: React.FC = () => {
       {/* STEP 1: CATEGORY GRID SPLITS */}
       {currentStep === 1 && (
         <div className="grid grid-cols-2 gap-4 select-none">
-          {categories.map((cat) => {
+          {Array.isArray(billCategories) && billCategories.length > 0 ? billCategories.map((cat) => {
             const IconComp = iconMap[cat.icon_id];
             return (
               <button
@@ -235,7 +229,11 @@ export const BillPaymentPage: React.FC = () => {
                 </div>
               </button>
             );
-          })}
+          }) : (
+            <div className="col-span-2 py-12 text-center text-xs text-[var(--text-secondary)] font-semibold">
+              Loading biller registries from central bank clearing house...
+            </div>
+          )}
         </div>
       )}
 

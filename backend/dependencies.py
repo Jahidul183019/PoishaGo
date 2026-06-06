@@ -81,10 +81,11 @@ def get_current_admin(user_id: str = Depends(get_current_user), db: Session = De
 def require_permission(permission: str):
     """Dependency factory to enforce specific admin permissions."""
     def permission_checker(admin: dict = Depends(get_current_admin)):
-        if permission not in admin["permissions"]:
+        if admin["role"] == 'SUPER_ADMIN' or permission in admin["permissions"]:
+            return admin
+        else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Missing required permission: {permission}"
             )
-        return admin
     return permission_checker

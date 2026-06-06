@@ -27,10 +27,20 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
     addTransaction,
     fetchUsers
   } = useWalletStore();
+  const { admin } = useAuthStore();
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const checkAccess = (permission: string) => {
+    if (admin?.role === 'SUPER_ADMIN') return true;
+    if (admin?.permissions.includes(permission)) return true;
+    
+    const roleName = admin?.role.replace('_', ' ').toLowerCase();
+    alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+    return false;
+  };
 
   const { user: currentLoggedUser, updateUserBalance } = useAuthStore();
 
@@ -58,6 +68,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
   }, [mockCitizens, searchCitizenStr]);
 
   const handleOpenCorrection = (cit: CitizenAccount) => {
+    if (!checkAccess('ADJUST_BALANCE')) return;
     setSelectedCitizen(cit);
     setCorrectionAmt('');
     setCorrectionReason('Administrative balance correction adjust');
@@ -78,7 +89,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
     }
 
     // Run adjustments in store
-    const success = adjustCitizenBalance(selectedCitizen.walletNumber, amt, correctionType);
+    const success = adjustCitizenBalance(selectedCitizen.wallet_number, amt, correctionType);
     if (success) {
       const signSymbol = correctionType === 'credit' ? '+' : '-';
       const refNo = 'AD_ADJ_' + Math.floor(100000 + Math.random() * 900000);
@@ -87,8 +98,8 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
       addTransaction({
         sender_wallet_id: 'PG-WAL-AUDIT-CORE',
         sender_name: 'PoishaGo National Auditor',
-        receiver_wallet_id: selectedCitizen.walletNumber,
-        receiver_name: selectedCitizen.fullName,
+        receiver_wallet_id: selectedCitizen.wallet_number,
+        receiver_name: selectedCitizen.full_name,
         amount: amt,
         txn_type: correctionType === 'credit' ? 'cash_in' : 'cash_out',
         status: 'completed',
@@ -104,7 +115,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
       );
 
       // If correcting the active logged user's balance, sync the auth store balance as well!
-      if (currentLoggedUser && currentLoggedUser.wallet_number === selectedCitizen.walletNumber) {
+      if (currentLoggedUser && currentLoggedUser.wallet_number === selectedCitizen.wallet_number) {
         const adjustmentVal = correctionType === 'credit' ? amt : -amt;
         updateUserBalance(currentLoggedUser.balance + adjustmentVal);
       }
@@ -202,7 +213,10 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                         
                         {/* Corrections */}
                         <button
-                          onClick={() => handleOpenCorrection(citizen)}
+                          onClick={() => {
+                            if (!checkAccess('ADJUST_BALANCE')) return;
+                            handleOpenCorrection(citizen);
+                          }}
                           className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-blue-500/10 border border-blue-500/15 hover:bg-blue-500/20 text-blue-400 font-bold transition-all outline-none cursor-pointer"
                         >
                           <Coins size={12} />
@@ -211,7 +225,10 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
 
                         {/* Status Toggle Blockers */}
                         <button
-                          onClick={() => toggleCitizenStatus(citizen.wallet_number)}
+                          onClick={() => {
+                            if (!checkAccess('TOGGLE_USER_STATUS')) return;
+                            toggleCitizenStatus(citizen.wallet_number);
+                          }}
                           className={`flex items-center gap-1 py-1.5 px-3 rounded-lg font-bold border transition-all outline-none cursor-pointer ${
                             citizen.status === 'active'
                               ? 'bg-rose-500/10 border-rose-500/15 hover:bg-rose-500/25 text-rose-400'
@@ -247,8 +264,8 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
             
             <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl flex flex-col gap-0.5 text-xs text-[var(--text-secondary)]">
               <span>Modifying Citizen Account:</span>
-              <strong className="text-white font-sora mt-0.5">{selectedCitizen.fullName}</strong>
-              <span className="font-mono text-[10px]">{selectedCitizen.walletNumber}</span>
+              <strong className="text-[var(--text-primary)] font-sora mt-0.5">{selectedCitizen.full_name}</strong>
+              <span className="font-mono text-[10px]">{selectedCitizen.wallet_number}</span>
             </div>
 
             {/* Adjust Mode tabs */}
@@ -259,7 +276,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                 className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
                   correctionType === 'credit'
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-[var(--text-secondary)] hover:text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <TrendingUp size={13} />
@@ -271,7 +288,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                 className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
                   correctionType === 'debit'
                     ? 'bg-rose-600 text-white shadow-md'
-                    : 'text-[var(--text-secondary)] hover:text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <TrendingDown size={13} />
@@ -291,7 +308,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                   placeholder="0.00"
                   value={correctionAmt}
                   onChange={(e) => setCorrectionAmt(e.target.value)}
-                  className="font-sora font-extrabold text-sm w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-8 pr-4 text-white outline-none focus:border-cyan-400"
+                  className="font-sora font-extrabold text-sm w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-8 pr-4 text-[var(--text-primary)] outline-none focus:border-cyan-400"
                   required
                 />
               </div>
@@ -306,7 +323,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                 type="text"
                 value={correctionReason}
                 onChange={(e) => setCorrectionReason(e.target.value)}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-cyan-400"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-cyan-400"
                 required
               />
             </div>

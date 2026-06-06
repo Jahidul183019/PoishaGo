@@ -109,8 +109,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     with db.connection().engine.connect() as conn:
         row = conn.execute(
             text("""
-                SELECT user_id, password_hash, is_verified
-                FROM users WHERE phone = :p
+                SELECT u.user_id, u.password_hash, u.is_verified, w.is_active
+                FROM users u
+                LEFT JOIN wallets w ON w.user_id = u.user_id
+                WHERE u.phone = :p
             """),
             {"p": payload.phone.strip()},
         ).first()
@@ -118,13 +120,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(401, "Invalid credentials.")
 
-    user_id, pw_hash, is_verified = row
+    user_id, pw_hash, is_verified, is_active = row
 
     if not verify_pin(payload.pin, pw_hash):
         raise HTTPException(401, "Invalid credentials.")
 
     if not is_verified:
         raise HTTPException(403, "Account not verified. Please complete OTP verification.")
+
+    if is_active is False:
+        raise HTTPException(403, "Access Denied: Your account has been suspended for security review. Contact support.")
 
     token = create_access_token({"sub": str(user_id)})
     return {"access_token": token, "token_type": "bearer"}

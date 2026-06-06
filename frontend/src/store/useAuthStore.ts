@@ -118,6 +118,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await fetch(`${API_BASE_URL}/api/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (response.status === 403) {
+        alert("Access Denied: You do not have the required administrative clearance to view this data.");
+        get().logout();
+        return;
+      }
       if (response.ok) {
         const profile = await response.json();
         
@@ -139,6 +144,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await useWalletStore.getState().fetchNotifications();
         await useWalletStore.getState().fetchRewardOptions();
         await useWalletStore.getState().fetchRewardsHistory();
+        await useWalletStore.getState().fetchBillCategories();
       } else {
         get().logoutUser();
       }
