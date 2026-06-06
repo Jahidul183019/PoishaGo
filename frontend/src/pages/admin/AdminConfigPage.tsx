@@ -116,9 +116,31 @@ export const AdminConfigPage: React.FC = () => {
           </p>
 
           <div className="space-y-3">
-             <div className="p-4 rounded-lg border border-dashed border-slate-700 text-center text-[var(--text-secondary)]">
-                Click "Add Category" to configure a new biller
-             </div>
+            {billCategories.length === 0 ? (
+               <div className="p-4 rounded-lg border border-dashed border-slate-700 text-center text-[var(--text-secondary)]">
+                  Click "Add Category" to configure a new biller
+               </div>
+            ) : (
+               billCategories.map((cat) => {
+                 const IconComp = (Icons as any)[cat.icon_id] || Tag;
+                 return (
+                   <div key={cat.id} className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex justify-between items-center">
+                     <div className="flex items-center gap-3">
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cat.color}`}>
+                         <IconComp className="w-4 h-4" />
+                       </div>
+                       <div>
+                         <div className="font-medium text-[var(--text-primary)]">{cat.label}</div>
+                         <div className="text-xs text-[var(--text-secondary)]">ID: {cat.id}</div>
+                       </div>
+                     </div>
+                     <button onClick={() => deleteBillCategory(cat.id)} className="text-[var(--text-secondary)] hover:text-red-400 transition-colors">
+                       <Trash2 className="w-4 h-4" />
+                     </button>
+                   </div>
+                 );
+               })
+            )}
           </div>
         </Card>
 

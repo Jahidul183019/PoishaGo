@@ -26,21 +26,11 @@ class BillCategoryRequest(BaseModel):
     icon_id: str
     color: str
 
-STATIC_CATEGORIES = [
-    {"id": "electricity", "label": "Electricity",  "icon_id": "Zap",      "color": "text-yellow-400 bg-yellow-500/10 border-yellow-500/20"},
-    {"id": "water",       "label": "Water Bill",   "icon_id": "Droplet",  "color": "text-blue-400 bg-blue-500/10 border-blue-500/20"},
-    {"id": "gas",         "label": "Gas",          "icon_id": "Flame",    "color": "text-orange-400 bg-orange-500/10 border-orange-500/20"},
-    {"id": "internet",    "label": "Internet",     "icon_id": "Globe",    "color": "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"},
-    {"id": "education",   "label": "Education",    "icon_id": "BookOpen", "color": "text-green-400 bg-green-500/10 border-green-500/20"},
-    {"id": "tv",          "label": "Cable TV",     "icon_id": "Tv",       "color": "text-purple-400 bg-purple-500/10 border-purple-500/20"}
-]
-
-# ── GET /api/bill/categories  (BillPaymentPage) ───────────────────────────────
-
 @router.get("/bill/categories")
 def get_bill_categories(db: Session = Depends(get_db)):
-    """Returns bill categories from static list to prevent DB crash."""
-    return STATIC_CATEGORIES
+    with db.connection().engine.connect() as conn:
+        rows = conn.execute(text("SELECT id, label, icon_id, color FROM bill_categories ORDER BY created_at ASC")).mappings().all()
+    return [dict(r) for r in rows]
 
 # ── Admin: POST /api/admin/bill/categories  (AdminConfigPage) ────────────────
 
@@ -48,8 +38,21 @@ def get_bill_categories(db: Session = Depends(get_db)):
 def create_bill_category(
     req: BillCategoryRequest, 
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+    db: Session = Depends(get_db)
 ):
-    # Persistence disabled: bill_categories table missing from schema.sql
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO bill_categories (id, label, icon_id, color)
+                VALUES (:id, :label, :icon, :color)
+                ON CONFLICT (id) DO UPDATE SET 
+                    label = EXCLUDED.label, 
+                    icon_id = EXCLUDED.icon_id, 
+                    color = EXCLUDED.color
+            """),
+            {"id": req.id, "label": req.label, "icon": req.icon_id, "color": req.color}
+        )
+        conn.commit()
     return {"message": "Bill category saved"}
 
 
@@ -59,6 +62,12 @@ def create_bill_category(
 def delete_bill_category(
     category_id: str, 
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+    db: Session = Depends(get_db)
 ):
-    # Persistence disabled: bill_categories table missing from schema.sql
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM bill_categories WHERE id = :id"),
+            {"id": category_id}
+        )
+        conn.commit()
     return {"message": "Bill category deleted"}

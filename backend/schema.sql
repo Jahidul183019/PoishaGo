@@ -484,3 +484,19 @@ INSERT INTO reward_options (title, points_required, value_bdt, category) VALUES
     ('৳100 Wallet Cashback', 1000, 100.0, 'cashback'),
     ('৳200 Daraz Voucher', 2000, 200.0, 'voucher'),
     ('৳500 Wallet Cashback', 5000, 500.0, 'cashback');
+
+CREATE TABLE bill_categories (
+    id VARCHAR(50) PRIMARY KEY,
+    label VARCHAR(255) NOT NULL,
+    icon_id VARCHAR(50) NOT NULL,
+    color VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO bill_categories (id, label, icon_id, color) VALUES
+    ('electricity', 'Electricity', 'Zap', 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'),
+    ('water', 'Water Bill', 'Droplet', 'text-blue-400 bg-blue-500/10 border-blue-500/20'),
+    ('gas', 'Gas', 'Flame', 'text-orange-400 bg-orange-500/10 border-orange-500/20'),
+    ('internet', 'Internet', 'Globe', 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'),
+    ('education', 'Education', 'BookOpen', 'text-green-400 bg-green-500/10 border-green-500/20'),
+    ('tv', 'Cable TV', 'Tv', 'text-purple-400 bg-purple-500/10 border-purple-500/20');
