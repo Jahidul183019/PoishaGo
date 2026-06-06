@@ -1,0 +1,847 @@
+"""
+routers/transactions.py
+-----------------------
+All money-movement endpoints.
+
+Frontend pages:
+  SendMoneyPage          → POST /api/transactions/send
+  CashOutPage            → POST /api/transactions/cashout
+  CashInPage             → POST /api/transactions/cashin
+  BillPaymentPage        → POST /api/transactions/bill
+  MobileRechargePage     → POST /api/recharge
+  TransactionHistoryPage → GET  /api/transactions
+  AdminDashboardPage     → GET  /api/admin/transactions
+  AdminDashboardPage     → GET  /api/admin/revenue-trend
+"""
+
+import random
+import secrets
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from database import get_db
+from dependencies import get_current_user
+from security import verify_pin
+from auth_otp import send_otp_email
+
+router = APIRouter(prefix="/api", tags=["Transactions"])
+
+
+# ── Pydantic request models ───────────────────────────────────────────────────
+
+class SendMoneyRequest(BaseModel):
+    receiver_phone: str
+    amount: float
+    pin: str
+    otp: str
+
+class CashInOutRequest(BaseModel):
+    agent_phone: str
+    amount: float
+    pin: str
+    otp: str = None
+
+class SendCashInOTPRequest(BaseModel):
+    agent_phone: str
+
+class BillPaymentRequest(BaseModel):
+    biller_name: str
+    account_number: str
+    amount: float
+    pin: str
+    otp: str
+
+class RechargeRequest(BaseModel):
+    phone: str
+    operator: str
+    amount: float
+    pin: str
+
+
+# ── Shared transaction helper ─────────────────────────────────────────────────
+
+def _execute_transfer(
+    conn,
+    sender_user_id: str,
+    sender_pin: str,
+    amount: float,
+    receiver_phone: str,
+    txn_type: str,       # 'transfer' | 'cashout' | 'cashin' | 'bill'
+) -> str:
+    """
+    Core double-entry ledger update.
+    Returns the generated reference number.
+    Raises HTTPException on any business-logic failure.
+    """
+    if amount <= 0:
+        raise HTTPException(400, "Amount must be greater than 0.")
+
+    # Verify PIN (required for transfers and other actions)
+    pw_row = conn.execute(
+        text("SELECT password_hash FROM users WHERE user_id = :uid"),
+        {"uid": sender_user_id},
+    ).first()
+    if not pw_row or not verify_pin(sender_pin, pw_row[0]):
+        raise HTTPException(401, "Invalid PIN.")
+
+    # Sender wallet
+    sender_wallet = conn.execute(
+        text("SELECT wallet_id, balance FROM wallets WHERE user_id = :uid"),
+        {"uid": sender_user_id},
+    ).first()
+    if not sender_wallet:
+        raise HTTPException(400, "Sender wallet not found.")
+    if sender_wallet[1] < amount:
+        raise HTTPException(400, "Insufficient funds.")
+
+    # Receiver wallet (lookup by phone)
+    receiver_wallet = conn.execute(
+        text("""
+            SELECT w.wallet_id, u.user_id
+            FROM wallets w
+            JOIN users u ON u.user_id = w.user_id
+            WHERE u.phone = :p
+        """),
+        {"p": receiver_phone},
+    ).first()
+    if not receiver_wallet:
+        raise HTTPException(400, "Receiver not found.")
+
+    sender_wallet_id   = sender_wallet[0]
+    receiver_wallet_id = receiver_wallet[0]
+    receiver_user_id   = receiver_wallet[1]
+
+    # Double-entry balance update
+    conn.execute(
+        text("UPDATE wallets SET balance = balance - :amt WHERE wallet_id = :wid"),
+        {"amt": amount, "wid": sender_wallet_id},
+    )
+    conn.execute(
+        text("UPDATE wallets SET balance = balance + :amt WHERE wallet_id = :wid"),
+        {"amt": amount, "wid": receiver_wallet_id},
+    )
+
+    # Award points to sender and update tier
+    reward_row = conn.execute(
+        text("SELECT current_points, tier FROM reward_points WHERE user_id = :uid FOR UPDATE"),
+        {"uid": sender_user_id}
+    ).first()
+
+    if reward_row:
+        curr_pts, curr_tier = reward_row[0], reward_row[1]
+        # Points earning rates
+        rate = 0.1
+        if curr_tier == "silver": rate = 0.15
+        elif curr_tier == "gold": rate = 0.2
+        elif curr_tier == "platinum": rate = 0.25
+
+        earned = int(amount * rate)
+        new_pts = curr_pts + earned
+
+        # New Tier Thresholds
+        new_tier = "bronze"
+        if new_pts >= 15000: new_tier = "platinum"
+        elif new_pts >= 5000: new_tier = "gold"
+        elif new_pts >= 1000: new_tier = "silver"
+
+        conn.execute(
+            text("""
+                UPDATE reward_points
+                SET current_points = current_points + :earned,
+                    lifetime_earned = lifetime_earned + :earned,
+                    tier = :ntier,
+                    updated_at = now(),
+                    tier_updated_at = CASE WHEN tier <> :ntier THEN now() ELSE tier_updated_at END
+                WHERE user_id = :uid
+            """),
+            {"earned": earned, "ntier": new_tier, "uid": sender_user_id}
+        )
+
+    # Update favorite_contacts counter if a relationship exists
+    conn.execute(
+        text("""
+            UPDATE favorite_contacts
+            SET total_txn = total_txn + 1
+            WHERE (owner_user_id = :oid AND contact_user_id = :cid)
+               OR (owner_user_id = :cid AND contact_user_id = :oid)
+        """),
+        {"oid": sender_user_id, "cid": receiver_user_id}
+    )
+
+    # Log transaction row
+    ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+    conn.execute(
+        text("""
+            INSERT INTO transactions
+                (reference_no, sender_wallet_id, receiver_wallet_id,
+                 txn_type, amount, fee, status)
+            VALUES (:ref, :sw, :rw, :ttype, :amt, 0.00, 'success')
+        """),
+        {
+            "ref": ref, "sw": sender_wallet_id, "rw": receiver_wallet_id,
+            "ttype": txn_type, "amt": amount,
+        },
+    )
+
+    return ref
+
+
+# ── POST /api/transactions/send  (SendMoneyPage) ──────────────────────────────
+
+@router.post("/transactions/send")
+def send_money(
+    req: SendMoneyRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    with db.connection().engine.connect() as conn:
+        # Validate transfer OTP (purpose = 'transfer') and consume it
+        otp_row = conn.execute(
+            text("""
+                SELECT otp_id, expires_at, is_used
+                FROM otp_verifications
+                WHERE user_id = :uid
+                  AND otp_code = :otp
+                  AND purpose = 'transfer'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"uid": user_id, "otp": req.otp},
+        ).first()
+        if not otp_row:
+            raise HTTPException(400, "Invalid or missing OTP.")
+
+        otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
+        now = datetime.now(timezone.utc)
+        if db_expires.tzinfo is None:
+            db_expires = db_expires.replace(tzinfo=timezone.utc)
+        if is_used or db_expires < now:
+            raise HTTPException(400, "OTP is invalid or expired.")
+
+        # mark used
+        conn.execute(
+            text("UPDATE otp_verifications SET is_used = true WHERE otp_id = :oid"),
+            {"oid": otp_id},
+        )
+
+        # Now verify PIN and execute transfer
+        ref = _execute_transfer(conn, user_id, req.pin, req.amount, req.receiver_phone, "transfer")
+        conn.commit()
+    return {"message": "Transaction successful", "transaction_id": ref}
+
+
+# ── POST /api/transactions/cashout/send-otp  (CashOutPage — request OTP) ──────
+
+@router.post("/transactions/cashout/send-otp")
+def send_cashout_otp(
+    req: SendCashInOTPRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Sends OTP to the user's email (sender withdrawing cash) to authorize cash-out.
+    Purpose stored as 'transfer' in otp_verifications table.
+    """
+    with db.connection().engine.connect() as conn:
+        # Get user's email
+        user_row = conn.execute(
+            text("SELECT email FROM users WHERE user_id = :uid"),
+            {"uid": user_id},
+        ).first()
+        if not user_row or not user_row[0]:
+            raise HTTPException(status_code=400, detail="No email configured for this account.")
+
+        user_email = user_row[0].strip().lower()
+        
+        # Generate OTP
+        otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+
+        conn.execute(
+            text("""
+                INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
+                VALUES (:uid, :otp, 'transfer', :exp, false)
+            """),
+            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+        )
+        conn.commit()
+
+    # Send OTP to user's email
+    send_otp_email(user_email, otp_code)
+    return {"status": "success", "detail": "Cash-out OTP sent to your email."}
+
+
+# ── POST /api/transactions/cashout  (CashOutPage) ────────────────────────────
+
+@router.post("/transactions/cashout")
+def cash_out(
+    req: CashInOutRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    CashOutPage sends amount + fee (total) as the `amount` field.
+    Requires OTP verification (sent to user's email) + PIN confirmation.
+    We record the full amount as a cashout; the agent receives it.
+    """
+    with db.connection().engine.connect() as conn:
+        # Validate cash-out OTP (purpose = 'transfer')
+        otp_row = conn.execute(
+            text("""
+                SELECT otp_id, expires_at, is_used
+                FROM otp_verifications
+                WHERE user_id = :uid
+                  AND otp_code = :otp
+                  AND purpose = 'transfer'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"uid": user_id, "otp": req.otp},
+        ).first()
+        if not otp_row:
+            raise HTTPException(400, "Invalid or missing OTP.")
+
+        otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
+        now = datetime.now(timezone.utc)
+        if db_expires.tzinfo is None:
+            db_expires = db_expires.replace(tzinfo=timezone.utc)
+        if is_used or db_expires < now:
+            raise HTTPException(400, "OTP is invalid or expired.")
+
+        # Mark OTP as used
+        conn.execute(
+            text("UPDATE otp_verifications SET is_used = true WHERE otp_id = :oid"),
+            {"oid": otp_id},
+        )
+
+        # Now verify PIN and execute transfer
+        ref = _execute_transfer(conn, user_id, req.pin, req.amount, req.agent_phone, "cashout")
+        conn.commit()
+    return {"message": "Cash out successful", "transaction_id": ref}
+
+
+# ── POST /api/transactions/cashin/send-otp  (CashInPage — request OTP) ─────────
+
+@router.post("/transactions/cashin/send-otp")
+def send_cashin_otp(
+    req: SendCashInOTPRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Sends OTP to the agent's email to authorize cash-in (agent is the depositor).
+    Purpose stored as 'transfer' in otp_verifications table (reused for all transactions).
+    """
+    with db.connection().engine.connect() as conn:
+        # Get agent's email
+        agent_row = conn.execute(
+            text("SELECT user_id, email FROM users WHERE phone = :phone"),
+            {"phone": req.agent_phone},
+        ).first()
+        if not agent_row or not agent_row[1]:
+            raise HTTPException(status_code=400, detail="Agent not found or has no email configured.")
+
+        agent_user_id, agent_email = agent_row[0], agent_row[1]
+        agent_email_clean = agent_email.strip().lower()
+        
+        # Generate OTP for the user (receiver)
+        otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+
+        conn.execute(
+            text("""
+                INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
+                VALUES (:uid, :otp, 'transfer', :exp, false)
+            """),
+            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+        )
+        conn.commit()
+
+    # Send OTP to agent's email
+    send_otp_email(agent_email_clean, otp_code)
+    return {"status": "success", "detail": "Cash-in OTP sent to agent's email."}
+
+
+# ── POST /api/transactions/cashin  (CashInPage) ──────────────────────────────
+
+@router.post("/transactions/cashin")
+def cash_in(
+    req: CashInOutRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Cash-in: agent sends money to user.
+    Requires OTP verification (sent to user's email) + PIN confirmation.
+    We verify both, then debit the agent and credit the user.
+    """
+    with db.connection().engine.connect() as conn:
+        # Validate cash-in OTP (purpose = 'transfer')
+        otp_row = conn.execute(
+            text("""
+                SELECT otp_id, expires_at, is_used
+                FROM otp_verifications
+                WHERE user_id = :uid
+                  AND otp_code = :otp
+                  AND purpose = 'transfer'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"uid": user_id, "otp": req.otp},
+        ).first()
+        if not otp_row:
+            raise HTTPException(400, "Invalid or missing OTP.")
+
+        otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
+        now = datetime.now(timezone.utc)
+        if db_expires.tzinfo is None:
+            db_expires = db_expires.replace(tzinfo=timezone.utc)
+        if is_used or db_expires < now:
+            raise HTTPException(400, "OTP is invalid or expired.")
+
+        # Mark OTP as used
+        conn.execute(
+            text("UPDATE otp_verifications SET is_used = true WHERE otp_id = :oid"),
+            {"oid": otp_id},
+        )
+
+        # Verify user's PIN
+        pw_row = conn.execute(
+            text("SELECT password_hash FROM users WHERE user_id = :uid"),
+            {"uid": user_id},
+        ).first()
+        if not pw_row or not verify_pin(req.pin, pw_row[0]):
+            raise HTTPException(401, "Invalid PIN.")
+
+        # Agent wallet
+        agent_wallet = conn.execute(
+            text("""
+                SELECT w.wallet_id, w.balance, u.user_id
+                FROM wallets w JOIN users u ON u.user_id = w.user_id
+                WHERE u.phone = :p
+            """),
+            {"p": req.agent_phone},
+        ).first()
+        if not agent_wallet or agent_wallet[1] < req.amount:
+            raise HTTPException(400, "Agent has insufficient funds.")
+
+        # User wallet
+        user_wallet = conn.execute(
+            text("SELECT wallet_id FROM wallets WHERE user_id = :uid"),
+            {"uid": user_id},
+        ).first()
+        if not user_wallet:
+            raise HTTPException(400, "User wallet not found.")
+
+        conn.execute(
+            text("UPDATE wallets SET balance = balance - :amt WHERE wallet_id = :wid"),
+            {"amt": req.amount, "wid": agent_wallet[0]},
+        )
+        conn.execute(
+            text("UPDATE wallets SET balance = balance + :amt WHERE wallet_id = :wid"),
+            {"amt": req.amount, "wid": user_wallet[0]},
+        )
+
+        # Award points to user for cashing in
+        reward_row = conn.execute(
+            text("SELECT current_points, tier FROM reward_points WHERE user_id = :uid FOR UPDATE"),
+            {"uid": user_id}
+        ).first()
+
+        if reward_row:
+            curr_pts, curr_tier = reward_row[0], reward_row[1]
+            rate = 0.1
+            if curr_tier == "silver": rate = 0.15
+            elif curr_tier == "gold": rate = 0.2
+            elif curr_tier == "platinum": rate = 0.25
+
+            earned = int(req.amount * rate)
+            new_pts = curr_pts + earned
+
+            new_tier = "bronze"
+            if new_pts >= 15000: new_tier = "platinum"
+            elif new_pts >= 5000: new_tier = "gold"
+            elif new_pts >= 1000: new_tier = "silver"
+
+            conn.execute(
+                text("""
+                    UPDATE reward_points
+                    SET current_points = current_points + :earned,
+                        lifetime_earned = lifetime_earned + :earned,
+                        tier = :ntier,
+                        updated_at = now(),
+                        tier_updated_at = CASE WHEN tier <> :ntier THEN now() ELSE tier_updated_at END
+                    WHERE user_id = :uid
+                """),
+                {"earned": earned, "ntier": new_tier, "uid": user_id}
+            )
+
+        # Update favorite_contacts counter if relationship exists
+        conn.execute(
+            text("""
+                UPDATE favorite_contacts
+                SET total_txn = total_txn + 1
+                WHERE (owner_user_id = :oid AND contact_user_id = :cid)
+                   OR (owner_user_id = :cid AND contact_user_id = :oid)
+            """),
+            {"oid": user_id, "cid": agent_wallet[2]}
+        )
+
+        ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+        conn.execute(
+            text("""
+                INSERT INTO transactions
+                    (reference_no, sender_wallet_id, receiver_wallet_id,
+                     txn_type, amount, fee, status)
+                VALUES (:ref, :aw, :uw, 'cashin', :amt, 0.00, 'success')
+            """),
+            {"ref": ref, "aw": agent_wallet[0], "uw": user_wallet[0], "amt": req.amount},
+        )
+        conn.commit()
+
+    return {"message": "Cash in successful", "transaction_id": ref}
+
+
+# ── POST /api/transactions/bill  (BillPaymentPage) ───────────────────────────
+
+@router.post("/transactions/bill/send-otp")
+def send_bill_otp(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Sends OTP to the user's email for bill payment authorization."""
+    with db.connection().engine.connect() as conn:
+        user_row = conn.execute(
+            text("SELECT email FROM users WHERE user_id = :uid"),
+            {"uid": user_id},
+        ).first()
+        if not user_row or not user_row[0]:
+            raise HTTPException(status_code=400, detail="No email configured for this account.")
+
+        user_email = user_row[0].strip().lower()
+        otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+
+        conn.execute(
+            text("""
+                INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
+                VALUES (:uid, :otp, 'transfer', :exp, false)
+            """),
+            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+        )
+        conn.commit()
+
+    send_otp_email(user_email, otp_code)
+    return {"status": "success", "detail": "Bill payment OTP sent to your email."}
+
+@router.post("/transactions/bill")
+def pay_bill(
+    req: BillPaymentRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Bill payment debits the user's wallet.
+    The system wallet (BILL_SYSTEM) acts as the receiving end.
+    """
+    with db.connection().engine.connect() as conn:
+        # Validate OTP
+        otp_row = conn.execute(
+            text("""
+                SELECT otp_id, expires_at, is_used
+                FROM otp_verifications
+                WHERE user_id = :uid
+                  AND otp_code = :otp
+                  AND purpose = 'transfer'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"uid": user_id, "otp": req.otp},
+        ).first()
+        if not otp_row:
+            raise HTTPException(400, "Invalid or missing OTP.")
+
+        otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
+        if is_used or (db_expires.replace(tzinfo=timezone.utc) if db_expires.tzinfo is None else db_expires) < datetime.now(timezone.utc):
+            raise HTTPException(400, "OTP is invalid or expired.")
+
+        conn.execute(
+            text("UPDATE otp_verifications SET is_used = true WHERE otp_id = :oid"),
+            {"oid": otp_id},
+        )
+
+        # Ensure system BILL_SYSTEM wallet exists; create if not
+        sys_wallet = conn.execute(
+            text("SELECT wallet_id FROM wallets WHERE wallet_number = 'BILL_SYSTEM'")
+        ).first()
+        if not sys_wallet:
+            # Create a virtual system user + wallet for bill receipts
+            sys_user = conn.execute(
+                text("""
+                    INSERT INTO users (full_name, phone, email, password_hash, user_type, is_verified)
+                    VALUES ('System Bill Collector', 'BILL_SYSTEM', 'billsys@poishagoapp.internal',
+                            'SYSTEM_HASH', 'personal', true)
+                    ON CONFLICT (phone) DO NOTHING
+                    RETURNING user_id
+                """)
+            ).first()
+            if sys_user:
+                conn.execute(
+                    text("""
+                        INSERT INTO wallets (user_id, wallet_number, balance, is_active)
+                        VALUES (:uid, 'BILL_SYSTEM', 0.00, true)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"uid": sys_user[0]},
+                )
+            sys_wallet = conn.execute(
+                text("SELECT wallet_id FROM wallets WHERE wallet_number = 'BILL_SYSTEM'")
+            ).first()
+
+        if not sys_wallet:
+            raise HTTPException(500, "Bill system wallet not configured.")
+
+        # Get system wallet phone for the shared helper
+        sys_phone_row = conn.execute(
+            text("SELECT u.phone FROM users u JOIN wallets w ON w.user_id = u.user_id WHERE w.wallet_number = 'BILL_SYSTEM'")
+        ).first()
+        sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
+
+        ref = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+
+        # Update existing bill_payments table (linking to the transaction)
+        txn_row = conn.execute(
+            text("SELECT txn_id FROM transactions WHERE reference_no = :ref"),
+            {"ref": ref}
+        ).first()
+
+        # Determine bill_type based on company name
+        b_name_upper = req.biller_name.upper()
+        if any(x in b_name_upper for x in ["DESCO", "DPDC", "NESCO"]):
+            b_type = "ELECTRICITY"
+        elif "WASA" in b_name_upper:
+            b_type = "WATER"
+        elif "GAS" in b_name_upper:
+            b_type = "GAS"
+        elif any(x in b_name_upper for x in ["INTERNET", "BROADBAND", "LINK3", "AMBER"]):
+            b_type = "INTERNET"
+        elif any(x in b_name_upper for x in ["MOBILE", "RECHARGE", "GP", "ROBI", "AIRTEL", "BANGLALINK", "TELETALK"]):
+            b_type = "MOBILE"
+        else:
+            b_type = "OTHER"
+
+        if txn_row:
+            conn.execute(
+                text("""
+                    INSERT INTO bill_payments (txn_id, user_id, company_name, bill_type, account_no, due_date, amount, status)
+                    VALUES (:tid, :uid, :cname, :btype, :acc, :ddate, :amt, 'SUCCESS')
+                """),
+                {
+                    "tid": txn_row[0], "uid": user_id, "cname": req.biller_name, "btype": b_type,
+                    "acc": req.account_number, "amt": req.amount,
+                    "ddate": datetime.now(timezone.utc).date()
+                }
+            )
+        conn.commit()
+
+    return {"message": "Bill paid successfully", "transaction_id": ref}
+
+
+# ── POST /api/recharge  (MobileRechargePage) ─────────────────────────────────
+
+VALID_OPERATORS = {"gp", "robi", "airtel", "banglalink", "teletalk"}
+
+@router.post("/recharge")
+def mobile_recharge(
+    req: RechargeRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if req.amount < 10 or req.amount > 1000:
+        raise HTTPException(400, "Recharge amount must be between ৳10 and ৳1,000.")
+
+    if req.operator not in VALID_OPERATORS:
+        raise HTTPException(400, f"Invalid operator. Choose from: {', '.join(VALID_OPERATORS)}")
+
+    with db.connection().engine.connect() as conn:
+        # Reuse BILL_SYSTEM as the recharge sink
+        sys_phone_row = conn.execute(
+            text("SELECT u.phone FROM users u JOIN wallets w ON w.user_id = u.user_id WHERE w.wallet_number = 'BILL_SYSTEM'")
+        ).first()
+        sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
+
+        ref = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+
+        # Update existing bill_payments table (linking to the transaction)
+        txn_row = conn.execute(
+            text("SELECT txn_id FROM transactions WHERE reference_no = :ref"),
+            {"ref": ref}
+        ).first()
+
+        if txn_row:
+            conn.execute(
+                text("""
+                    INSERT INTO bill_payments (txn_id, user_id, company_name, bill_type, account_no, due_date, amount, status)
+                    VALUES (:tid, :uid, :cname, 'MOBILE', :acc, :ddate, :amt, 'SUCCESS')
+                """),
+                {
+                    "tid": txn_row[0], "uid": user_id, "cname": req.operator.upper(),
+                    "acc": req.phone, "amt": req.amount,
+                    "ddate": datetime.now(timezone.utc).date()
+                }
+            )
+        conn.commit()
+
+    return {"message": "Recharge successful", "transaction_id": ref}
+
+
+# ── GET /api/transactions  (TransactionHistoryPage) ───────────────────────────
+
+@router.get("/transactions")
+def get_transactions(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns the last 50 transactions for the authenticated user,
+    formatted for TransactionHistoryPage's filter/table UI.
+    Maps DB txn_type values to the frontend's expected type strings.
+    """
+    with db.connection().engine.connect() as conn:
+        wallet = conn.execute(
+            text("SELECT wallet_id FROM wallets WHERE user_id = :uid"),
+            {"uid": user_id},
+        ).first()
+        if not wallet:
+            return []
+
+        rows = conn.execute(
+            text("""
+                SELECT
+                    t.txn_id, t.reference_no, t.amount, t.txn_type,
+                    t.status, t.fee, t.txn_at,
+                    su.full_name        AS sender_name,
+                    sw.wallet_number    AS sender_wallet_id,
+                    ru.full_name        AS receiver_name,
+                    rw.wallet_number    AS receiver_wallet_id
+                FROM transactions t
+                JOIN wallets sw ON sw.wallet_id = t.sender_wallet_id
+                JOIN users   su ON su.user_id   = sw.user_id
+                JOIN wallets rw ON rw.wallet_id = t.receiver_wallet_id
+                JOIN users   ru ON ru.user_id   = rw.user_id
+                WHERE t.sender_wallet_id   = :wid
+                   OR t.receiver_wallet_id = :wid
+                ORDER BY t.txn_at DESC
+                LIMIT 50
+            """),
+            {"wid": wallet[0]},
+        ).mappings().all()
+
+    # Map DB txn_type → frontend txn_type
+    type_map = {
+        "transfer": "send_money",
+        "cashout":  "cash_out",
+        "cashin":   "cash_in",
+        "bill":     "bill_pay",
+    }
+    # Map DB status → frontend status
+    status_map = {
+        "success": "completed",
+        "pending": "pending",
+        "failed":  "failed",
+        "flagged": "failed",
+    }
+
+    result = []
+    for r in rows:
+        result.append({
+            "txn_id":           r["txn_id"],
+            "sender_wallet_id": r["sender_wallet_id"],
+            "sender_name":      r["sender_name"],
+            "receiver_wallet_id": r["receiver_wallet_id"],
+            "receiver_name":    r["receiver_name"],
+            "amount":           float(r["amount"]),
+            "txn_type":         type_map.get(r["txn_type"], r["txn_type"]),
+            "status":           status_map.get(r["status"], r["status"]),
+            "fee":              float(r["fee"]),
+            "reference_no":     r["reference_no"],
+            "txn_at":           r["txn_at"].isoformat(),
+        })
+    return result
+
+
+# ── GET /api/admin/transactions  (AdminDashboardPage, AdminUserTxnMgmtPage) ──
+
+@router.get("/admin/transactions")
+def get_admin_transactions(db: Session = Depends(get_db)):
+    """Returns up to 500 most recent transactions for the admin dashboard."""
+    with db.connection().engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT
+                    t.txn_id, t.reference_no, t.amount, t.txn_type,
+                    t.status, t.fee, t.txn_at,
+                    su.full_name        AS sender_name,
+                    sw.wallet_number    AS sender_wallet_id,
+                    ru.full_name        AS receiver_name,
+                    rw.wallet_number    AS receiver_wallet_id
+                FROM transactions t
+                JOIN wallets sw ON sw.wallet_id = t.sender_wallet_id
+                JOIN users   su ON su.user_id   = sw.user_id
+                JOIN wallets rw ON rw.wallet_id = t.receiver_wallet_id
+                JOIN users   ru ON ru.user_id   = rw.user_id
+                ORDER BY t.txn_at DESC
+                LIMIT 500
+            """)
+        ).mappings().all()
+
+    return [
+        {
+            "txn_id":           r["txn_id"],
+            "sender_wallet_id": r["sender_wallet_id"],
+            "sender_name":      r["sender_name"],
+            "receiver_wallet_id": r["receiver_wallet_id"],
+            "receiver_name":    r["receiver_name"],
+            "amount":           float(r["amount"]),
+            "txn_type":         r["txn_type"],
+            "status":           r["status"],
+            "fee":              float(r["fee"]),
+            "reference_no":     r["reference_no"],
+            "txn_at":           r["txn_at"].isoformat(),
+        }
+        for r in rows
+    ]
+
+
+# ── GET /api/admin/revenue-trend  (AdminDashboardPage chart) ─────────────────
+
+@router.get("/admin/revenue-trend")
+def get_revenue_trend(db: Session = Depends(get_db)):
+    """Returns daily fee revenue for the last 7 days (for the area chart)."""
+    with db.connection().engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                WITH dates AS (
+                    SELECT generate_series(
+                        CURRENT_DATE - INTERVAL '6 days',
+                        CURRENT_DATE,
+                        '1 day'::interval
+                    )::date AS day_date
+                )
+                SELECT
+                    to_char(dates.day_date, 'Dy')  AS day,
+                    COALESCE(SUM(t.fee), 0)        AS revenue
+                FROM dates
+                LEFT JOIN transactions t
+                       ON t.txn_at::date = dates.day_date
+                      AND t.status = 'success'
+                GROUP BY dates.day_date
+                ORDER BY dates.day_date ASC
+            """)
+        ).mappings().all()
+
+    return [{"day": r["day"], "revenue": float(r["revenue"])} for r in rows]
