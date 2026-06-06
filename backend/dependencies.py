@@ -10,7 +10,10 @@ Shared FastAPI dependencies:
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends, status
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from database import get_db
 
 from config import settings
 
@@ -49,3 +52,39 @@ def get_current_user(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def get_current_admin(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Ensures the authenticated user is an admin and returns their details."""
+    with db.connection().engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT admin_id, role FROM admins WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).first()
+        if not row:
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Fetch permissions for this role
+        perms_rows = conn.execute(
+            text("SELECT permission FROM admin_permissions WHERE role = :role"),
+            {"role": row[1]}
+        ).all()
+        permissions = [p[0] for p in perms_rows]
+        
+        return {
+            "admin_id": row[0], 
+            "role": row[1], 
+            "user_id": user_id,
+            "permissions": permissions
+        }
+
+def require_permission(permission: str):
+    """Dependency factory to enforce specific admin permissions."""
+    def permission_checker(admin: dict = Depends(get_current_admin)):
+        if permission not in admin["permissions"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Missing required permission: {permission}"
+            )
+        return admin
+    return permission_checker

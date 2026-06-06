@@ -245,21 +245,29 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     });
   },
 
-  adjustCitizenBalance: (walletNumber, amount, type) => {
-    set((state) => {
-      const nextUsers = state.users.map(u => {
-        if (u.wallet_number === walletNumber) {
-          const newBal = type === 'credit' ? u.balance + amount : u.balance - amount;
-          return { ...u, balance: Math.max(0, newBal) };
-        }
-        return u;
+  adjustCitizenBalance: async (walletNumber, amount, type) => {
+    const token = localStorage.getItem('token');
+    // Find user_id from walletNumber in current citizens list
+    const citizen = get().mockCitizens.find(c => c.wallet_number === walletNumber);
+    if (!citizen || !token) return false;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${citizen.user_id}/adjust-balance`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ amount, type })
       });
-      return {
-        users: nextUsers,
-        mockCitizens: nextUsers
-      };
-    });
-    return true;
+      if (response.ok) {
+        await get().fetchUsers(); // Refresh list to get new DB balance
+        return true;
+      }
+    } catch (e) {
+      console.error('Failed to adjust balance:', e);
+    }
+    return false;
   },
 
   toggleCampaignStatus: (id) => {
@@ -336,8 +344,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
     fetchAdminTransactions: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(API_BASE_URL + '/api/admin/transactions');
+      const response = await fetch(API_BASE_URL + '/api/admin/transactions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         set({ adminTransactions: data });
@@ -426,8 +438,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   fetchUsers: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(API_BASE_URL + '/api/users');
+      const response = await fetch(API_BASE_URL + '/api/users', { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) {
         const data = await response.json();
         set({ mockCitizens: data });
@@ -438,8 +452,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   fetchFraudFlags: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(API_BASE_URL + '/api/fraud-flags');
+      const response = await fetch(API_BASE_URL + '/api/fraud-flags', { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) {
         const data = await response.json();
         set({ fraudFlags: data });
@@ -450,8 +466,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   fetchCampaigns: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(API_BASE_URL + '/api/campaigns');
+      const response = await fetch(API_BASE_URL + '/api/campaigns', { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) {
         const data = await response.json();
         set({ campaigns: data, cashbacks: data }); // Set both for backwards compatibility
@@ -462,10 +480,15 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   addRewardOption: async (option: any) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
       const response = await fetch(API_BASE_URL + '/api/admin/rewards/options', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(option)
       });
       if (response.ok) {
@@ -478,8 +501,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   
   deleteRewardOption: async (id: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/rewards/options/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${API_BASE_URL}/api/admin/rewards/options/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) get().fetchRewardOptions();
     } catch (e) {
       console.error('Failed to delete reward option', e);
@@ -487,8 +514,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   deleteBillCategory: async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/bill/categories/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${API_BASE_URL}/api/admin/bill/categories/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) get().fetchBillCategories();
     } catch (e) {
       console.error('Failed to delete bill category', e);
@@ -496,17 +527,20 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   addBillCategory: async (category: any) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     try {
       const response = await fetch(API_BASE_URL + '/api/admin/bill/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` },
         body: JSON.stringify(category)
       });
       if (response.ok) {
         // Typically we would fetch bill categories here, but we don't have a fetch action for it yet in the store.
         // For now, it will apply on reload or we can add fetchBillCategories later if needed.
-        console.log('Bill category added successfully');
-      get().fetchBillCategories();
+        get().fetchBillCategories(); // Refresh the list
       }
     } catch (e) {
       console.error('Failed to add bill category', e);

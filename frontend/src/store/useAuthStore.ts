@@ -19,6 +19,7 @@ export interface UserProfile {
 export interface AdminProfile {
   username: string;
   role: 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'RISK_MANAGER';
+  permissions: string[];
 }
 
 interface AuthState {
@@ -57,7 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   admin: null,
   isLoggedIn: false,
-  isAdmin: false,
+  isAdmin: localStorage.getItem('isAdminMode') === 'true',
   token: localStorage.getItem('token') || null,
 
   loginUser: async (phone, pin) => {
@@ -70,7 +71,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.access_token);
-        set({ token: data.access_token });
+        localStorage.setItem('isAdminMode', 'false');
+        set({ token: data.access_token, isAdmin: false });
         await get().fetchUserProfile();
         return true;
       }
@@ -117,8 +119,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const user = await response.json();
-        set({ user, isLoggedIn: true, isAdmin: false, admin: null });
+        const profile = await response.json();
+        
+        const storedMode = localStorage.getItem('isAdminMode');
+        const activeIsAdmin = profile.is_admin && (storedMode !== null ? storedMode === 'true' : profile.is_admin);
+
+        set({ 
+          user: profile, 
+          isLoggedIn: true, 
+          isAdmin: activeIsAdmin,
+          admin: profile.is_admin ? { 
+            username: profile.full_name, 
+            role: profile.admin_role,
+            permissions: profile.permissions || [] 
+          } : null
+        });
         
         await useWalletStore.getState().fetchTransactions();
         await useWalletStore.getState().fetchNotifications();
@@ -214,6 +229,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginAdmin: (username, role) => {
+    localStorage.setItem('isAdminMode', 'true');
     set({
       user: null,
       admin: { username, role },
@@ -224,11 +240,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('isAdminMode');
     set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
   },
 
   logoutUser: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('isAdminMode');
     set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
   },
 
@@ -281,15 +299,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, passcode })
+        body: JSON.stringify({ admin_id: parseInt(username), pin: passcode })
       });
       if (response.ok) {
         const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('isAdminMode', 'true');
         set({
           token: data.access_token,
           isAdmin: true,
           isLoggedIn: true,
-          admin: { username, role: data.role },
+          admin: { 
+            username, 
+            role: data.role,
+            permissions: data.permissions || []
+          },
           user: null
         });
         return true;

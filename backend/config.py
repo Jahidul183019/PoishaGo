@@ -32,5 +32,10 @@ settings = Settings()
 
 if not settings.JWT_SECRET:
     raise ValueError("JWT_SECRET environment variable is not set")
+if not settings.JWT_SECRET or len(settings.JWT_SECRET) < 32:
+    # Fallback for development if .env is missing or short
+    settings.JWT_SECRET = os.getenv("JWT_SECRET", "7d8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f")
+    if not os.getenv("JWT_SECRET"):
+        print("WARNING: Using insecure dev fallback for JWT_SECRET. Update your .env file.")
 if not settings.DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")

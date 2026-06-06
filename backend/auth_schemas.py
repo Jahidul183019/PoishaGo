@@ -57,8 +57,8 @@ class ResetPinRequest(BaseModel):
 # ── AdminLoginPage ────────────────────────────────────────────────────────────
 
 class AdminLoginRequest(BaseModel):
-    username: str    # phone or email
-    passcode: str
+    admin_id: int
+    pin: str
 
 
 class UpdateProfileRequest(BaseModel):

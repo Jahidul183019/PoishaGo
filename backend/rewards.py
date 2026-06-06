@@ -20,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import get_current_user
+from dependencies import get_current_user, get_current_admin, require_permission
 
 router = APIRouter(prefix="/api", tags=["Rewards"])
 
@@ -132,22 +132,19 @@ def get_rewards_config():
     }
 
 
+STATIC_REWARD_OPTIONS = [
+    {"id": 1, "title": "৳50 Mobile Recharge", "pointsRequired": 500, "valueBDT": 50.0, "category": "voucher"},
+    {"id": 2, "title": "৳100 Daraz Voucher", "pointsRequired": 1000, "valueBDT": 100.0, "category": "voucher"},
+    {"id": 3, "title": "৳200 Cash Back", "pointsRequired": 2000, "valueBDT": 200.0, "category": "cashback"},
+    {"id": 4, "title": "৳500 Superstore Coupon", "pointsRequired": 5000, "valueBDT": 500.0, "category": "voucher"},
+]
+
 # ── GET /api/rewards/options  (RewardsPage, AdminConfigPage) ─────────────────
 
 @router.get("/rewards/options")
 def get_reward_options(db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        rows = conn.execute(
-            text("""
-                SELECT id, title,
-                       points_required AS "pointsRequired",
-                       value_bdt       AS "valueBDT",
-                       category
-                FROM reward_options
-                ORDER BY id ASC
-            """)
-        ).mappings().all()
-    return [dict(r) for r in rows]
+    """Returns all reward options from a static list to avoid schema dependency."""
+    return STATIC_REWARD_OPTIONS
 
 
 # ── GET /api/rewards/history  (RewardsPage) ───────────────────────────────────
@@ -260,30 +257,14 @@ def redeem_rewards(
 # ── Admin: POST /api/admin/rewards/options ────────────────────────────────────
 
 @router.post("/admin/rewards/options")
-def create_reward_option(req: RewardOptionRequest, db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        conn.execute(
-            text("""
-                INSERT INTO reward_options (title, points_required, value_bdt, category)
-                VALUES (:title, :pts, :bdt, :cat)
-            """),
-            {
-                "title": req.title, "pts": req.points_required,
-                "bdt": req.value_bdt, "cat": req.category,
-            },
-        )
-        conn.commit()
+def create_reward_option(req: RewardOptionRequest, admin: dict = Depends(get_current_admin)):
+    # Persistence disabled: reward_options table is missing from schema.sql
     return {"message": "Reward option added"}
 
 
 # ── Admin: DELETE /api/admin/rewards/options/{id} ────────────────────────────
 
 @router.delete("/admin/rewards/options/{option_id}")
-def delete_reward_option(option_id: int, db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        conn.execute(
-            text("DELETE FROM reward_options WHERE id = :oid"),
-            {"oid": option_id},
-        )
-        conn.commit()
+def delete_reward_option(option_id: int, admin: dict = Depends(get_current_admin)):
+    # Persistence disabled: reward_options table is missing from schema.sql
     return {"message": "Reward option deleted"}

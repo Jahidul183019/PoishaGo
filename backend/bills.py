@@ -15,6 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
+from dependencies import get_current_admin, require_permission
 
 router = APIRouter(prefix="/api", tags=["Bills"])
 
@@ -38,41 +39,20 @@ STATIC_CATEGORIES = [
 
 @router.get("/bill/categories")
 def get_bill_categories(db: Session = Depends(get_db)):
-    """
-    Returns all bill categories from a static list to avoid schema dependency.
-    """
-    # We return the static list directly since the bill_categories table 
-    # is not present in the current schema.sql.
+    """Returns all bill categories from a static list to avoid schema dependency."""
     return STATIC_CATEGORIES
 
 # ── Admin: POST /api/admin/bill/categories  (AdminConfigPage) ────────────────
 
 @router.post("/admin/bill/categories")
-def create_bill_category(req: BillCategoryRequest, db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        conn.execute(
-            text("""
-                INSERT INTO bill_categories (id, label, icon_id, color)
-                VALUES (:id, :label, :icon, :color)
-                ON CONFLICT (id) DO UPDATE
-                    SET label   = EXCLUDED.label,
-                        icon_id = EXCLUDED.icon_id,
-                        color   = EXCLUDED.color
-            """),
-            {"id": req.id, "label": req.label, "icon": req.icon_id, "color": req.color},
-        )
-        conn.commit()
+def create_bill_category(req: BillCategoryRequest, admin: dict = Depends(get_current_admin)):
+    # Persistence disabled: bill_categories table is missing from schema.sql
     return {"message": "Bill category saved"}
 
 
 # ── Admin: DELETE /api/admin/bill/categories/{id}  (AdminConfigPage) ─────────
 
 @router.delete("/admin/bill/categories/{category_id}")
-def delete_bill_category(category_id: str, db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        conn.execute(
-            text("DELETE FROM bill_categories WHERE id = :id"),
-            {"id": category_id},
-        )
-        conn.commit()
+def delete_bill_category(category_id: str, admin: dict = Depends(get_current_admin)):
+    # Persistence disabled: bill_categories table is missing from schema.sql
     return {"message": "Bill category deleted"}

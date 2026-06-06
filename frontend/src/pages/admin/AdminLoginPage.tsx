@@ -101,13 +101,13 @@ export const AdminLoginPage: React.FC = () => {
                   {/* Username/Phone */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                      Console Username / ID
+                      Console Admin ID
                     </label>
                     <div className="relative">
                       <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                       <input
-                        type="text"
-                        placeholder="e.g. root_admin"
+                        type="number"
+                        placeholder="e.g. 5"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-mono"
@@ -119,7 +119,7 @@ export const AdminLoginPage: React.FC = () => {
                   {/* Passcode key */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                      Administrative Security key
+                      Administrative PIN
                     </label>
                     <div className="relative">
                       <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />

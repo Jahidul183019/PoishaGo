@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore } from '../../store/useWalletStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -30,6 +31,7 @@ import { API_BASE_URL } from '../../utils/api';
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { adminTransactions, fraudFlags, mockCitizens, fetchUsers, fetchFraudFlags, fetchAdminTransactions } = useWalletStore();
+  const { token, admin } = useAuthStore();
 
   useEffect(() => {
     fetchUsers();
@@ -54,7 +56,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(API_BASE_URL + '/api/admin/revenue-trend')
+    if (!token) return;
+    fetch(API_BASE_URL + '/api/admin/revenue-trend', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(data => {
         // Find 'Sun' and append the dynamic fee to make it look dynamic if we want, or just use the data
@@ -158,8 +165,8 @@ export const AdminDashboardPage: React.FC = () => {
                 <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
                 <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0B0F19', border: '1px solid #1E293B', borderRadius: '8px' }}
-                  labelStyle={{ color: '#94A3B8', fontSize: '11px', fontWeight: 'bold' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                  labelStyle={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 'bold' }}
                 />
                 <Bar dataKey="value" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
@@ -188,7 +195,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <XAxis dataKey="day" stroke="#64748B" fontSize={11} tickLine={false} />
                 <YAxis stroke="#64748B" fontSize={11} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0B0F19', border: '1px solid #1E293B', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px' }}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#00C9A7" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
               </AreaChart>
@@ -289,6 +296,30 @@ export const AdminDashboardPage: React.FC = () => {
                 <span className="text-xs font-bold text-[var(--text-primary)]">Cashbacks & Occasions</span>
               </div>
               <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
+            </button>
+
+            {/* Transaction Ledger */}
+            <button
+              onClick={() => navigate('/admin/transactions')}
+              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-blue-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+            >
+              <div className="flex items-center gap-3">
+                <TrendingUp size={16} className="text-blue-400" />
+                <span className="text-xs font-bold text-[var(--text-primary)]">Transaction Ledger</span>
+              </div>
+              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-blue-400 transition-colors" />
+            </button>
+
+            {/* System Configuration */}
+            <button
+              onClick={() => navigate('/admin/config')}
+              className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-purple-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+            >
+              <div className="flex items-center gap-3">
+                <Settings size={16} className="text-purple-400" />
+                <span className="text-xs font-bold text-[var(--text-primary)]">System Configuration</span>
+              </div>
+              <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-purple-400 transition-colors" />
             </button>
 
           </div>

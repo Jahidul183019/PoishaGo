@@ -8,11 +8,27 @@ Frontend pages:
   AdminOccasionsPage      → GET  /api/campaigns
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
+from dependencies import get_current_admin, require_permission
+from pydantic import BaseModel
+
+class CampaignRequest(BaseModel):
+    name: str
+    type: str
+    percent: float
+    max_limit: float
+    min_txn_amount: float
+    eligible_txn_type: str
+    start_date: str
+    end_date: str
+
+class BalanceAdjustmentRequest(BaseModel):
+    amount: float
+    type: str # 'credit' | 'debit'
 
 router = APIRouter(prefix="/api", tags=["Admin"])
 
@@ -20,7 +36,10 @@ router = APIRouter(prefix="/api", tags=["Admin"])
 # ── GET /api/fraud-flags  (AdminFraudDetectionPage) ──────────────────────────
 
 @router.get("/fraud-flags")
-def get_fraud_flags(db: Session = Depends(get_db)):
+def get_fraud_flags(
+    admin: dict = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
     """
     Returns fraud flags joined with user and transaction data
     via the vw_fraud_dashboard view.
@@ -61,7 +80,10 @@ def get_fraud_flags(db: Session = Depends(get_db)):
 # ── GET /api/campaigns  (AdminOccasionsPage) ─────────────────────────────────
 
 @router.get("/campaigns")
-def get_campaigns(db: Session = Depends(get_db)):
+def get_campaigns(
+    admin: dict = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
     """
     Returns occasion cashback campaigns.
     Maps DB column names to the frontend's CashbackCampaign interface:
@@ -106,3 +128,150 @@ def get_campaigns(db: Session = Depends(get_db)):
         }
         for r in rows
     ]
+
+@router.post("/users/{user_id}/toggle-status")
+def toggle_user_status(
+    user_id: int, 
+    admin: dict = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
+    """Blocks or restores a user's wallet access."""
+    with db.connection().engine.connect() as conn:
+        res = conn.execute(
+            text("SELECT is_active FROM wallets WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).first()
+        if not res:
+            raise HTTPException(404, "User wallet not found")
+        
+        new_status = not res[0]
+        conn.execute(
+            text("UPDATE wallets SET is_active = :status WHERE user_id = :uid"),
+            {"uid": user_id, "status": new_status}
+        )
+        
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
+                VALUES (:aid, 'TOGGLE_WALLET_STATUS', 'wallets', :uid, :val)
+            """),
+            {"aid": admin["admin_id"], "uid": user_id, "val": f'{{"is_active": {str(new_status).lower()}}}'}
+        )
+        conn.commit()
+    return {"message": "Wallet status updated", "is_active": new_status}
+
+@router.post("/users/{user_id}/adjust-balance")
+def adjust_user_balance(
+    user_id: int,
+    req: BalanceAdjustmentRequest,
+    admin: dict = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Administratively adjust a user's balance and log the audit trail."""
+    if req.amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+
+    with db.connection().engine.connect() as conn:
+        # Get current balance
+        wallet = conn.execute(
+            text("SELECT wallet_id, balance FROM wallets WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).first()
+        if not wallet:
+            raise HTTPException(404, "User wallet not found")
+        
+        old_balance = float(wallet[1])
+        if req.type == 'debit' and old_balance < req.amount:
+            raise HTTPException(400, "Insufficient user balance for debit correction")
+
+        new_balance = old_balance + req.amount if req.type == 'credit' else old_balance - req.amount
+        
+        # Update balance
+        conn.execute(
+            text("UPDATE wallets SET balance = :nb WHERE wallet_id = :wid"),
+            {"nb": new_balance, "wid": wallet[0]}
+        )
+
+        # Log to audit trail
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id, old_value, new_value)
+                VALUES (:aid, 'ADJUST_BALANCE', 'wallets', :wid, :old, :new)
+            """),
+            {
+                "aid": admin["admin_id"], "wid": wallet[0],
+                "old": f'{{"balance": {old_balance}}}',
+                "new": f'{{"balance": {new_balance}}}'
+            }
+        )
+        conn.commit()
+    return {"message": "Balance adjusted", "new_balance": new_balance}
+
+@router.post("/fraud-flags/{flag_id}/resolve")
+def resolve_fraud_flag(
+    flag_id: int, 
+    admin: dict = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
+    """Marks a suspicious activity flag as reviewed."""
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("UPDATE fraud_flags SET reviewed_by = :aid WHERE flag_id = :fid"),
+            {"aid": admin["admin_id"], "fid": flag_id}
+        )
+        
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id)
+                VALUES (:aid, 'RESOLVE_FRAUD_FLAG', 'fraud_flags', :fid)
+            """),
+            {"aid": admin["admin_id"], "fid": flag_id}
+        )
+        conn.commit()
+    return {"message": "Fraud alert resolved"}
+
+@router.post("/campaigns")
+def create_campaign(
+    req: CampaignRequest,
+    admin: dict = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Creates a new cashback campaign and logs the action."""
+    with db.connection().engine.connect() as conn:
+        res = conn.execute(
+            text("""
+                INSERT INTO occasion_cashbacks (
+                    occasion_name, occasion_type, cashback_pct, max_cashback,
+                    min_txn_amount, eligible_txn_type, start_date, end_date,
+                    is_active, created_by
+                )
+                VALUES (
+                    :name, :type, :pct, :max_c, :min_a, :txn_t, :s_date, :e_date,
+                    true, :admin_id
+                )
+                RETURNING occasion_id
+            """),
+            {
+                "name": req.name, "type": req.type, "pct": req.percent,
+                "max_c": req.max_limit, "min_a": req.min_txn_amount,
+                "txn_t": req.eligible_txn_type, "s_date": req.start_date,
+                "e_date": req.end_date, "admin_id": admin["admin_id"]
+            },
+        )
+        row = res.first()
+        occ_id = row[0]
+
+        # Audit log insertion
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
+                VALUES (:aid, 'CREATE_CAMPAIGN', 'occasion_cashbacks', :tid, :val)
+            """),
+            {
+                "aid": admin["admin_id"], "tid": occ_id,
+                "val": req.model_dump_json()
+            }
+        )
+        conn.commit()
+
+    return {"message": "Campaign created", "id": occ_id}

@@ -19,7 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import get_current_user
+from dependencies import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/api", tags=["User"])
 
@@ -202,7 +202,7 @@ def get_notifications(
 # ── /api/users  (AdminUserTxnMgmtPage) ───────────────────────────────────────
 
 @router.get("/users")
-def get_users(db: Session = Depends(get_db)):
+def get_users(admin: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Returns all users with wallet and reward data for the admin panel."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(

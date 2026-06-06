@@ -24,7 +24,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import get_current_user
+from dependencies import get_current_user, get_current_admin, require_permission
 from security import verify_pin
 from auth_otp import send_otp_email
 
@@ -777,7 +777,10 @@ def get_transactions(
 # ── GET /api/admin/transactions  (AdminDashboardPage, AdminUserTxnMgmtPage) ──
 
 @router.get("/admin/transactions")
-def get_admin_transactions(db: Session = Depends(get_db)):
+def get_admin_transactions(
+    admin: dict = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
     """Returns up to 500 most recent transactions for the admin dashboard."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(
@@ -799,6 +802,19 @@ def get_admin_transactions(db: Session = Depends(get_db)):
             """)
         ).mappings().all()
 
+    type_map = {
+        "transfer": "send_money",
+        "cashout":  "cash_out",
+        "cashin":   "cash_in",
+        "bill":     "bill_pay",
+    }
+    status_map = {
+        "success": "completed",
+        "pending": "pending",
+        "failed":  "failed",
+        "flagged": "failed",
+    }
+
     return [
         {
             "txn_id":           r["txn_id"],
@@ -807,8 +823,8 @@ def get_admin_transactions(db: Session = Depends(get_db)):
             "receiver_wallet_id": r["receiver_wallet_id"],
             "receiver_name":    r["receiver_name"],
             "amount":           float(r["amount"]),
-            "txn_type":         r["txn_type"],
-            "status":           r["status"],
+            "txn_type":         type_map.get(r["txn_type"], r["txn_type"]),
+            "status":           status_map.get(r["status"], r["status"]),
             "fee":              float(r["fee"]),
             "reference_no":     r["reference_no"],
             "txn_at":           r["txn_at"].isoformat(),
@@ -816,11 +832,10 @@ def get_admin_transactions(db: Session = Depends(get_db)):
         for r in rows
     ]
 
-
 # ── GET /api/admin/revenue-trend  (AdminDashboardPage chart) ─────────────────
 
 @router.get("/admin/revenue-trend")
-def get_revenue_trend(db: Session = Depends(get_db)):
+def get_revenue_trend(admin: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Returns daily fee revenue for the last 7 days (for the area chart)."""
     with db.connection().engine.connect() as conn:
         rows = conn.execute(

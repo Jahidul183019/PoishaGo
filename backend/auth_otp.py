@@ -231,6 +231,16 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
                     """),
                     {"uid": user_id, "wnum": wallet_number},
                 )
+            
+            # Ensure reward points entry exists for the new citizen
+            conn.execute(
+                text("""
+                    INSERT INTO reward_points (user_id, current_points, tier)
+                    VALUES (:uid, 0, 'bronze')
+                    ON CONFLICT (user_id) DO NOTHING
+                """),
+                {"uid": user_id}
+            )
 
             conn.commit()
             return {"status": "success", "detail": "Account verified successfully!"}

@@ -135,10 +135,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/admin/login")
 def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
     """
-    Authenticates an admin by phone-or-email + passcode.
+    Authenticates an admin by admin_id + PIN from the users table.
     Returns token and the admin role so the frontend can route correctly.
     """
-    ident = payload.username.strip()
 
     with db.connection().engine.connect() as conn:
         row = conn.execute(
@@ -146,9 +145,9 @@ def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
                 SELECT u.user_id, u.password_hash, a.role
                 FROM users u
                 JOIN admins a ON a.user_id = u.user_id
-                WHERE u.phone = :id OR u.email = :id
+                WHERE a.admin_id = :aid
             """),
-            {"id": ident},
+            {"aid": payload.admin_id},
         ).first()
 
     if not row:
@@ -156,11 +155,19 @@ def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
 
     user_id, pw_hash, role = row
 
-    if not verify_pin(payload.passcode, pw_hash):
+    if not verify_pin(payload.pin, pw_hash):
         raise HTTPException(401, "Invalid admin credentials.")
 
+    # Fetch permissions for the role
+    with db.connection().engine.connect() as conn:
+        perms_rows = conn.execute(
+            text("SELECT permission FROM admin_permissions WHERE role = :r"),
+            {"r": role}
+        ).all()
+    permissions = [p[0] for p in perms_rows]
+
     token = create_access_token({"sub": str(user_id)})
-    return {"access_token": token, "token_type": "bearer", "role": role}
+    return {"access_token": token, "token_type": "bearer", "role": role, "permissions": permissions}
 
 
 # ── /api/me  (HomePage, ProfilePage) ─────────────────────────────────────────
@@ -180,19 +187,34 @@ def get_me(user_id: str = Depends(get_current_user), db: Session = Depends(get_d
                     u.user_type, u.is_verified,
                     w.wallet_number, w.balance, w.wallet_id,
                     COALESCE(r.current_points, 0)  AS current_points,
-                    COALESCE(r.tier, 'bronze')      AS tier
+                    COALESCE(r.tier, 'bronze')      AS tier,
+                    (a.admin_id IS NOT NULL)        AS is_admin,
+                    a.role                          AS admin_role
                 FROM users u
                 LEFT JOIN wallets       w ON w.user_id  = u.user_id
                 LEFT JOIN reward_points r ON r.user_id  = u.user_id
+                LEFT JOIN admins        a ON a.user_id  = u.user_id
                 WHERE u.user_id = :uid
             """),
             {"uid": user_id},
         ).mappings().first()
 
-    if not row:
-        raise HTTPException(404, "User not found.")
+        if not row:
+            raise HTTPException(404, "User not found.")
 
-    return dict(row)
+        profile = dict(row)
+        
+        # If admin, fetch permissions while the connection is still open
+        if profile.get("is_admin"):
+            perms_rows = conn.execute(
+                text("SELECT permission FROM admin_permissions WHERE role = :role"),
+                {"role": profile["admin_role"]}
+            ).all()
+            profile["permissions"] = [p[0] for p in perms_rows]
+        else:
+            profile["permissions"] = []
+
+    return profile
 
 
 @router.post("/reset-pin")
