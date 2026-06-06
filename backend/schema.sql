@@ -185,8 +185,17 @@ create table reward_redemptions(
 	redeemed_at timestamptz not null default now(),
 	constraint chk_point_used_min check(points_used >=100),
 	constraint chk_point_used_max check(points_used <=5000),
-	foreign key(user_id) REFERENCES users(user_id),
-	foreign key(wallet_id) REFERENCES wallets(wallet_id)
+	foreign key(user_id) references users(user_id) on delete cascade,
+	foreign key(wallet_id) references wallets(wallet_id) on delete cascade
+);
+
+CREATE TABLE reward_options (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    points_required INT NOT NULL,
+    value_bdt DECIMAL(12,2) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE occasion_cashbacks (
@@ -469,3 +478,9 @@ join transactions t on ff.txn_id=t.txn_id
 left join admins a on ff.reviewed_by=a.admin_id
 left join users adm_user on a.user_id=adm_user.user_id
 order by ff.risk_score desc,ff.flagged_at desc;
+
+INSERT INTO reward_options (title, points_required, value_bdt, category) VALUES
+    ('৳50 Wallet Cashback', 500, 50.0, 'cashback'),
+    ('৳100 Wallet Cashback', 1000, 100.0, 'cashback'),
+    ('৳200 Daraz Voucher', 2000, 200.0, 'voucher'),
+    ('৳500 Wallet Cashback', 5000, 500.0, 'cashback');

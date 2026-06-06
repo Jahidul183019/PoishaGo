@@ -132,19 +132,11 @@ def get_rewards_config():
     }
 
 
-STATIC_REWARD_OPTIONS = [
-    {"id": 1, "title": "৳50 Wallet Cashback", "pointsRequired": 500, "valueBDT": 50.0, "category": "cashback"},
-    {"id": 2, "title": "৳100 Wallet Cashback", "pointsRequired": 1000, "valueBDT": 100.0, "category": "cashback"},
-    {"id": 3, "title": "৳200 Daraz Voucher", "pointsRequired": 2000, "valueBDT": 200.0, "category": "voucher"},
-    {"id": 4, "title": "৳500 Wallet Cashback", "pointsRequired": 5000, "valueBDT": 500.0, "category": "cashback"},
-]
-
-# ── GET /api/rewards/options  (RewardsPage, AdminConfigPage) ─────────────────
-
 @router.get("/rewards/options")
 def get_reward_options(db: Session = Depends(get_db)):
-    """Returns reward options from static list to prevent DB crash."""
-    return STATIC_REWARD_OPTIONS
+    with db.connection().engine.connect() as conn:
+        rows = conn.execute(text("SELECT id, title, points_required as \"pointsRequired\", value_bdt as \"valueBDT\", category FROM reward_options ORDER BY points_required ASC")).mappings().all()
+    return [dict(r) for r in rows]
 
 
 # ── GET /api/rewards/history  (RewardsPage) ───────────────────────────────────
@@ -260,8 +252,17 @@ def redeem_rewards(
 def create_reward_option(
     req: RewardOptionRequest, 
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+    db: Session = Depends(get_db)
 ):
-    # Persistence disabled: reward_options table missing from schema.sql
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO reward_options (title, points_required, value_bdt, category)
+                VALUES (:title, :pts, :bdt, :cat)
+            """),
+            {"title": req.title, "pts": req.points_required, "bdt": req.value_bdt, "cat": req.category}
+        )
+        conn.commit()
     return {"message": "Reward option added"}
 
 
@@ -271,6 +272,12 @@ def create_reward_option(
 def delete_reward_option(
     option_id: int, 
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+    db: Session = Depends(get_db)
 ):
-    # Persistence disabled: reward_options table missing from schema.sql
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM reward_options WHERE id = :id"),
+            {"id": option_id}
+        )
+        conn.commit()
     return {"message": "Reward option deleted"}
