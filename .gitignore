@@ -16,3 +16,9 @@ node_modules/
 dist/
 build/
 .DS_Store
+<<<<<<< HEAD
+=======
+
+# Ignore backend folder
+backend/
+>>>>>>> 7d2cfbca7f72fb366ee021adea99df40bae1f853
