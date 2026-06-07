@@ -7,13 +7,13 @@ Use get_db() as a FastAPI dependency to get a scoped Session per request.
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import NullPool
 from config import settings
 
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,          # drop dead connections automatically
-    pool_size=10,
-    max_overflow=20,
+    poolclass=NullPool,
+    connect_args={"prepare_threshold": None}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
