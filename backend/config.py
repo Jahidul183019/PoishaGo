@@ -22,9 +22,9 @@ class Settings:
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
-    # Email / Resend
-    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
-    SENDER_EMAIL: str = os.getenv("SENDER_EMAIL", "onboarding@resend.dev")
+    # Email / Brevo
+    BREVO_API_KEY: str = os.getenv("BREVO_API_KEY", "")
+    SENDER_EMAIL: str = os.getenv("SENDER_EMAIL", "")
 
 settings = Settings()
 

@@ -10,7 +10,7 @@ Frontend pages:
 """
 
 import secrets
-import resend
+import requests
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -31,13 +31,11 @@ router = APIRouter(prefix="/api", tags=["OTP"])
 
 def send_otp_email(receiver_email: str, otp_code: str) -> None:
     """
-    Dispatches a styled HTML OTP email via Resend API.
+    Dispatches a styled HTML OTP email via Brevo HTTP API.
     """
-    if not settings.RESEND_API_KEY:
+    if not settings.BREVO_API_KEY or not settings.SENDER_EMAIL:
         print(f"[DEV] OTP for {receiver_email}: {otp_code}  (email not configured)")
         return
-
-    resend.api_key = settings.RESEND_API_KEY
 
     html = f"""
     <div style="font-family:sans-serif;padding:20px;max-width:500px;
@@ -60,15 +58,24 @@ def send_otp_email(receiver_email: str, otp_code: str) -> None:
     """
 
     try:
-        params = {
-            "from": f"PoishaGo Security <{settings.SENDER_EMAIL}>",
-            "to": [receiver_email],
-            "subject": "Your PoishaGo Verification Code",
-            "html": html,
-        }
-        resend.Emails.send(params)
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": settings.BREVO_API_KEY,
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            json={
+                "sender": {"name": "PoishaGo Security", "email": settings.SENDER_EMAIL},
+                "to": [{"email": receiver_email}],
+                "subject": "Your PoishaGo Verification Code",
+                "htmlContent": html
+            },
+            timeout=5
+        )
+        response.raise_for_status()
     except Exception as exc:
-        print(f"[RESEND ERROR] {exc}")
+        print(f"[BREVO ERROR] {exc}")
 
 
 # ── /api/send-otp  (OTPPage — resend / password-reset) ───────────────────────
