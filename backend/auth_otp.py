@@ -68,7 +68,7 @@ def send_otp_email(receiver_email: str, otp_code: str) -> None:
     msg.attach(MIMEText(html, "html"))
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as server:
             server.starttls()
             server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
             server.sendmail(settings.GMAIL_USER, receiver_email, msg.as_string())
