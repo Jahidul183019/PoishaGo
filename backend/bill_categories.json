@@ -1,0 +1,26 @@
+[
+  {
+    "id": "electricity",
+    "label": "Electricity",
+    "icon_id": "Zap",
+    "color": "text-yellow-400 bg-yellow-500/10 border-yellow-500/20"
+  },
+  {
+    "id": "water",
+    "label": "Water Bill",
+    "icon_id": "Droplet",
+    "color": "text-blue-400 bg-blue-500/10 border-blue-500/20"
+  },
+  {
+    "id": "gas",
+    "label": "Gas",
+    "icon_id": "Flame",
+    "color": "text-orange-400 bg-orange-500/10 border-orange-500/20"
+  },
+  {
+    "id": "Electricity",
+    "label": "BREB",
+    "icon_id": "Tag",
+    "color": "text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20"
+  }
+]

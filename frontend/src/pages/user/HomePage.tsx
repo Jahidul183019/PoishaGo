@@ -54,7 +54,7 @@ export const HomePage: React.FC = () => {
 
         {/* Reward Tier Indicator */}
         <div className="flex items-center gap-2">
-          <TierBadge tier={user?.tier || 'gold'} />
+          <TierBadge tier={user?.tier || 'bronze'} />
         </div>
       </div>
 
@@ -134,10 +134,10 @@ export const HomePage: React.FC = () => {
 
           <div className="my-3">
             <h3 className="font-sora font-extrabold text-2xl text-amber-400">
-              {user?.current_points ?? 2450} <span className="text-xs font-semibold text-[var(--text-secondary)] font-dm">pts</span>
+              {user?.current_points ?? 0} <span className="text-xs font-semibold text-[var(--text-secondary)] font-dm">pts</span>
             </h3>
             <p className="text-[10px] text-[var(--text-secondary)] mt-1 font-semibold leading-tight">
-              Equivalent to roughly <strong>{formatBDT((user?.current_points ?? 2450) * 0.10)}</strong> of real-time cash
+              Equivalent to roughly <strong>{formatBDT((user?.current_points ?? 0) * 0.10)}</strong> of real-time cash
             </p>
           </div>
 

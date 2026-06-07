@@ -244,7 +244,14 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
             )
 
             conn.commit()
-            return {"status": "success", "detail": "Account verified successfully!"}
+            
+            token = create_access_token({"sub": str(user_id)})
+            return {
+                "status": "success", 
+                "detail": "Account verified successfully!",
+                "access_token": token,
+                "token_type": "bearer"
+            }
 
         elif purpose == 'login':
             # Make the OTP the user's temporary password (hash it), so the

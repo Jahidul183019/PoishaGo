@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "title": "\u09f350 Mobile Recharge",
+    "pointsRequired": 500,
+    "valueBDT": 50.0,
+    "category": "voucher"
+  },
+  {
+    "id": 2,
+    "title": "\u09f3100 Daraz Voucher",
+    "pointsRequired": 1000,
+    "valueBDT": 100.0,
+    "category": "voucher"
+  },
+  {
+    "id": 3,
+    "title": "\u09f3200 Cash Back",
+    "pointsRequired": 2000,
+    "valueBDT": 200.0,
+    "category": "cashback"
+  },
+  {
+    "id": 4,
+    "title": "\u09f3500 Superstore Coupon",
+    "pointsRequired": 5000,
+    "valueBDT": 500.0,
+    "category": "voucher"
+  },
+  {
+    "id": 5,
+    "title": "Daraz",
+    "pointsRequired": 100,
+    "valueBDT": 10.0,
+    "category": "cashback"
+  }
+]

@@ -506,7 +506,7 @@ export const SendMoneyPage: React.FC = () => {
       >
         <div className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
-            Enter both your 6-digit wallet PIN and the 6-digit transfer code sent to your email.
+            Enter both your 6-digit wallet PIN and the 6-digit OTP sent to your email.
           </p>
 
           <div className="py-2 flex flex-col gap-3">
@@ -523,14 +523,14 @@ export const SendMoneyPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Transfer Code</label>
+              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">OTP</label>
               <div className="py-2">
                 <OTPInput length={6} onComplete={(code) => setTransferOtp(code)} />
               </div>
             </div>
 
             <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
-              Safety tip: Never disclose your PIN or transfer code.
+              Safety tip: Never disclose your PIN or OTP.
             </p>
 
             <div className="pt-2">
