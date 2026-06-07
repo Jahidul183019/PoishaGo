@@ -22,11 +22,9 @@ class Settings:
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
-    # Email / SMTP
-    GMAIL_USER: str = os.getenv("GMAIL_USER", "")
-    GMAIL_APP_PASSWORD: str = os.getenv("GMAIL_APP_PASSWORD", "")
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    # Email / Resend
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+    SENDER_EMAIL: str = os.getenv("SENDER_EMAIL", "onboarding@resend.dev")
 
 settings = Settings()
 

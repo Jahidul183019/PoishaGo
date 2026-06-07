@@ -10,10 +10,8 @@ Frontend pages:
 """
 
 import secrets
-import smtplib
+import resend
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
@@ -33,18 +31,13 @@ router = APIRouter(prefix="/api", tags=["OTP"])
 
 def send_otp_email(receiver_email: str, otp_code: str) -> None:
     """
-    Dispatches a styled HTML OTP email via SMTP.
-    Silently logs instead of crashing when email credentials are absent
-    (useful for local development without Gmail setup).
+    Dispatches a styled HTML OTP email via Resend API.
     """
-    if not settings.GMAIL_USER or not settings.GMAIL_APP_PASSWORD:
+    if not settings.RESEND_API_KEY:
         print(f"[DEV] OTP for {receiver_email}: {otp_code}  (email not configured)")
         return
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Your PoishaGo Verification Code"
-    msg["From"] = f"PoishaGo Security <{settings.GMAIL_USER}>"
-    msg["To"] = receiver_email
+    resend.api_key = settings.RESEND_API_KEY
 
     html = f"""
     <div style="font-family:sans-serif;padding:20px;max-width:500px;
@@ -65,16 +58,17 @@ def send_otp_email(receiver_email: str, otp_code: str) -> None:
       </p>
     </div>
     """
-    msg.attach(MIMEText(html, "html"))
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as server:
-            server.starttls()
-            server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
-            server.sendmail(settings.GMAIL_USER, receiver_email, msg.as_string())
+        params = {
+            "from": f"PoishaGo Security <{settings.SENDER_EMAIL}>",
+            "to": [receiver_email],
+            "subject": "Your PoishaGo Verification Code",
+            "html": html,
+        }
+        resend.Emails.send(params)
     except Exception as exc:
-        # Don't hard-crash the registration flow — just log
-        print(f"[SMTP ERROR] {exc}")
+        print(f"[RESEND ERROR] {exc}")
 
 
 # ── /api/send-otp  (OTPPage — resend / password-reset) ───────────────────────
