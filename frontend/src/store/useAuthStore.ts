@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useWalletStore } from './useWalletStore';
+import { useToastStore } from '../hooks/useToast';
 import api from '../utils/api';
 
 
@@ -120,7 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (e: any) {
       console.error(e);
       if (e.message && e.message.includes('403')) {
-        alert("Access Denied: You do not have the required administrative clearance to view this data.");
+        useToastStore.getState().showToast("Access Denied: You do not have the required administrative clearance to view this data.", 'error');
         get().logout();
       } else {
         get().logoutUser();

@@ -5,6 +5,7 @@ import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import { useToastStore } from '../../hooks/useToast';
 import {
   Users,
   Search,
@@ -34,7 +35,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
     if (admin?.permissions.includes(permission)) return true;
 
     const roleName = admin?.role.replace('_', ' ').toLowerCase();
-    alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+    useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
     return false;
   };
 
@@ -75,7 +76,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
   const handleSaveCorrectionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    alert("Manual balance adjustment via mock store is disabled. Integration required.");
+    useToastStore.getState().showToast("Manual balance adjustment via mock store is disabled. Integration required.", 'warning');
     setIsCorrectionModalOpen(false);
   };
 

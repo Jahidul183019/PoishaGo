@@ -1,6 +1,7 @@
 // frontend/src/store/useWalletStore.ts
 import { create } from 'zustand';
 import api from '../utils/api';
+import { useToastStore } from '../hooks/useToast';
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -301,7 +302,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         ),
       }));
     } catch (err: any) {
-      alert(err.message || 'Failed to toggle user status');
+      useToastStore.getState().showToast(err.message || 'Failed to toggle user status', 'error');
     }
   },
 
@@ -323,7 +324,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           c.id === id ? { ...c, is_active: !c.is_active } : c
         ),
       }));
-      alert(err.message || 'Failed to toggle campaign');
+      useToastStore.getState().showToast(err.message || 'Failed to toggle campaign', 'error');
     }
   },
 
@@ -333,7 +334,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       await api.post('/api/campaigns', payload);
       await get().fetchCampaigns();
     } catch (err: any) {
-      alert(err.message || 'Failed to create campaign');
+      useToastStore.getState().showToast(err.message || 'Failed to create campaign', 'error');
     }
   },
 
@@ -345,7 +346,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         campaigns: state.campaigns.filter((c) => c.id !== id),
       }));
     } catch (err: any) {
-      alert(err.message || 'Failed to delete campaign');
+      useToastStore.getState().showToast(err.message || 'Failed to delete campaign', 'error');
     }
   },
 
@@ -355,7 +356,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       await api.post(`/api/fraud-flags/${id}/resolve`, {});
       await get().fetchFraudFlags();
     } catch (err: any) {
-      alert(err.message || 'Failed to resolve fraud flag');
+      useToastStore.getState().showToast(err.message || 'Failed to resolve fraud flag', 'error');
     }
   },
 
@@ -365,7 +366,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       await api.post('/api/admin/rewards/options', option);
       await get().fetchRewardOptions();
     } catch (err: any) {
-      alert(err.message || 'Failed to add reward option');
+      useToastStore.getState().showToast(err.message || 'Failed to add reward option', 'error');
     }
   },
 
@@ -376,7 +377,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         rewardOptions: state.rewardOptions.filter((r) => r.id !== id),
       }));
     } catch (err: any) {
-      alert(err.message || 'Failed to delete reward option');
+      useToastStore.getState().showToast(err.message || 'Failed to delete reward option', 'error');
     }
   },
 
@@ -386,7 +387,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       await api.post('/api/admin/bill/categories', category);
       await get().fetchBillCategories();
     } catch (err: any) {
-      alert(err.message || 'Failed to add bill category');
+      useToastStore.getState().showToast(err.message || 'Failed to add bill category', 'error');
     }
   },
 
@@ -397,7 +398,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         billCategories: state.billCategories.filter((b) => b.id !== id),
       }));
     } catch (err: any) {
-      alert(err.message || 'Failed to delete bill category');
+      useToastStore.getState().showToast(err.message || 'Failed to delete bill category', 'error');
     }
   },
 }));

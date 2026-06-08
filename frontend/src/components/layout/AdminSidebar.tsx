@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useToastStore } from '../../hooks/useToast';
 import { LayoutDashboard, Users, History, ShieldAlert, Award, LogOut, ShieldCheck, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -14,7 +15,7 @@ export const AdminSidebar: React.FC = () => {
     if (!perm) return true; // Always allow dashboard
     if (admin?.permissions?.includes(perm)) return true;
     const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
-    alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+    useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
     return false;
   };
 

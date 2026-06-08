@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWalletStore } from '../../store/useWalletStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
+import { useToastStore } from '../../hooks/useToast';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { 
@@ -262,7 +263,7 @@ export const AdminDashboardPage: React.FC = () => {
                 if (admin?.role === 'SUPER_ADMIN') return true;
                 if (admin?.permissions?.includes(perm)) return true;
                 const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
-                alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
+                useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
                 return false;
               };
 

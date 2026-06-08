@@ -10,7 +10,6 @@ import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
 import { useToast } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
-import { ToastContainer } from '../../components/ui/Toast';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -114,7 +113,6 @@ export const CashInPage: React.FC = () => {
 
   return (
     <>
-    <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-in fade-in duration-300">
       
       {/* Header */}

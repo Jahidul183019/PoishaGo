@@ -1,28 +1,34 @@
-import { useState, useCallback } from 'react';
+import { create } from 'zustand';
 
 export type ToastType = 'error' | 'success' | 'warning' | 'info';
 
-interface Toast {
+export interface Toast {
   id: number;
   message: string;
   type: ToastType;
 }
 
-export function useToast() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+interface ToastStore {
+  toasts: Toast[];
+  showToast: (message: string, type?: ToastType) => void;
+  dismissToast: (id: number) => void;
+}
 
-  const showToast = useCallback((message: string, type: ToastType = 'error') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    // Auto-dismiss after 4 seconds
+export const useToastStore = create<ToastStore>((set) => ({
+  toasts: [],
+  showToast: (message, type = 'error') => {
+    const id = Date.now() + Math.random();
+    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
+      set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
     }, 4000);
-  }, []);
+  },
+  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
+}));
 
-  const dismissToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
+export function useToast() {
+  const toasts = useToastStore((s) => s.toasts);
+  const showToast = useToastStore((s) => s.showToast);
+  const dismissToast = useToastStore((s) => s.dismissToast);
   return { toasts, showToast, dismissToast };
 }
