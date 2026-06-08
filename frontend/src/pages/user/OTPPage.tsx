@@ -9,18 +9,18 @@ import { ShieldCheck, MessageSquare, RefreshCw, ArrowLeft } from 'lucide-react';
 export const OTPPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Pull updated asynchronous API actions from Zustand store layer
   const { user, verifyUserOTP, resendUserOTP } = useAuthStore();
-  
+
   const isPasswordReset = location.state?.isPasswordReset;
   const initialEmail = location.state?.email || (isPasswordReset ? '' : user?.email || '');
-  
+
   const [email, setEmail] = useState(initialEmail);
   const [step, setStep] = useState<'enter_email' | 'enter_otp' | 'reset_pin'>(
     initialEmail ? 'enter_otp' : 'enter_email'
   );
-  
+
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
@@ -48,7 +48,7 @@ export const OTPPage: React.FC = () => {
     }
     setIsVerifying(true);
     setErrorText('');
-    
+
     try {
       // 🚀 FIXED: Native string method is .toLowerCase(), not .lowerCase()
       const purpose = isPasswordReset ? 'login' : undefined;
@@ -56,7 +56,7 @@ export const OTPPage: React.FC = () => {
       if (!result.success) {
         throw new Error(result.message);
       }
-      
+
       setStep('enter_otp');
       setCounter(45);
       setCanResend(false);
@@ -156,7 +156,7 @@ export const OTPPage: React.FC = () => {
       }
     } catch (err: any) {
       setErrorText(err.message || 'Failed to dispatch code.');
-      setCanResend(true); 
+      setCanResend(true);
     } finally {
       setIsVerifying(false);
     }
@@ -182,20 +182,20 @@ export const OTPPage: React.FC = () => {
       {/* Main Content Canvas */}
       <main className="flex-grow flex justify-center pt-24 pb-12 px-4 md:px-12 w-full">
         <div className="w-full max-w-[1400px] flex flex-col md:flex-row gap-10 lg:gap-20 items-center justify-center my-auto">
-          
+
           {/* Hero Side (Desktop) */}
           <div className="hidden md:flex flex-col space-y-3 flex-grow self-start -mt-8 lg:-mt-16 max-w-[700px]">
             <h1 className="font-sora text-4xl lg:text-5xl font-bold text-[var(--text-primary)] leading-tight tracking-tight">
-              Secure your account,<br/>
+              Secure your account,<br />
               <span className="text-[#00C9A7]">verify your identity.</span>
             </h1>
             <p className="text-lg lg:text-xl text-[var(--text-secondary)] max-w-lg leading-relaxed">
               We employ military-grade encryption and two-factor authentication to ensure your funds and data remain completely secure.
             </p>
             <div className="relative w-[90%] max-w-[580px] aspect-[3/2] rounded-2xl overflow-hidden shadow-xl border border-[var(--border)] mt-4">
-              <img 
-                className="w-full h-full object-cover" 
-                alt="Security Interface" 
+              <img
+                className="w-full h-full object-cover"
+                alt="Security Interface"
                 src="/otp_hero.png"
               />
             </div>
@@ -207,7 +207,7 @@ export const OTPPage: React.FC = () => {
           {/* Auth Form Container */}
           <div className="flex-shrink-0 flex justify-center w-full md:w-auto">
             <div className="w-full md:w-[440px] flex flex-col gap-6 relative">
-              
+
               {/* Navigation back option */}
               <button
                 onClick={() => navigate('/login')}
@@ -227,11 +227,11 @@ export const OTPPage: React.FC = () => {
                   {step === 'enter_email' ? 'Reset Password' : step === 'reset_pin' ? 'Create New PIN' : 'Authorization Code'}
                 </h1>
                 <div className="text-xs text-[var(--text-secondary)] px-4 leading-relaxed pb-4">
-                  {step === 'enter_email' 
-                    ? 'Enter your registered email address below to receive a password reset OTP code.' 
+                  {step === 'enter_email'
+                    ? 'Enter your registered email address below to receive a password reset OTP code.'
                     : step === 'reset_pin'
-                    ? 'Your identity has been verified. Please enter a new 6-digit security PIN for your wallet.'
-                    : 'We sent a 6-digit confirmation code to your registered email address:'}
+                      ? 'Your identity has been verified. Please enter a new 6-digit security PIN for your wallet.'
+                      : 'We sent a 6-digit confirmation code to your registered email address:'}
                   {step === 'enter_otp' && email && (
                     <span className="block font-bold text-[var(--text-primary)] font-mono mt-1 text-sm break-all">
                       {email}
@@ -242,29 +242,29 @@ export const OTPPage: React.FC = () => {
 
               {/* Main Verification Card */}
               <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-b-2xl p-6 shadow-xl flex flex-col gap-6 relative z-20">
-                
+
                 {step === 'reset_pin' ? (
                   <form onSubmit={handleResetPin} className="flex flex-col gap-4 py-2">
-                    <input 
+                    <input
                       type="password"
                       maxLength={6}
                       value={newPin}
                       onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
                       className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
-                      placeholder="New 6-digit PIN" 
-                      required 
+                      placeholder="New 6-digit PIN"
+                      required
                     />
-                    <input 
+                    <input
                       type="password"
                       maxLength={6}
                       value={confirmPin}
                       onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
                       className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
-                      placeholder="Confirm New PIN" 
-                      required 
+                      placeholder="Confirm New PIN"
+                      required
                     />
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center mt-2"
                     >
                       Update Security PIN
@@ -272,19 +272,19 @@ export const OTPPage: React.FC = () => {
                   </form>
                 ) : step === 'enter_email' ? (
                   <form onSubmit={handleSendEmailOTP} className="flex flex-col gap-4 py-2">
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         setErrorText('');
                       }}
                       className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-medium text-[var(--text-primary)] transition-all"
-                      placeholder="Email Address" 
-                      required 
+                      placeholder="Email Address"
+                      required
                     />
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={isVerifying}
                       className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-50"
                     >

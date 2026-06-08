@@ -3,39 +3,36 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import ThemeToggle from '../../components/ui/ThemeToggle';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, LoginFormData } from '../../utils/validators';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { loginUser } = useAuthStore();
 
-  const [phone, setPhone] = useState('01711000001'); // Preset demo citizen
-  const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [errorMSG, setErrorMSG] = useState('');
   const [isSendingOTP, setIsSendingOTP] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { phone: '01711000001', pin: '' },
+  });
 
   const handleForgotPassword = () => {
     // Navigate directly to OTP page for password reset flow
     navigate('/otp', { state: { isPasswordReset: true } });
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (phone.length < 11) {
-      setErrorMSG('Valid Bangladeshi mobile number required (11 digits)');
-      return;
-    }
-    if (pin.length < 6) {
-      setErrorMSG('6-digit security PIN is required');
-      return;
-    }
-
-    const success = await loginUser(phone, pin);
+  const onSubmit = async (data: LoginFormData) => {
+    setErrorMSG('');
+    const success = await loginUser(data.phone, data.pin);
     if (success) {
-      // Because we now do OTP before login in this version of the flow? No wait.
-      // Wait, the API /login returns a JWT, which implies they are logged in! 
-      // Do they still need OTP for login?
-      // In the mock, it transitioned to OTP page. I will just navigate to Dashboard if successful.
       navigate('/home');
     } else {
       setErrorMSG('Incorrect mobile number or password.');
@@ -94,7 +91,7 @@ export const LoginPage: React.FC = () => {
                   <p className="text-sm text-[var(--text-secondary)]">Log in to your PoishaGo account</p>
                 </div>
                 
-                <form className="space-y-5" onSubmit={handleLoginSubmit}>
+                <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
                   
                   {/* Phone Input */}
                   <div className="space-y-1.5">
@@ -104,16 +101,14 @@ export const LoginPage: React.FC = () => {
                       <input 
                         type="tel" 
                         maxLength={11}
-                        value={phone}
-                        onChange={(e) => {
-                          setPhone(e.target.value.replace(/\D/g, ''));
-                          setErrorMSG('');
-                        }}
-                        className={`w-full pl-14 pr-4 py-3 bg-[var(--bg-secondary)] rounded-xl border ${errorMSG.includes('mobile') ? 'border-rose-400' : 'border-[var(--border)]'} focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono font-medium text-[var(--text-primary)] transition-all`} 
+                        {...register('phone')}
+                        className={`w-full pl-14 pr-4 py-3 bg-[var(--bg-secondary)] rounded-xl border ${errors.phone || errorMSG.includes('mobile') ? 'border-rose-400' : 'border-[var(--border)]'} focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono font-medium text-[var(--text-primary)] transition-all`} 
                         placeholder="01XXXXXXXXX" 
-                        required 
                       />
                     </div>
+                    {errors.phone && (
+                      <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>
+                    )}
                   </div>
 
                   {/* Password/PIN Input */}
@@ -133,14 +128,9 @@ export const LoginPage: React.FC = () => {
                       <input 
                         type={showPin ? "text" : "password"} 
                         maxLength={6}
-                        value={pin}
-                        onChange={(e) => {
-                          setPin(e.target.value.replace(/\D/g, ''));
-                          setErrorMSG('');
-                        }}
-                        className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all" 
+                        {...register('pin')}
+                        className={`w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border ${errors.pin ? 'border-rose-400' : 'border-[var(--border)]'} focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all`} 
                         placeholder="••••••" 
-                        required 
                       />
                       <button 
                         type="button" 
@@ -150,6 +140,9 @@ export const LoginPage: React.FC = () => {
                         {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    {errors.pin && (
+                      <p className="text-red-400 text-xs mt-1">{errors.pin.message}</p>
+                    )}
                   </div>
 
                   {/* Error Message */}
@@ -160,10 +153,11 @@ export const LoginPage: React.FC = () => {
                   {/* CTA */}
                   <button 
                     type="submit" 
-                    className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 outline-none"
+                    disabled={isSubmitting}
+                    className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Continue
-                    <ArrowRight size={18} />
+                    {isSubmitting ? 'Logging in...' : 'Continue'}
+                    {!isSubmitting && <ArrowRight size={18} />}
                   </button>
 
                 </form>

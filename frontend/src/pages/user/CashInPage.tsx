@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
+import { useToast } from '../../hooks/useToast';
+import { useApiCall } from '../../hooks/useApiCall';
+import { ToastContainer } from '../../components/ui/Toast';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -20,21 +23,20 @@ import {
 
 export const CashInPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
-  const { addTransaction, addNotification } = useWalletStore();
+  const { user, updateUserBalance, fetchUserProfile } = useAuthStore();
 
   const [agentsList, setAgentsList] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(API_BASE_URL + '/api/agents')
-      .then(res => res.json())
+    api.get<any[]>('/api/agents')
       .then(data => setAgentsList(data))
       .catch(err => console.error(err));
   }, []);
 
   const [selectedAgentId, setSelectedAgentId] = useState('1');
   const [amount, setAmount] = useState('');
-  const [errorText, setErrorText] = useState('');
+  
+  const { toasts, showToast, dismissToast } = useToast();
   
   const [currentStep, setCurrentStep] = useState<'input' | 'processing' | 'success'>('input');
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
@@ -46,108 +48,73 @@ export const CashInPage: React.FC = () => {
 
   const selectedAgent = agentsList.find(a => a.id === selectedAgentId) || agentsList[0];
 
-  const handleInitiateCashIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorText('');
-
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 100) {
-      setErrorText('Minimum Cash In threshold is ৳100.00');
-      return;
-    }
-
-    // Request OTP before opening modal (OTP sent to agent's email)
-    try {
-      const response = await fetch(API_BASE_URL + '/api/transactions/cashin/send-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          agent_phone: selectedAgent.phone
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Failed to send OTP');
-        return;
-      }
-
+  const { execute: sendOtp, isLoading: isSendingOtp } = useApiCall({
+    successMessage: 'OTP sent to agent successfully',
+    showToast,
+    onSuccess: () => {
       setIsOTPModalOpen(true);
       setCashInPin('');
       setCashInOtp('');
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error requesting OTP');
     }
-  };
+  });
 
-  const handleConfirmCashIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!cashInPin || !cashInOtp) {
-      setErrorText('Please enter both PIN and OTP');
-      return;
-    }
-
-    setIsOTPModalOpen(false);
-    setCurrentStep('processing');
-    setErrorText('');
-
-    try {
-      const cashInAmt = parseFloat(amount);
-      const response = await fetch(API_BASE_URL + '/api/transactions/cashin', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          agent_phone: selectedAgent.phone,
-          amount: cashInAmt,
-          pin: cashInPin,
-          otp: cashInOtp
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Cash in failed');
-        setCurrentStep('input');
-        return;
-      }
-
-      const data = await response.json();
-      
-      // Update local balance
+  const { execute: confirmCashIn, isLoading: isConfirming } = useApiCall({
+    successMessage: 'Cash in completed!',
+    showToast,
+    onSuccess: async (data) => {
       await fetchUserProfile();
-
-      // Trigger in-app alerts
-      addNotification(
-        `Cashed In ৳${cashInAmt} successfully`,
-        `Received BDT ${cashInAmt} from ${selectedAgent.name}. Reference ID: ${data.transaction_id}.`,
-        'credit'
-      );
-
       setReceipt({
         ref: data.transaction_id,
-        amount: cashInAmt,
+        amount: parseFloat(amount),
         agent: selectedAgent.name,
         location: selectedAgent.location,
         date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
       });
-
       setCurrentStep('success');
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error processing cash in');
-      setCurrentStep('input');
     }
+  });
+
+  const handleInitiateCashIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 100) {
+      showToast('Minimum Cash In threshold is ৳100.00', 'error');
+      return;
+    }
+    
+    sendOtp(() => api.post('/api/transactions/cashin/send-otp', {
+      agent_phone: selectedAgent.phone
+    }));
+  };
+
+  const handleConfirmCashIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cashInPin || !cashInOtp) {
+      showToast('Please enter both PIN and OTP', 'error');
+      return;
+    }
+    
+    setIsOTPModalOpen(false);
+    setCurrentStep('processing');
+    
+    confirmCashIn(async () => {
+      const res = await api.post<any>('/api/transactions/cashin', {
+        agent_phone: selectedAgent.phone,
+        amount: parseFloat(amount),
+        pin: cashInPin,
+        otp: cashInOtp
+      });
+      return res;
+    }).then(res => {
+      if (!res) {
+        setCurrentStep('input');
+      }
+    });
   };
 
   return (
+    <>
+    <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-in fade-in duration-300">
       
       {/* Header */}
@@ -239,20 +206,26 @@ export const CashInPage: React.FC = () => {
                 </p>
               </div>
 
-              {errorText && (
-                <p className="text-xs text-rose-400 font-semibold py-1.5 px-3 bg-rose-500/10 rounded-lg text-center">
-                  {errorText}
-                </p>
-              )}
+
 
               <Button
                 type="submit"
                 variant="primary"
                 className="w-full mt-2"
                 id="btn-cash-in-submit"
+                disabled={isSendingOtp}
               >
-                <Wallet size={16} />
-                <span>Confirm Deposit Payload</span>
+                {isSendingOtp ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    Sending OTP...
+                  </span>
+                ) : (
+                  <>
+                    <Wallet size={16} />
+                    <span>Confirm Deposit Payload</span>
+                  </>
+                )}
               </Button>
 
             </form>
@@ -352,11 +325,7 @@ export const CashInPage: React.FC = () => {
             Enter your <strong>6-digit wallet PIN</strong> and ask the agent for the <strong>OTP</strong> sent to their email.
           </p>
           
-          {errorText && (
-            <p className="text-xs text-rose-400 font-semibold py-2 px-3 bg-rose-500/10 rounded-lg text-center">
-              {errorText}
-            </p>
-          )}
+
 
           {/* PIN Input */}
           <div className="flex flex-col gap-1.5">
@@ -398,8 +367,9 @@ export const CashInPage: React.FC = () => {
             type="submit"
             variant="primary"
             className="w-full"
+            disabled={isConfirming || cashInPin.length < 6 || cashInOtp.length < 6}
           >
-            Confirm Payment
+            {isConfirming ? 'Processing...' : 'Confirm Payment'}
           </Button>
         </form>
       </Modal>
@@ -412,6 +382,7 @@ export const CashInPage: React.FC = () => {
       `}</style>
 
     </div>
+    </>
   );
 };
 

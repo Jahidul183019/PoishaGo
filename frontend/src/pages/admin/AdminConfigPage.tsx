@@ -32,7 +32,7 @@ export const AdminConfigPage: React.FC = () => {
       title: rewardTitle,
       points_required: parseInt(pointsReq),
       value_bdt: parseFloat(valueBdt),
-      category: rewardCat
+      category: rewardCat as "cashback" | "voucher" | "offer"
     });
     setIsRewardModalOpen(false);
     setRewardTitle('');
@@ -74,7 +74,7 @@ export const AdminConfigPage: React.FC = () => {
               <Gift className="w-5 h-5 text-indigo-400" />
               Reward Options
             </h2>
-            <Button size="sm" onClick={() => setIsRewardModalOpen(true)}>
+            <Button className="py-1.5 px-3 text-xs" onClick={() => setIsRewardModalOpen(true)}>
               <Plus className="w-4 h-4 mr-1" /> Add Reward
             </Button>
           </div>
@@ -84,7 +84,7 @@ export const AdminConfigPage: React.FC = () => {
               <div key={opt.id} className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex justify-between items-center">
                 <div>
                   <div className="font-medium text-[var(--text-primary)]">{opt.title}</div>
-                  <div className="text-sm text-[var(--text-secondary)]">{opt.pointsRequired} pts • {formatBDT(opt.valueBDT)}</div>
+                  <div className="text-sm text-[var(--text-secondary)]">{opt.points_required} pts • {formatBDT(opt.value_bdt)}</div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-full border border-indigo-500/20 capitalize">
@@ -106,7 +106,7 @@ export const AdminConfigPage: React.FC = () => {
               <Tag className="w-5 h-5 text-emerald-400" />
               Bill Categories
             </h2>
-            <Button size="sm" onClick={() => setIsBillModalOpen(true)}>
+            <Button className="py-1.5 px-3 text-xs" onClick={() => setIsBillModalOpen(true)}>
               <Plus className="w-4 h-4 mr-1" /> Add Category
             </Button>
           </div>

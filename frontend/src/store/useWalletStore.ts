@@ -1,5 +1,8 @@
+// frontend/src/store/useWalletStore.ts
 import { create } from 'zustand';
-import { API_BASE_URL } from '../utils/api';
+import api from '../utils/api';
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 export interface WalletTransaction {
   txn_id: number;
@@ -8,8 +11,8 @@ export interface WalletTransaction {
   receiver_wallet_id: string;
   receiver_name: string;
   amount: number;
-  txn_type: 'send_money' | 'cash_in' | 'cash_out' | 'bill_pay' | 'cashback';
-  status: 'completed' | 'failed' | 'pending';
+  txn_type: 'transfer' | 'cashin' | 'cashout' | 'bill';
+  status: 'success' | 'failed' | 'pending' | 'flagged';
   fee: number;
   reference_no: string;
   txn_at: string;
@@ -30,17 +33,18 @@ export interface UserAccount {
   status: 'active' | 'blocked';
 }
 
-export type CitizenAccount = UserAccount;
-
 export interface FraudFlag {
   flag_id: number;
   txn_id: number;
-  user_name: string;
+  flagged_user: string;
   phone: string;
+  reference_no: string;
+  amount: number;
+  txn_type: string;
   rule_triggered: string;
   risk_score: number;
-  reviewed: boolean;
   flagged_at: string;
+  reviewed_by_name: string | null;
 }
 
 export interface CashbackCampaign {
@@ -57,9 +61,8 @@ export interface CashbackCampaign {
 
 export interface AppNotification {
   id: number;
-  title: string;
   message: string;
-  notif_type: 'credit' | 'debit' | 'reward' | 'system';
+  notif_type: 'sms' | 'email' | 'in_app';
   is_read: boolean;
   created_at: string;
 }
@@ -67,47 +70,49 @@ export interface AppNotification {
 export interface RewardRedeemOption {
   id: number;
   title: string;
-  pointsRequired: number;
-  valueBDT: number;
+  points_required: number;
+  value_bdt: number;
   category: 'cashback' | 'voucher' | 'offer';
 }
 
+// ── State interface ───────────────────────────────────────────────────────────
+
 interface WalletState {
+  // ── Real API data (no more mock) ──
   users: UserAccount[];
-  mockCitizens: CitizenAccount[];
   transactions: WalletTransaction[];
   adminTransactions: WalletTransaction[];
   fraudFlags: FraudFlag[];
-  cashbacks: CashbackCampaign[];
   campaigns: CashbackCampaign[];
   notifications: AppNotification[];
   rewardOptions: RewardRedeemOption[];
   billCategories: any[];
-  pointsRedeemedHistory: Array<{id: number, points: number, bdt: number, date: string}>;
-  
-  // Actions
-  addTransaction: (txn: Omit<WalletTransaction, 'txn_id' | 'txn_at'>) => WalletTransaction;
-  addNotification: (title: string, message: string, type: AppNotification['notif_type']) => void;
-  markAllNotificationsRead: () => void;
-  reviewFraudFlag: (flagId: number) => void;
-  toggleCampaignActive: (id: number) => void;
-  addNewCampaign: (campaign: Omit<CashbackCampaign, 'id' | 'created_at'>) => void;
+  pointsRedeemedHistory: Array<{
+    id: number;
+    points: number;
+    bdt: number;
+    date: string;
+  }>;
 
-  // Extra Actions
-  toggleCitizenStatus: (walletNumber: string) => void;
-  adjustCitizenBalance: (walletNumber: string, amount: number, type: 'credit' | 'debit') => boolean;
-  toggleCampaignStatus: (id: number) => Promise<void>;
-  createCampaign: (title: string, type: string, percentageBack: number, maxLimitBDT: number, validUntil: string) => Promise<void>;
-  deleteCampaign: (id: number) => Promise<void>;
-  toggleFraudFlagStatus: (id: number) => Promise<void>;
-  toggleUserStatus?: (walletNumber: string) => void;
+  // ── Loading states ──
+  isLoadingTransactions: boolean;
+  isLoadingUsers: boolean;
+  isLoadingFraud: boolean;
+  isLoadingCampaigns: boolean;
+  isLoadingNotifications: boolean;
 
+  // ── Error states ──
+  transactionError: string | null;
+  usersError: string | null;
+  fraudError: string | null;
+
+  // ── Notification actions ──
   markAsRead: (id: number) => void;
   markAllAsRead: () => void;
   clearNotification: (id: number) => void;
   clearAllNotifications: () => void;
-  
-  // New Network Fetch Actions
+
+  // ── Fetch actions ──
   fetchTransactions: () => Promise<void>;
   fetchAdminTransactions: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
@@ -117,500 +122,282 @@ interface WalletState {
   fetchUsers: () => Promise<void>;
   fetchFraudFlags: () => Promise<void>;
   fetchCampaigns: () => Promise<void>;
-  
-  // Admin Config Actions
-  addRewardOption: (option: any) => Promise<void>;
-  addBillCategory: (category: any) => Promise<void>;
+
+  // ── Admin actions ──
+  toggleCitizenStatus: (userId: number, currentStatus: string) => Promise<void>;
+  toggleCampaignStatus: (id: number) => Promise<void>;
+  createCampaign: (payload: Omit<CashbackCampaign, 'id' | 'created_at'>) => Promise<void>;
+  deleteCampaign: (id: number) => Promise<void>;
+  resolveFraudFlag: (id: number) => Promise<void>;
+  addRewardOption: (option: Omit<RewardRedeemOption, 'id'>) => Promise<void>;
   deleteRewardOption: (id: number) => Promise<void>;
+  addBillCategory: (category: any) => Promise<void>;
   deleteBillCategory: (id: string) => Promise<void>;
 }
 
+// ── Store ─────────────────────────────────────────────────────────────────────
+
 export const useWalletStore = create<WalletState>((set, get) => ({
+
+  // ── Initial state ─────────────────────────────────────────────────────────
   users: [],
-  mockCitizens: [],
   transactions: [],
   adminTransactions: [],
   fraudFlags: [],
-  cashbacks: [],
   campaigns: [],
   notifications: [],
   rewardOptions: [],
   billCategories: [],
   pointsRedeemedHistory: [],
 
-  addTransaction: (txn) => {
-    const nextTxnId = get().transactions.length > 0 ? Math.max(...get().transactions.map(t => t.txn_id)) + 1 : 1;
-    const fullTxn: WalletTransaction = {
-      ...txn,
-      txn_id: nextTxnId,
-      txn_at: new Date().toISOString()
-    };
+  isLoadingTransactions: false,
+  isLoadingUsers: false,
+  isLoadingFraud: false,
+  isLoadingCampaigns: false,
+  isLoadingNotifications: false,
 
+  transactionError: null,
+  usersError: null,
+  fraudError: null,
+
+  // ── Notification actions ──────────────────────────────────────────────────
+  markAsRead: (id) =>
     set((state) => ({
-      transactions: [fullTxn, ...state.transactions],
-      // Adjust standard users' mock balance (simulation helper)
-      users: state.users.map(u => {
-        if (u.wallet_number === txn.sender_wallet_id) {
-          // Send/Cashout/Bill -> deducting
-          return { ...u, balance: u.balance - txn.amount - txn.fee };
-        }
-        if (u.wallet_number === txn.receiver_wallet_id) {
-          // Cash In/receive -> receiving
-          return { ...u, balance: u.balance + txn.amount };
-        }
-        return u;
-      })
-    }));
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, is_read: true } : n
+      ),
+    })),
 
-    // If transaction exceeds ৳40,000, auto flag as high risk fraud indicator matching mock criteria
-    if (txn.amount >= 40000) {
-      const nextFlagId = get().fraudFlags.length > 0 ? Math.max(...get().fraudFlags.map(f => f.flag_id)) + 1 : 1;
-      set((state) => ({
-        fraudFlags: [
-          {
-            flag_id: nextFlagId,
-            txn_id: fullTxn.txn_id,
-            user_name: txn.sender_name,
-            phone: '01711000001', // simulating Ahmed Hassan for demo convenience
-            rule_triggered: 'Large Swift Transaction Flag (>= ৳40,000)',
-            risk_score: Math.floor(75 + Math.random() * 21),
-            reviewed: false,
-            flagged_at: new Date().toISOString()
-          },
-          ...state.fraudFlags
-        ]
-      }));
-    }
-
-    return fullTxn;
-  },
-
-  addNotification: (title, message, type) => {
-    const nextId = get().notifications.length > 0 ? Math.max(...get().notifications.map(n => n.id)) + 1 : 1;
+  markAllAsRead: () =>
     set((state) => ({
-      notifications: [
-        {
-          id: nextId,
-          title,
-          message,
-          notif_type: type,
-          is_read: false,
-          created_at: new Date().toISOString()
-        },
-        ...state.notifications
-      ]
-    }));
-  },
+      notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
+    })),
 
-  markAllNotificationsRead: () => {
+  clearNotification: (id) =>
     set((state) => ({
-      notifications: state.notifications.map(n => ({ ...n, is_read: true }))
-    }));
-  },
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
 
-  reviewFraudFlag: (flagId) => {
-    set((state) => ({
-      fraudFlags: state.fraudFlags.map(f => f.flag_id === flagId ? { ...f, reviewed: true } : f)
-    }));
-  },
+  clearAllNotifications: () => set({ notifications: [] }),
 
-  toggleCampaignActive: (id) => {
-    set((state) => ({
-      cashbacks: state.cashbacks.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c)
-    }));
-  },
-
-  addNewCampaign: (campaign) => {
-    const nextId = get().cashbacks.length > 0 ? Math.max(...get().cashbacks.map(c => c.id)) + 1 : 1;
-    set((state) => ({
-      cashbacks: [
-        {
-          ...campaign,
-          id: nextId,
-          created_at: new Date().toISOString().split('T')[0]
-        },
-        ...state.cashbacks
-      ]
-    }));
-  },
-
-
-
-  toggleCitizenStatus: async (walletNumber) => {
-    const token = localStorage.getItem('token');
-    // Support lookup by wallet number or phone (used in fraud detection page)
-    const citizen = get().mockCitizens.find(c => c.wallet_number === walletNumber || c.phone === walletNumber);
-    if (!citizen || !token) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${citizen.user_id}/toggle-status`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.status === 403) {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.detail || "ACCESS DENIED: Insufficient clearance for status modification.");
-        return;
-      }
-      if (response.ok) {
-        await get().fetchUsers(); // Refresh the list from DB
-        const action = citizen.status === 'active' ? 'BLOCKED' : 'RESTORED';
-        alert(`SUCCESS: Account for ${citizen.full_name} (${citizen.phone}) has been ${action}.`);
-      }
-    } catch (e) {
-      console.error('Failed to toggle status', e);
-    }
-  },
-
-  adjustCitizenBalance: async (walletNumber, amount, type) => {
-    const token = localStorage.getItem('token');
-    // Find user_id from walletNumber in current citizens list
-    const citizen = get().mockCitizens.find(c => c.wallet_number === walletNumber);
-    if (!citizen || !token) return false;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${citizen.user_id}/adjust-balance`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ amount, type })
-      });
-      if (response.status === 403) {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.detail || "ACCESS DENIED: Insufficient clearance for balance adjustment.");
-        return false;
-      }
-      if (response.ok) {
-        await get().fetchUsers(); // Refresh list to get new DB balance
-        return true;
-      }
-    } catch (e) {
-      console.error('Failed to adjust balance:', e);
-    }
-    return false;
-  },
-
-  toggleCampaignStatus: async (id) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    // 🚀 OPTIMISTIC UPDATE: Toggle local state immediately for instant feedback
-    set((state) => ({
-      campaigns: state.campaigns.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c),
-      cashbacks: state.cashbacks.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c)
-    }));
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/campaigns/${id}/toggle`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        await get().fetchCampaigns();
-      }
-    } catch (e) {
-      console.error('Failed to toggle campaign', e);
-    }
-  },
-
-  createCampaign: async (title, type, percentageBack, maxLimitBDT, validUntil) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          name: title,
-          type: type,
-          percent: percentageBack,
-          max_limit: maxLimitBDT,
-          min_txn_amount: 100,
-          eligible_txn_type: 'all',
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: validUntil
-        })
-      });
-      if (response.ok) {
-        await get().fetchCampaigns();
-      }
-    } catch (e) {
-      console.error('Failed to create campaign', e);
-    }
-  },
-
-  deleteCampaign: async (id) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/campaigns/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        await get().fetchCampaigns();
-      }
-    } catch (e) {
-      console.error('Failed to delete campaign', e);
-    }
-  },
-
-  toggleFraudFlagStatus: async (id) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/fraud-flags/${id}/resolve`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        await get().fetchFraudFlags(); // Refresh the list from DB
-      }
-    } catch (e) {
-      console.error('Failed to resolve fraud flag', e);
-    }
-  },
-
-  toggleUserStatus: (walletNumber) => {
-    set((state) => {
-      const nextUsers: UserAccount[] = state.users.map(u => u.wallet_number === walletNumber ? { ...u, status: (u.status === 'blocked' ? 'active' : 'blocked') as 'active' | 'blocked' } : u);
-      return {
-        users: nextUsers,
-        mockCitizens: nextUsers
-      };
-    });
-  },
-
-  markAsRead: (id) => {
-    set((state) => ({
-      notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: true } : n)
-    }));
-  },
-
-  markAllAsRead: () => {
-    set((state) => ({
-      notifications: state.notifications.map(n => ({ ...n, is_read: true }))
-    }));
-  },
-
-  clearNotification: (id) => {
-    set((state) => ({
-      notifications: state.notifications.filter(n => n.id !== id)
-    }));
-  },
-
-  clearAllNotifications: () => {
-    set({ notifications: [] });
-  },
-
-    fetchAdminTransactions: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    try {
-      const response = await fetch(API_BASE_URL + '/api/admin/transactions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        set({ adminTransactions: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch admin transactions', e);
-    }
-  },
-
+  // ── Fetch: User transactions ──────────────────────────────────────────────
   fetchTransactions: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    set({ isLoadingTransactions: true, transactionError: null });
     try {
-      const response = await fetch(API_BASE_URL + '/api/transactions', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        set({ transactions: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch transactions', e);
+      const data = await api.get<WalletTransaction[]>('/api/transactions');
+      set({ transactions: data });
+    } catch (err: any) {
+      set({ transactionError: err.message || 'Failed to load transactions' });
+    } finally {
+      set({ isLoadingTransactions: false });
     }
   },
 
+  // ── Fetch: Admin transactions ─────────────────────────────────────────────
+  fetchAdminTransactions: async () => {
+    set({ isLoadingTransactions: true, transactionError: null });
+    try {
+      const data = await api.get<WalletTransaction[]>('/api/admin/transactions');
+      set({ adminTransactions: data });
+    } catch (err: any) {
+      set({ transactionError: err.message || 'Failed to load admin transactions' });
+    } finally {
+      set({ isLoadingTransactions: false });
+    }
+  },
+
+  // ── Fetch: Notifications ──────────────────────────────────────────────────
   fetchNotifications: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    set({ isLoadingNotifications: true });
     try {
-      const response = await fetch(API_BASE_URL + '/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        set({ notifications: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch notifications', e);
+      const data = await api.get<AppNotification[]>('/api/notifications');
+      set({ notifications: data });
+    } catch {
+      // Notifications failing silently is acceptable
+    } finally {
+      set({ isLoadingNotifications: false });
     }
   },
 
-    fetchBillCategories: async () => {
-    try {
-      const response = await fetch(API_BASE_URL + '/api/bill/categories');
-      if (response.ok) {
-        const data = await response.json();
-        set({ billCategories: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch bill categories', e);
-    }
-  },
-
+  // ── Fetch: Reward options ─────────────────────────────────────────────────
   fetchRewardOptions: async () => {
     try {
-      const response = await fetch(API_BASE_URL + '/api/rewards/options');
-      if (response.ok) {
-        const data = await response.json();
-        set({ rewardOptions: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch reward options', e);
+      const data = await api.get<RewardRedeemOption[]>('/api/rewards/options');
+      set({ rewardOptions: data });
+    } catch (err: any) {
+      console.error('Failed to fetch reward options:', err.message);
     }
   },
 
+  // ── Fetch: Bill categories ────────────────────────────────────────────────
+  fetchBillCategories: async () => {
+    try {
+      const data = await api.get<any[]>('/api/bill/categories');
+      set({ billCategories: data });
+    } catch (err: any) {
+      console.error('Failed to fetch bill categories:', err.message);
+    }
+  },
+
+  // ── Fetch: Rewards history ────────────────────────────────────────────────
   fetchRewardsHistory: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     try {
-      const response = await fetch(API_BASE_URL + '/api/rewards/history', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        set({ pointsRedeemedHistory: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch rewards history', e);
+      const data = await api.get<any[]>('/api/rewards/history');
+      set({ pointsRedeemedHistory: data });
+    } catch (err: any) {
+      console.error('Failed to fetch rewards history:', err.message);
     }
   },
 
+  // ── Fetch: All users (admin) ──────────────────────────────────────────────
   fetchUsers: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    set({ isLoadingUsers: true, usersError: null });
     try {
-      const response = await fetch(API_BASE_URL + '/api/users', { headers: { 'Authorization': `Bearer ${token}` } });
-      if (response.ok) {
-        const data = await response.json();
-        set({ mockCitizens: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch users', e);
+      const data = await api.get<UserAccount[]>('/api/users');
+      set({ users: data });
+    } catch (err: any) {
+      set({ usersError: err.message || 'Failed to load users' });
+    } finally {
+      set({ isLoadingUsers: false });
     }
   },
 
+  // ── Fetch: Fraud flags ────────────────────────────────────────────────────
   fetchFraudFlags: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    set({ isLoadingFraud: true, fraudError: null });
     try {
-      const response = await fetch(API_BASE_URL + '/api/fraud-flags', { headers: { 'Authorization': `Bearer ${token}` } });
-      if (response.ok) {
-        const data = await response.json();
-        set({ fraudFlags: data });
-      }
-    } catch (e) {
-      console.error('Failed to fetch fraud flags', e);
+      const data = await api.get<FraudFlag[]>('/api/fraud-flags');
+      set({ fraudFlags: data });
+    } catch (err: any) {
+      set({ fraudError: err.message || 'Failed to load fraud flags' });
+    } finally {
+      set({ isLoadingFraud: false });
     }
   },
 
+  // ── Fetch: Campaigns ──────────────────────────────────────────────────────
   fetchCampaigns: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    set({ isLoadingCampaigns: true });
     try {
-      const response = await fetch(API_BASE_URL + '/api/campaigns', { headers: { 'Authorization': `Bearer ${token}` } });
-      if (response.ok) {
-        const data = await response.json();
-        set({ campaigns: data, cashbacks: data }); // Set both for backwards compatibility
-      }
-    } catch (e) {
-      console.error('Failed to fetch campaigns', e);
+      const data = await api.get<CashbackCampaign[]>('/api/campaigns');
+      set({ campaigns: data });
+    } catch (err: any) {
+      console.error('Failed to fetch campaigns:', err.message);
+    } finally {
+      set({ isLoadingCampaigns: false });
     }
   },
 
-  addRewardOption: async (option: any) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  // ── Admin: Toggle user status ─────────────────────────────────────────────
+  toggleCitizenStatus: async (userId, currentStatus) => {
     try {
-      const response = await fetch(API_BASE_URL + '/api/admin/rewards/options', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(option)
-      });
-      if (response.ok) {
-        get().fetchRewardOptions(); // Refresh the list
-      }
-    } catch (e) {
-      console.error('Failed to add reward option', e);
+      await api.post(`/api/users/${userId}/toggle-status`, {});
+      // Optimistic update
+      set((state) => ({
+        users: state.users.map((u) =>
+          u.user_id === userId
+            ? { ...u, status: currentStatus === 'active' ? 'blocked' : 'active' }
+            : u
+        ),
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to toggle user status');
     }
   },
 
-  
-  deleteRewardOption: async (id: number) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  // ── Admin: Toggle campaign status ─────────────────────────────────────────
+  toggleCampaignStatus: async (id) => {
+    // Optimistic update
+    set((state) => ({
+      campaigns: state.campaigns.map((c) =>
+        c.id === id ? { ...c, is_active: !c.is_active } : c
+      ),
+    }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/rewards/options/${id}`, { 
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` } });
-      if (response.ok) get().fetchRewardOptions();
-    } catch (e) {
-      console.error('Failed to delete reward option', e);
+      await api.post(`/api/campaigns/${id}/toggle`, {});
+      await get().fetchCampaigns();
+    } catch (err: any) {
+      // Revert optimistic update on failure
+      set((state) => ({
+        campaigns: state.campaigns.map((c) =>
+          c.id === id ? { ...c, is_active: !c.is_active } : c
+        ),
+      }));
+      alert(err.message || 'Failed to toggle campaign');
     }
   },
 
-  deleteBillCategory: async (id: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  // ── Admin: Create campaign ────────────────────────────────────────────────
+  createCampaign: async (payload) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/bill/categories/${id}`, { 
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` } });
-      if (response.ok) get().fetchBillCategories();
-    } catch (e) {
-      console.error('Failed to delete bill category', e);
+      await api.post('/api/campaigns', payload);
+      await get().fetchCampaigns();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create campaign');
     }
   },
 
-  addBillCategory: async (category: any) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  // ── Admin: Delete campaign ────────────────────────────────────────────────
+  deleteCampaign: async (id) => {
     try {
-      const response = await fetch(API_BASE_URL + '/api/admin/bill/categories', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(category)
-      });
-      if (response.ok) {
-        // Typically we would fetch bill categories here, but we don't have a fetch action for it yet in the store.
-        // For now, it will apply on reload or we can add fetchBillCategories later if needed.
-        get().fetchBillCategories(); // Refresh the list
-      }
-    } catch (e) {
-      console.error('Failed to add bill category', e);
+      await api.delete(`/api/campaigns/${id}`);
+      set((state) => ({
+        campaigns: state.campaigns.filter((c) => c.id !== id),
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete campaign');
     }
-  }
+  },
 
+  // ── Admin: Resolve fraud flag ─────────────────────────────────────────────
+  resolveFraudFlag: async (id) => {
+    try {
+      await api.post(`/api/fraud-flags/${id}/resolve`, {});
+      await get().fetchFraudFlags();
+    } catch (err: any) {
+      alert(err.message || 'Failed to resolve fraud flag');
+    }
+  },
+
+  // ── Admin: Reward options ─────────────────────────────────────────────────
+  addRewardOption: async (option) => {
+    try {
+      await api.post('/api/admin/rewards/options', option);
+      await get().fetchRewardOptions();
+    } catch (err: any) {
+      alert(err.message || 'Failed to add reward option');
+    }
+  },
+
+  deleteRewardOption: async (id) => {
+    try {
+      await api.delete(`/api/admin/rewards/options/${id}`);
+      set((state) => ({
+        rewardOptions: state.rewardOptions.filter((r) => r.id !== id),
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete reward option');
+    }
+  },
+
+  // ── Admin: Bill categories ────────────────────────────────────────────────
+  addBillCategory: async (category) => {
+    try {
+      await api.post('/api/admin/bill/categories', category);
+      await get().fetchBillCategories();
+    } catch (err: any) {
+      alert(err.message || 'Failed to add bill category');
+    }
+  },
+
+  deleteBillCategory: async (id) => {
+    try {
+      await api.delete(`/api/admin/bill/categories/${id}`);
+      set((state) => ({
+        billCategories: state.billCategories.filter((b) => b.id !== id),
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete bill category');
+    }
+  },
 }));

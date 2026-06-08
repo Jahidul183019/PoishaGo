@@ -13,16 +13,17 @@ import {
 } from 'lucide-react';
 
 export const AdminFraudDetectionPage: React.FC = () => {
-  const { fraudFlags, toggleFraudFlagStatus, toggleCitizenStatus, fetchFraudFlags } = useWalletStore();
+  const { fraudFlags, resolveFraudFlag, toggleCitizenStatus, fetchFraudFlags, users, fetchUsers } = useWalletStore();
 
   useEffect(() => {
     fetchFraudFlags();
-  }, [fetchFraudFlags]);
+    fetchUsers();
+  }, [fetchFraudFlags, fetchUsers]);
 
   // Compute stats
-  const activeCount = fraudFlags.filter(f => !f.reviewed).length;
-  const resolvedCount = fraudFlags.filter(f => f.reviewed).length;
-  const criticalCount = fraudFlags.filter(f => !f.reviewed && f.risk_score >= 80).length;
+  const activeCount = fraudFlags.filter(f => f.reviewed_by_name === null).length;
+  const resolvedCount = fraudFlags.filter(f => f.reviewed_by_name !== null).length;
+  const criticalCount = fraudFlags.filter(f => f.reviewed_by_name === null && f.risk_score >= 80).length;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300 select-none">
@@ -97,7 +98,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
           ) : (
             fraudFlags.map((flag) => {
               const isHighRisk = flag.risk_score >= 80;
-              const isActive = !flag.reviewed;
+              const isActive = flag.reviewed_by_name === null;
 
               return (
                 <div
@@ -125,7 +126,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-sora font-extrabold text-sm text-[var(--text-primary)]">
-                          {flag.user_name}
+                          {flag.flagged_user}
                         </h4>
                         <span className="font-mono text-[10px] text-[var(--text-secondary)] mt-0.5">
                           ({flag.phone})
@@ -157,7 +158,7 @@ export const AdminFraudDetectionPage: React.FC = () => {
                     {/* Investigate/Resolve toggles */}
                     {isActive ? (
                       <button
-                        onClick={() => toggleFraudFlagStatus(flag.flag_id)}
+                        onClick={() => resolveFraudFlag(flag.flag_id)}
                         className="py-2 px-3.5 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/15 text-blue-400 text-xs font-bold rounded-xl transition-all outline-none cursor-pointer"
                       >
                         Settle Alert (Resolve)
@@ -173,7 +174,10 @@ export const AdminFraudDetectionPage: React.FC = () => {
                     {isActive && (
                       <button
                         onClick={() => {
-                          toggleCitizenStatus(flag.phone);
+                          const user = users.find(u => u.phone === flag.phone);
+                          if (user) {
+                            toggleCitizenStatus(user.user_id, user.status);
+                          }
                         }}
                         className="py-2 px-3.5 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/15 hover:border-rose-500/40 text-rose-400 text-xs font-bold rounded-xl transition-all outline-none flex items-center gap-1 cursor-pointer"
                         title="Block citizen device access"

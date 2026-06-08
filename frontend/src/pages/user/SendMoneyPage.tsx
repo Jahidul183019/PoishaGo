@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
+import { useToast } from '../../hooks/useToast';
+import { useApiCall } from '../../hooks/useApiCall';
+import { ToastContainer } from '../../components/ui/Toast';
 import { 
   ArrowLeft, 
   UserCheck, 
@@ -23,74 +26,55 @@ import {
 
 export const SendMoneyPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
-  const { addTransaction, addNotification } = useWalletStore();
+  const { user, fetchUserProfile } = useAuthStore();
+  const { toasts, showToast, dismissToast } = useToast();
 
   const [suggestedContacts, setSuggestedContacts] = useState<{contact_id?: number, name: string, phone: string, initials: string}[]>([]);
 
   const fetchContacts = () => {
-    if (token) {
-      fetch(API_BASE_URL + '/api/contacts', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
+    api.get<any[]>('/api/contacts')
       .then(data => {
         if (Array.isArray(data)) setSuggestedContacts(data);
       })
       .catch(console.error);
-    }
   };
 
   React.useEffect(() => {
     fetchContacts();
-  }, [token]);
+  }, []);
 
   // Add contact modal state
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const [newContactPhone, setNewContactPhone] = useState('');
   const [newContactNickname, setNewContactNickname] = useState('');
-  const [addContactError, setAddContactError] = useState('');
-  const [addContactLoading, setAddContactLoading] = useState(false);
 
-  const handleAddContact = async (e: React.FormEvent) => {
+  const { execute: addContact, isLoading: addContactLoading } = useApiCall({
+    successMessage: 'Contact added successfully',
+    showToast,
+    onSuccess: () => {
+      setIsAddContactOpen(false);
+      setNewContactPhone('');
+      setNewContactNickname('');
+      fetchContacts();
+    }
+  });
+
+  const handleAddContact = (e: React.FormEvent) => {
     e.preventDefault();
-    setAddContactError('');
     if (newContactPhone.length < 11) {
-      setAddContactError('Please enter a valid 11-digit phone number.');
+      showToast('Please enter a valid 11-digit phone number.', 'error');
       return;
     }
-    setAddContactLoading(true);
-    try {
-      const res = await fetch(API_BASE_URL + '/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ phone: newContactPhone, nickname: newContactNickname })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setAddContactError(data.detail || 'Failed to add contact.');
-      } else {
-        setIsAddContactOpen(false);
-        setNewContactPhone('');
-        setNewContactNickname('');
-        fetchContacts(); // Refresh the list
-      }
-    } catch {
-      setAddContactError('Network error. Please try again.');
-    } finally {
-      setAddContactLoading(false);
-    }
+    addContact(() => api.post<any>('/api/contacts', { phone: newContactPhone, nickname: newContactNickname }));
   };
 
   const handleRemoveContact = async (contactId: number) => {
     try {
-      await fetch(`${API_BASE_URL}/api/contacts/${contactId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.delete(`/api/contacts/${contactId}`);
+      showToast('Contact removed', 'success');
       fetchContacts();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to remove contact', 'error');
     }
   };
 
@@ -99,7 +83,6 @@ export const SendMoneyPage: React.FC = () => {
   const [recipientName, setRecipientName] = useState('');
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
-  const [errorText, setErrorText] = useState('');
 
   // OTP modal triggers
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
@@ -111,120 +94,80 @@ export const SendMoneyPage: React.FC = () => {
   const selectSuggestedContact = (name: string, phone: string) => {
     setRecipientPhone(phone);
     setRecipientName(name);
-    setErrorText('');
   };
 
-  const handleInitiateSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorText('');
-
-    if (recipientPhone.length < 11) {
-      setErrorText('Please enter a valid 11-digit Bangladeshi mobile number.');
-      return;
+  const { execute: sendTransferOtp, isLoading: isSendingOtp } = useApiCall({
+    successMessage: 'Transfer OTP sent to your email',
+    showToast,
+    onSuccess: () => {
+      setIsOTPModalOpen(true);
     }
-    
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) {
-      setErrorText('Please enter a valid transfer amount greater than 0.');
-      return;
-    }
+  });
 
-    if (user && user.balance < amt) {
-      setErrorText(`Insufficient balance. Your current balance is ${formatBDT(user.balance)}`);
-      return;
-    }
-
-    // Try to send transfer OTP to user's email first
-    (async () => {
-      try {
-        const res = await fetch(API_BASE_URL + '/api/send-transfer-otp', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setErrorText(data.detail || 'Failed to send transfer OTP.');
-          return;
-        }
-        setIsOTPModalOpen(true);
-      } catch (err) {
-        console.error(err);
-        setErrorText('Network error sending OTP.');
-      }
-    })();
-  };
-
-  const handleConfirmTransfer = async () => {
-    setIsOTPModalOpen(false);
-    setCurrentStep('processing');
-
-    try {
-      const transferAmt = parseFloat(amount);
-      const response = await fetch(API_BASE_URL + '/api/transactions/send', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          receiver_phone: recipientPhone,
-          amount: transferAmt,
-          pin: transferPin,
-          otp: transferOtp,
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Transaction failed');
-        setCurrentStep('input');
-        return;
-      }
-
-      const data = await response.json();
-      
-      // Update local balance
+  const { execute: confirmTransfer, isLoading: isConfirming } = useApiCall({
+    successMessage: 'Money sent successfully!',
+    showToast,
+    onSuccess: async (data) => {
       await fetchUserProfile();
       
       const resolvedName = recipientName || `Wallet (${recipientPhone})`;
 
-      // Record Ledger transaction inside Wallet Store for UI history
-      addTransaction({
-        sender_wallet_id: user?.wallet_number || '',
-        sender_name: user?.full_name || '',
-        receiver_wallet_id: 'PG-WAL-' + recipientPhone.slice(-5),
-        receiver_name: resolvedName,
-        amount: transferAmt,
-        txn_type: 'send_money',
-        status: 'completed',
-        fee: 0,
-        reference_no: data.transaction_id
-      });
-
-      // Trigger in-app alerts
-      addNotification(
-        `Sent ${formatBDT(transferAmt)} to ${resolvedName}`,
-        `Successfully debited ${formatBDT(transferAmt)} from your wallet. Reference: ${data.transaction_id}.`,
-        'debit'
-      );
-
       setGeneratedReceipt({
         ref: data.transaction_id,
-        amount: transferAmt,
+        amount: parseFloat(amount),
         receiver: resolvedName,
         phone: recipientPhone,
         date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
       });
 
       setCurrentStep('success');
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error processing transaction');
-      setCurrentStep('input');
     }
+  });
+
+  const handleInitiateSend = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (recipientPhone.length < 11) {
+      showToast('Please enter a valid 11-digit Bangladeshi mobile number.', 'error');
+      return;
+    }
+    
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      showToast('Please enter a valid transfer amount greater than 0.', 'error');
+      return;
+    }
+
+    if (user && user.balance < amt) {
+      showToast(`Insufficient balance. Your current balance is ${formatBDT(user.balance)}`, 'error');
+      return;
+    }
+
+    sendTransferOtp(() => api.post('/api/send-transfer-otp', {}));
+  };
+
+  const handleConfirmTransfer = () => {
+    setIsOTPModalOpen(false);
+    setCurrentStep('processing');
+
+    confirmTransfer(async () => {
+      const res = await api.post<any>('/api/transactions/send', {
+        receiver_phone: recipientPhone,
+        amount: parseFloat(amount),
+        pin: transferPin,
+        otp: transferOtp,
+      });
+      return res;
+    }).then(res => {
+      if (!res) {
+        setCurrentStep('input');
+      }
+    });
   };
 
   return (
+    <>
+    <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-in fade-in duration-300">
       
       {/* Header back navigation details */}
@@ -254,7 +197,7 @@ export const SendMoneyPage: React.FC = () => {
                 Favourite Contacts
               </h3>
               <button
-                onClick={() => { setIsAddContactOpen(true); setAddContactError(''); }}
+                onClick={() => { setIsAddContactOpen(true); }}
                 className="flex items-center gap-1.5 text-xs font-semibold text-[#00C9A7] hover:text-[#00C9A7]/80 transition-colors outline-none"
                 id="btn-add-contact"
               >
@@ -386,11 +329,7 @@ export const SendMoneyPage: React.FC = () => {
                 </div>
               </div>
 
-              {errorText && (
-                <p className="text-xs text-rose-400 font-semibold text-center py-1 bg-rose-500/10 rounded-lg">
-                  {errorText}
-                </p>
-              )}
+
 
               {/* Initiate Transfer */}
               <Button
@@ -398,9 +337,19 @@ export const SendMoneyPage: React.FC = () => {
                 variant="primary"
                 className="w-full mt-2"
                 id="btn-initiate-transfer"
+                disabled={isSendingOtp}
               >
-                <Send size={16} />
-                <span>Validate & Transfer</span>
+                {isSendingOtp ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    Sending OTP...
+                  </span>
+                ) : (
+                  <>
+                    <Send size={16} />
+                    <span>Validate & Transfer</span>
+                  </>
+                )}
               </Button>
 
             </form>
@@ -534,7 +483,9 @@ export const SendMoneyPage: React.FC = () => {
             </p>
 
             <div className="pt-2">
-              <Button onClick={handleConfirmTransfer} className="w-full">Confirm Transfer</Button>
+              <Button onClick={handleConfirmTransfer} className="w-full" disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}>
+                {isConfirming ? 'Processing...' : 'Confirm Transfer'}
+              </Button>
             </div>
           </div>
         </div>
@@ -543,7 +494,7 @@ export const SendMoneyPage: React.FC = () => {
       {/* ADD CONTACT MODAL */}
       <Modal
         isOpen={isAddContactOpen}
-        onClose={() => { setIsAddContactOpen(false); setNewContactPhone(''); setNewContactNickname(''); setAddContactError(''); }}
+        onClose={() => { setIsAddContactOpen(false); setNewContactPhone(''); setNewContactNickname(''); }}
         title="Add Favourite Contact"
       >
         <form onSubmit={handleAddContact} className="flex flex-col gap-4">
@@ -574,12 +525,7 @@ export const SendMoneyPage: React.FC = () => {
               id="input-new-contact-nickname"
             />
           </div>
-          {addContactError && (
-            <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 px-3 py-2 rounded-lg border border-rose-500/20">
-              <AlertCircle size={13} />
-              {addContactError}
-            </div>
-          )}
+
           <Button type="submit" className="w-full mt-1" disabled={addContactLoading}>
             {addContactLoading ? 'Saving...' : 'Save Contact'}
           </Button>
@@ -594,6 +540,7 @@ export const SendMoneyPage: React.FC = () => {
       `}</style>
 
     </div>
+    </>
   );
 };
 

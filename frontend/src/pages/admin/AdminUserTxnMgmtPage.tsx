@@ -1,30 +1,26 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useWalletStore, CitizenAccount } from '../../store/useWalletStore';
+import { useWalletStore, UserAccount } from '../../store/useWalletStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import { 
-  Users, 
-  Search, 
-  ShieldAlert, 
-  ShieldCheck, 
-  Settings2, 
-  TrendingUp, 
-  TrendingDown, 
-  ClipboardList, 
-  Coins 
+import {
+  Users,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Settings2,
+  TrendingUp,
+  TrendingDown,
+  ClipboardList,
+  Coins
 } from 'lucide-react';
 
 export const AdminUserTxnMgmtPage: React.FC = () => {
-  const { 
-    mockCitizens, 
-    transactions, 
-    toggleCitizenStatus, 
-    adjustCitizenBalance, 
-    addNotification, 
-    addTransaction,
+  const {
+    users,
+    toggleCitizenStatus,
     fetchUsers
   } = useWalletStore();
   const { admin } = useAuthStore();
@@ -36,7 +32,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
   const checkAccess = (permission: string) => {
     if (admin?.role === 'SUPER_ADMIN') return true;
     if (admin?.permissions.includes(permission)) return true;
-    
+
     const roleName = admin?.role.replace('_', ' ').toLowerCase();
     alert(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`);
     return false;
@@ -46,9 +42,9 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
 
   // Citizen Selection / Search
   const [searchCitizenStr, setSearchCitizenStr] = useState('');
-  
+
   // Balance correction state
-  const [selectedCitizen, setSelectedCitizen] = useState<CitizenAccount | null>(null);
+  const [selectedCitizen, setSelectedCitizen] = useState<UserAccount | null>(null);
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
   const [correctionType, setCorrectionType] = useState<'credit' | 'debit'>('credit');
   const [correctionAmt, setCorrectionAmt] = useState('');
@@ -57,7 +53,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
 
   // Memo filters
   const filteredCitizens = useMemo(() => {
-    return mockCitizens.filter(cit => {
+    return users.filter(cit => {
       const q = searchCitizenStr.toLowerCase();
       return (
         cit.full_name.toLowerCase().includes(q) ||
@@ -65,9 +61,9 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
         cit.wallet_number.toLowerCase().includes(q)
       );
     });
-  }, [mockCitizens, searchCitizenStr]);
+  }, [users, searchCitizenStr]);
 
-  const handleOpenCorrection = (cit: CitizenAccount) => {
+  const handleOpenCorrection = (cit: UserAccount) => {
     if (!checkAccess('ADJUST_BALANCE')) return;
     setSelectedCitizen(cit);
     setCorrectionAmt('');
@@ -79,57 +75,13 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
   const handleSaveCorrectionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-
-    if (!selectedCitizen) return;
-
-    const amt = parseFloat(correctionAmt);
-    if (isNaN(amt) || amt <= 0) {
-      setErrorMsg('Please specify a positive numeric quantity.');
-      return;
-    }
-
-    // Run adjustments in store
-    const success = adjustCitizenBalance(selectedCitizen.wallet_number, amt, correctionType);
-    if (success) {
-      const signSymbol = correctionType === 'credit' ? '+' : '-';
-      const refNo = 'AD_ADJ_' + Math.floor(100000 + Math.random() * 900000);
-
-      // Surcharge/Deduct log
-      addTransaction({
-        sender_wallet_id: 'PG-WAL-AUDIT-CORE',
-        sender_name: 'PoishaGo National Auditor',
-        receiver_wallet_id: selectedCitizen.wallet_number,
-        receiver_name: selectedCitizen.full_name,
-        amount: amt,
-        txn_type: correctionType === 'credit' ? 'cash_in' : 'cash_out',
-        status: 'completed',
-        fee: 0,
-        reference_no: refNo
-      });
-
-      // Also trigger inbox SMS details to citizen
-      addNotification(
-        `Administrative balance corrective alert`,
-        `Your wallet was manually corrective adjusted by ${signSymbol}${formatBDT(amt)} reasons: ${correctionReason}. Ref: ${refNo}.`,
-        correctionType === 'credit' ? 'credit' : 'debit'
-      );
-
-      // If correcting the active logged user's balance, sync the auth store balance as well!
-      if (currentLoggedUser && currentLoggedUser.wallet_number === selectedCitizen.wallet_number) {
-        const adjustmentVal = correctionType === 'credit' ? amt : -amt;
-        updateUserBalance(currentLoggedUser.balance + adjustmentVal);
-      }
-
-      setIsCorrectionModalOpen(false);
-      setSelectedCitizen(null);
-    } else {
-      setErrorMsg('Failed to process corrective adjustment. Ensure safe account links.');
-    }
+    alert("Manual balance adjustment via mock store is disabled. Integration required.");
+    setIsCorrectionModalOpen(false);
   };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300 select-none">
-      
+
       {/* Heading */}
       <div>
         <h1 className="font-sora font-extrabold text-2xl text-[var(--text-primary)]">
@@ -178,7 +130,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
               ) : (
                 filteredCitizens.map((citizen) => (
                   <tr key={citizen.wallet_number} className="hover:bg-[var(--bg-secondary)]/30 transition-colors">
-                    
+
                     {/* Name */}
                     <td className="py-4 px-6">
                       <h4 className="font-bold text-[var(--text-primary)]">{citizen.full_name}</h4>
@@ -198,11 +150,10 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
 
                     {/* Status badge and blockers link */}
                     <td className="py-4 px-6">
-                      <span className={`inline-flex items-center gap-1 py-0.5 px-2.5 rounded-lg text-[9px] uppercase font-mono border font-bold ${
-                        citizen.status === 'active'
+                      <span className={`inline-flex items-center gap-1 py-0.5 px-2.5 rounded-lg text-[9px] uppercase font-mono border font-bold ${citizen.status === 'active'
                           ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400'
                           : 'bg-rose-500/10 border-rose-500/15 text-rose-400'
-                      }`}>
+                        }`}>
                         {citizen.status === 'active' ? '✓ Safe' : '🚫 Blocked'}
                       </span>
                     </td>
@@ -210,7 +161,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                     {/* Interactive auditing tools */}
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-3.5">
-                        
+
                         {/* Corrections */}
                         <button
                           onClick={() => {
@@ -227,13 +178,12 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
                         <button
                           onClick={() => {
                             if (!checkAccess('TOGGLE_USER_STATUS')) return;
-                            toggleCitizenStatus(citizen.wallet_number);
+                            toggleCitizenStatus(citizen.user_id, citizen.status);
                           }}
-                          className={`flex items-center gap-1 py-1.5 px-3 rounded-lg font-bold border transition-all outline-none cursor-pointer ${
-                            citizen.status === 'active'
+                          className={`flex items-center gap-1 py-1.5 px-3 rounded-lg font-bold border transition-all outline-none cursor-pointer ${citizen.status === 'active'
                               ? 'bg-rose-500/10 border-rose-500/15 hover:bg-rose-500/25 text-rose-400'
                               : 'bg-emerald-500/10 border-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400'
-                          }`}
+                            }`}
                         >
                           {citizen.status === 'active' ? <ShieldAlert size={12} /> : <ShieldCheck size={12} />}
                           <span>{citizen.status === 'active' ? 'Block account' : 'Restore'}</span>
@@ -261,7 +211,7 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
       >
         {selectedCitizen && (
           <form onSubmit={handleSaveCorrectionSubmit} className="flex flex-col gap-4">
-            
+
             <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl flex flex-col gap-0.5 text-xs text-[var(--text-secondary)]">
               <span>Modifying Citizen Account:</span>
               <strong className="text-[var(--text-primary)] font-sora mt-0.5">{selectedCitizen.full_name}</strong>
@@ -273,11 +223,10 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCorrectionType('credit')}
-                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
-                  correctionType === 'credit'
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${correctionType === 'credit'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 <TrendingUp size={13} />
                 <span>Credit (+ Add)</span>
@@ -285,11 +234,10 @@ export const AdminUserTxnMgmtPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCorrectionType('debit')}
-                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${
-                  correctionType === 'debit'
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all outline-none ${correctionType === 'debit'
                     ? 'bg-rose-600 text-white shadow-md'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 <TrendingDown size={13} />
                 <span>Debit (- Deduct)</span>

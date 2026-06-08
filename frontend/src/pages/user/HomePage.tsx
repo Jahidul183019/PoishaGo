@@ -5,18 +5,18 @@ import { useWalletStore } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
 import { TierBadge, StatusBadge } from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
-import { 
-  Eye, 
-  EyeOff, 
-  X, 
-  Send, 
-  TrendingUp, 
-  TrendingDown, 
-  Receipt, 
-  Clock, 
-  Trophy, 
-  Bell, 
-  ArrowUpRight, 
+import {
+  Eye,
+  EyeOff,
+  X,
+  Send,
+  TrendingUp,
+  TrendingDown,
+  Receipt,
+  Clock,
+  Trophy,
+  Bell,
+  ArrowUpRight,
   ShieldAlert,
   Download,
   Smartphone
@@ -40,7 +40,7 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-      
+
       {/* Top Banner Greetings Row */}
       <div className="flex items-center justify-between">
         <div>
@@ -64,13 +64,13 @@ export const HomePage: React.FC = () => {
           <div className="absolute right-0 top-0 w-24 h-24 bg-teal-400/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex-1 pr-6">
             <h4 className="font-sora font-bold text-sm text-white flex items-center gap-1.5 leading-tight">
-              🌙 Eid-Ul-Adha Special Cashback Promo!
+              Eid-Ul-Adha Special Cashback Promo!
             </h4>
             <p className="text-[11px] text-slate-200 mt-1 pl-0.5 leading-relaxed">
               Send <strong>৳1,000+</strong> today & stand a chance of earning an instant <strong>৳500 double cashback</strong> in your wallet!
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setShowBanner(false)}
             className="p-1 rounded-full hover:bg-white/15 text-white/85 hover:text-white transition-colors"
           >
@@ -81,11 +81,11 @@ export const HomePage: React.FC = () => {
 
       {/* CORE GRAND BALANCE & REWARDS BENTO WIDGET */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
+
         {/* Main balance details */}
         <Card className="md:col-span-2 relative flex flex-col justify-between overflow-hidden group min-h-[160px]">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#2563EB]/10 rounded-full blur-2xl pointer-events-none" />
-          
+
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Total Account Balance
@@ -124,7 +124,7 @@ export const HomePage: React.FC = () => {
         {/* Mini rewards dashboard details */}
         <Card className="flex flex-col justify-between min-h-[160px] relative overflow-hidden">
           <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-amber-400/10 rounded-full blur-lg pointer-events-none" />
-          
+
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Poisha Points
@@ -157,9 +157,9 @@ export const HomePage: React.FC = () => {
         <h3 className="text-xs font-bold font-sora text-[var(--text-secondary)] uppercase tracking-widest pl-1">
           Quick Wallet Services
         </h3>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          
+
           <button
             onClick={() => handleQuickAction('/send')}
             className="bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[#00C9A7]/40 rounded-2xl p-5 flex flex-col gap-3 items-start text-left transition-all duration-200 outline-none hover:-translate-y-0.5 group"
@@ -235,7 +235,7 @@ export const HomePage: React.FC = () => {
 
       {/* RECENT TRANSACTIONS CARDS BOARD */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-1">
-        
+
         {/* Ledger logs */}
         <div className="md:col-span-2 flex flex-col gap-3">
           <div className="flex items-center justify-between pl-1">
@@ -258,26 +258,24 @@ export const HomePage: React.FC = () => {
               </div>
             ) : (
               recentTxns.map((txn, index) => (
-                <div 
-                  key={txn.txn_id} 
-                  className={`p-4 flex items-center justify-between border-[var(--border)] ${
-                    index < recentTxns.length - 1 ? 'border-b' : ''
-                  }`}
+                <div
+                  key={txn.txn_id}
+                  className={`p-4 flex items-center justify-between border-[var(--border)] ${index < recentTxns.length - 1 ? 'border-b' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay'
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill'
                         ? 'bg-rose-500/15 text-rose-400'
                         : 'bg-emerald-500/15 text-emerald-400'
-                    }`}>
-                      {txn.txn_type === 'send_money' && <Send size={16} />}
-                      {txn.txn_type === 'cash_in' && <TrendingUp size={16} />}
-                      {txn.txn_type === 'cash_out' && <TrendingDown size={16} />}
-                      {txn.txn_type === 'bill_pay' && <Receipt size={16} />}
+                      }`}>
+                      {txn.txn_type === 'transfer' && <Send size={16} />}
+                      {txn.txn_type === 'cashin' && <TrendingUp size={16} />}
+                      {txn.txn_type === 'cashout' && <TrendingDown size={16} />}
+                      {txn.txn_type === 'bill' && <Receipt size={16} />}
                     </div>
                     <div className="min-w-0">
                       <h4 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                        {txn.txn_type === 'bill_pay' ? txn.company_name || 'Utility Bill Provider' : txn.receiver_name}
+                        {txn.txn_type === 'bill' ? txn.company_name || 'Utility Bill Provider' : txn.receiver_name}
                       </h4>
                       <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 truncate uppercase tracking-wide">
                         {txn.txn_type.replace('_', ' ')} • Ref Code: {txn.reference_no}
@@ -286,12 +284,11 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <h5 className={`font-sora font-extrabold text-xs ${
-                      txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay'
+                    <h5 className={`font-sora font-extrabold text-xs ${txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill'
                         ? 'text-rose-400'
                         : 'text-[#00C9A7]'
-                    }`}>
-                      {txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay' ? '-' : '+'}
+                      }`}>
+                      {txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill' ? '-' : '+'}
                       {formatBDT(txn.amount)}
                     </h5>
                     <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">

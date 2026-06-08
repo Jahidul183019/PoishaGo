@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import { TierBadge } from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -21,7 +21,7 @@ import {
 
 export const RewardsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserPoints, updateUserBalance, token, fetchUserProfile } = useAuthStore();
+  const { user, updateUserPoints, updateUserBalance, fetchUserProfile } = useAuthStore();
   const { rewardOptions, fetchRewardOptions, pointsRedeemedHistory } = useWalletStore();
 
   const [activeTab, setActiveTab] = useState<'rewards' | 'leaderboard' | 'history'>('rewards');
@@ -35,13 +35,11 @@ export const RewardsPage: React.FC = () => {
   const [rewardTiers, setRewardTiers] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(API_BASE_URL + '/api/rewards/leaderboard')
-      .then(res => res.json())
+    api.get<any[]>('/api/rewards/leaderboard')
       .then(data => setLeaderboardUsers(data))
       .catch(err => console.error(err));
 
-    fetch(API_BASE_URL + '/api/rewards/tiers')
-      .then(res => res.json())
+    api.get<any[]>('/api/rewards/tiers')
       .then(data => setRewardTiers(data))
       .catch(err => console.error(err));
 
@@ -52,7 +50,7 @@ export const RewardsPage: React.FC = () => {
     setRedeemSuccess('');
     setRedeemError('');
 
-    if (!user || !token) return;
+    if (!user) return;
     
     const option = rewardOptions.find(o => o.id === optionId);
     if (!option) return;
@@ -61,22 +59,9 @@ export const RewardsPage: React.FC = () => {
     setSelectedOptionId(optionId);
 
     try {
-      const response = await fetch(API_BASE_URL + '/api/rewards/redeem', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      const data = await api.post<any>('/api/rewards/redeem', {
           option_id: optionId
-        })
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setRedeemError(err.detail || 'Redemption failed');
-        return;
-      }
 
       // Fetch user profile again to update points and balance from DB
       await fetchUserProfile();
@@ -85,10 +70,10 @@ export const RewardsPage: React.FC = () => {
       const { fetchRewardsHistory } = useWalletStore.getState();
       if (fetchRewardsHistory) await fetchRewardsHistory();
 
-      setRedeemSuccess(`Successfully claimed '${option.title}'! ৳${option.valueBDT} added to balance.`);
-    } catch (e) {
+      setRedeemSuccess(`Successfully claimed '${option.title}'! ৳${option.value_bdt} added to balance.`);
+    } catch (e: any) {
       console.error(e);
-      setRedeemError('An error occurred during redemption processing. Try again.');
+      setRedeemError(e.message || 'An error occurred during redemption processing. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -200,7 +185,7 @@ export const RewardsPage: React.FC = () => {
 
                     <div className="flex items-center justify-between mt-auto">
                       <span className="font-sora font-extrabold text-[#00C9A7]">
-                        {formatBDT(option.valueBDT)}
+                        {formatBDT(option.value_bdt)}
                       </span>
                       <Button
                         onClick={() => handleRedeemPointsSubmit(option.id)}

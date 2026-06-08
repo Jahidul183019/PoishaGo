@@ -26,12 +26,12 @@ import {
   Cpu,
   CalendarCheck2
 } from 'lucide-react';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { adminTransactions, fraudFlags, mockCitizens, fetchUsers, fetchFraudFlags, fetchAdminTransactions } = useWalletStore();
-  const { token, admin } = useAuthStore();
+  const { adminTransactions, fraudFlags, users, fetchUsers, fetchFraudFlags, fetchAdminTransactions } = useWalletStore();
+  const { admin } = useAuthStore();
 
   useEffect(() => {
     fetchUsers();
@@ -40,29 +40,23 @@ export const AdminDashboardPage: React.FC = () => {
   }, [fetchUsers, fetchFraudFlags, fetchAdminTransactions]);
 
   // Aggregate stats
-  const totalUsers = mockCitizens.length;
+  const totalUsers = users.length;
   const totalVolume = adminTransactions.reduce((acc, t) => acc + t.amount, 0);
   const totalFees = adminTransactions.reduce((acc, t) => acc + t.fee, 0);
-  const activeFlagsCount = fraudFlags.filter(f => !f.reviewed).length;
+  const activeFlagsCount = fraudFlags.filter(f => f.reviewed_by_name === null).length;
 
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
-    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill_pay').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'transfer').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cashin').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cashout').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill').reduce((acc, t) => acc + t.amount, 0) },
   ];
 
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!token) return;
-    fetch(API_BASE_URL + '/api/admin/revenue-trend', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(res => res.json())
+    api.get<any[]>('/api/admin/revenue-trend')
       .then(data => {
         // Find 'Sun' and append the dynamic fee to make it look dynamic if we want, or just use the data
         const mappedData = data.map((item: any) => 
@@ -234,7 +228,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-[var(--text-primary)]">
-                        {fName.user_name} • Risk: {fName.risk_score}%
+                        {fName.flagged_user} • Risk: {fName.risk_score}%
                       </h4>
                       <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
                         Trigger reason: {fName.rule_triggered}
@@ -243,11 +237,11 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
 
                   <span className={`py-0.5 px-2 rounded-lg text-[9px] uppercase font-mono border ${
-                    !fName.reviewed 
+                    fName.reviewed_by_name === null 
                       ? 'bg-rose-500/15 border-rose-500/20 text-rose-400' 
                       : 'bg-slate-800 border-slate-700 text-slate-400'
                   }`}>
-                    {!fName.reviewed ? 'active' : 'resolved'}
+                    {fName.reviewed_by_name === null ? 'active' : 'resolved'}
                   </span>
                 </div>
               ))

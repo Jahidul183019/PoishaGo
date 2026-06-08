@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -27,7 +27,7 @@ const QUICK_AMOUNTS = [20, 50, 100, 150, 200, 500];
 
 export const MobileRechargePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token, fetchUserProfile } = useAuthStore();
+  const { user, fetchUserProfile } = useAuthStore();
 
   const [selectedOperator, setSelectedOperator] = useState(OPERATORS[0]);
   const [phone, setPhone] = useState('');
@@ -66,33 +66,18 @@ export const MobileRechargePage: React.FC = () => {
     setCurrentStep('processing');
 
     try {
-      const response = await fetch(API_BASE_URL + '/api/recharge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      const data = await api.post<any>('/api/recharge', {
           phone,
           operator: selectedOperator.id,
           amount: parseFloat(amount),
           pin
-        })
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Recharge failed. Please try again.');
-        setCurrentStep('input');
-        return;
-      }
-
-      const data = await response.json();
       await fetchUserProfile();
       setReceiptRef(data.transaction_id);
       setCurrentStep('success');
-    } catch {
-      setErrorText('Network error. Please try again.');
+    } catch (e: any) {
+      setErrorText(e.message || 'Network error. Please try again.');
       setCurrentStep('input');
     }
   };

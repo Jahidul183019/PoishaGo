@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
+import { ToastContainer } from './components/ui/Toast';
+import { useToast } from './hooks/useToast';
 
 // LAYOUTS
 import UserLayout from './components/layout/UserLayout';
@@ -70,6 +72,7 @@ const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const App: React.FC = () => {
   const { token, fetchUserProfile } = useAuthStore();
+  const { toasts, dismissToast } = useToast();
 
   useEffect(() => {
     useThemeStore.getState().init();
@@ -82,7 +85,9 @@ export const App: React.FC = () => {
   }, [token, fetchUserProfile]);
 
   return (
-    <BrowserRouter>
+    <>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <BrowserRouter>
       <Routes>
         
         {/* Splash Landing entry point */}
@@ -139,6 +144,7 @@ export const App: React.FC = () => {
 
       </Routes>
     </BrowserRouter>
+    </>
   );
 };
 

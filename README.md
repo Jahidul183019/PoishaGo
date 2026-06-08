@@ -1,7 +1,4 @@
-<<<<<<< HEAD
- PoishaGo - Mobile Financial Service App
-
-
+# PoishaGo - Mobile Financial Service App
 
 ## ⚙️ Local Development Setup
 
@@ -33,7 +30,3 @@
 2. Install Node modules: `npm install`
 3. Start the development server: `npm run dev`
 4. Access the app via `http://localhost:5173`
-
-=======
-# PoishaGo
->>>>>>> 7d2cfbca7f72fb366ee021adea99df40bae1f853

@@ -3,74 +3,50 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Phone, User, Mail, ArrowLeft, ArrowRight, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import ThemeToggle from '../../components/ui/ThemeToggle';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerSchema, RegisterFormData } from '../../utils/validators';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { registerUser } = useAuthStore();
 
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
-  const [confirmPin, setConfirmPin] = useState('');
   const [showConfirmPin, setShowConfirmPin] = useState(false);
-  const [userType, setUserType] = useState<'personal' | 'agent'>('personal');
-  const [nidNumber, setNidNumber] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { user_type: 'personal' },
+  });
 
-    if (fullName.trim().length === 0) {
-      setErrorMsg('Full Name is required');
-      return;
-    }
-    if (!email) {
-      setErrorMsg('Email Address is required');
-      return;
-    }
-    if (!/^01[3-9]\d{8}$/.test(phone)) {
-      setErrorMsg('Please enter a valid Bangladesh mobile number');
-      return;
-    }
-    if (!/^(\d{10}|\d{13}|\d{17})$/.test(nidNumber.trim())) {
-      setErrorMsg('Please enter a valid Bangladesh NID number');
-      return;
-    }
-    if (pin.length !== 6) {
-      setErrorMsg('Security PIN must be exactly 6 digits');
-      return;
-    }
-    if (pin !== confirmPin) {
-      setErrorMsg('Security PINs do not match');
-      return;
-    }
+  const userType = watch('user_type');
 
-    setIsLoading(true);
+  const onSubmit = async (data: RegisterFormData) => {
     setErrorMsg('');
-
     try {
-      // 🚀 FIXED: Now safely passing the local 'nidNumber' state into the active store wrapper
       const result = await registerUser(
-        fullName,
-        phone,
-        email,
-        userType,
-        pin,
-        nidNumber
+        data.full_name,
+        data.phone,
+        data.email,
+        data.user_type,
+        data.pin,
+        data.nid_number
       );
 
       if (!result.success) {
         throw new Error(result.message);
       }
 
-      navigate('/otp', { state: { email } });
+      navigate('/otp', { state: { email: data.email } });
     } catch (err: any) {
       setErrorMsg(err.message || 'Connection to registration bridge failed.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -142,7 +118,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="flex bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1">
                   <button
                     type="button"
-                    onClick={() => setUserType('personal')}
+                    onClick={() => setValue('user_type', 'personal')}
                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${userType === 'personal'
                       ? 'bg-[#00C9A7] text-white shadow-md'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -152,7 +128,7 @@ export const RegisterPage: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setUserType('agent')}
+                    onClick={() => setValue('user_type', 'agent')}
                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all outline-none ${userType === 'agent'
                       ? 'bg-[#00C9A7] text-white shadow-md'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -162,7 +138,7 @@ export const RegisterPage: React.FC = () => {
                   </button>
                 </div>
 
-                <form className="space-y-3" onSubmit={handleRegisterSubmit}>
+                <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
 
                   {/* Full name input */}
                   <div className="space-y-1.5">
@@ -172,15 +148,13 @@ export const RegisterPage: React.FC = () => {
                       <input
                         type="text"
                         placeholder="e.g. Rafiq Ahmed"
-                        value={fullName}
-                        onChange={(e) => {
-                          setFullName(e.target.value);
-                          setErrorMsg('');
-                        }}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('full_name')}
+                        className={`w-full bg-[var(--bg-secondary)] border ${errors.full_name ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                     </div>
+                    {errors.full_name && (
+                      <p className="text-red-400 text-xs mt-1">{errors.full_name.message}</p>
+                    )}
                   </div>
 
                   {/* Mobile entry */}
@@ -192,15 +166,13 @@ export const RegisterPage: React.FC = () => {
                         type="tel"
                         placeholder="e.g. 01711000003"
                         maxLength={11}
-                        value={phone}
-                        onChange={(e) => {
-                          setPhone(e.target.value.replace(/\D/g, ''));
-                          setErrorMsg('');
-                        }}
-                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('phone')}
+                        className={`font-mono w-full bg-[var(--bg-secondary)] border ${errors.phone ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                     </div>
+                    {errors.phone && (
+                      <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>
+                    )}
                   </div>
 
                   {/* Email Address */}
@@ -211,15 +183,13 @@ export const RegisterPage: React.FC = () => {
                       <input
                         type="email"
                         placeholder="e.g. rafiq@email.com"
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          setErrorMsg('');
-                        }}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('email')}
+                        className={`w-full bg-[var(--bg-secondary)] border ${errors.email ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                     </div>
+                    {errors.email && (
+                      <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
+                    )}
                   </div>
 
                   {/* Security PIN */}
@@ -234,13 +204,8 @@ export const RegisterPage: React.FC = () => {
                         type={showPin ? "text" : "password"}
                         placeholder="••••••"
                         maxLength={6}
-                        value={pin}
-                        onChange={(e) => {
-                          setPin(e.target.value.replace(/\D/g, ''));
-                          setErrorMsg('');
-                        }}
-                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('pin')}
+                        className={`font-mono w-full bg-[var(--bg-secondary)] border ${errors.pin ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                       <button 
                         type="button" 
@@ -250,6 +215,9 @@ export const RegisterPage: React.FC = () => {
                         {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {errors.pin && (
+                      <p className="text-red-400 text-xs mt-1">{errors.pin.message}</p>
+                    )}
                   </div>
 
                   {/* Confirm PIN */}
@@ -264,13 +232,8 @@ export const RegisterPage: React.FC = () => {
                         type={showConfirmPin ? "text" : "password"}
                         placeholder="••••••"
                         maxLength={6}
-                        value={confirmPin}
-                        onChange={(e) => {
-                          setConfirmPin(e.target.value.replace(/\D/g, ''));
-                          setErrorMsg('');
-                        }}
-                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('confirm_pin')}
+                        className={`font-mono w-full bg-[var(--bg-secondary)] border ${errors.confirm_pin ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 pl-11 pr-10 text-sm tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                       <button 
                         type="button" 
@@ -280,6 +243,9 @@ export const RegisterPage: React.FC = () => {
                         {showConfirmPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {errors.confirm_pin && (
+                      <p className="text-red-400 text-xs mt-1">{errors.confirm_pin.message}</p>
+                    )}
                   </div>
 
                   {/* NID NUMBER */}
@@ -293,15 +259,13 @@ export const RegisterPage: React.FC = () => {
                         type="text"
                         placeholder="Enter your NID number"
                         maxLength={17}
-                        value={nidNumber}
-                        onChange={(e) => {
-                          setNidNumber(e.target.value.replace(/\D/g, ''));
-                          setErrorMsg('');
-                        }}
-                        className="font-mono w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all"
-                        required
+                        {...register('nid_number')}
+                        className={`font-mono w-full bg-[var(--bg-secondary)] border ${errors.nid_number ? 'border-rose-400' : 'border-[var(--border)]'} rounded-xl py-2.5 px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] transition-all`}
                       />
                     </div>
+                    {errors.nid_number && (
+                      <p className="text-red-400 text-xs mt-1">{errors.nid_number.message}</p>
+                    )}
                   </div>
 
                   {/* Compliance message */}
@@ -320,11 +284,11 @@ export const RegisterPage: React.FC = () => {
                   {/* CTA Button */}
                   <button 
                     type="submit" 
-                    disabled={isLoading}
-                    className={`w-full h-11 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-3 outline-none ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    disabled={isSubmitting}
+                    className="w-full h-11 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-3 outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Creating Wallet Account...' : 'Register Wallet Account'}
-                    {!isLoading && <ArrowRight size={18} />}
+                    {isSubmitting ? 'Creating Wallet Account...' : 'Register Wallet Account'}
+                    {!isSubmitting && <ArrowRight size={18} />}
                   </button>
 
                 </form>

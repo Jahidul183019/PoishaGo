@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
+import { useToast } from '../../hooks/useToast';
+import { useApiCall } from '../../hooks/useApiCall';
+import { ToastContainer } from '../../components/ui/Toast';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -19,21 +22,20 @@ import {
 
 export const CashOutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUserBalance, token, fetchUserProfile } = useAuthStore();
-  const { addTransaction, addNotification } = useWalletStore();
+  const { user, updateUserBalance, fetchUserProfile } = useAuthStore();
 
   const [agentsList, setAgentsList] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(API_BASE_URL + '/api/agents')
-      .then(res => res.json())
+    api.get<any[]>('/api/agents')
       .then(data => setAgentsList(data))
       .catch(err => console.error(err));
   }, []);
 
   const [selectedAgentId, setSelectedAgentId] = useState('1');
   const [amount, setAmount] = useState('');
-  const [errorText, setErrorText] = useState('');
+
+  const { toasts, showToast, dismissToast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<'input' | 'processing' | 'success'>('input');
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
@@ -55,99 +57,26 @@ export const CashOutPage: React.FC = () => {
 
   const { amt: cleanAmt, fee: cleanFee, totalDeduction: cleanTotal } = getAmountValues();
 
-  const handleInitiateCashOut = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorText('');
-
-    const parsedAmt = parseFloat(amount);
-    if (isNaN(parsedAmt) || parsedAmt <= 0) {
-      setErrorText('Please enter a valid cash-out amount');
-      return;
-    }
-
-    if (user && user.balance < cleanTotal) {
-      setErrorText(`Insufficient funds. Total wallet deduction is ${formatBDT(cleanTotal)} but you only have ${formatBDT(user.balance)}`);
-      return;
-    }
-
-    // Request OTP before opening modal (OTP sent to user's email)
-    try {
-      const response = await fetch(API_BASE_URL + '/api/transactions/cashout/send-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          agent_phone: selectedAgent.phone
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Failed to send OTP');
-        return;
-      }
-
+  const { execute: sendOtp, isLoading: isSendingOtp } = useApiCall({
+    successMessage: 'OTP sent to your email successfully',
+    showToast,
+    onSuccess: () => {
       setIsOTPModalOpen(true);
       setCashOutPin('');
       setCashOutOtp('');
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error requesting OTP');
     }
-  };
+  });
 
-  const handleConfirmCashOut = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!cashOutPin || !cashOutOtp) {
-      setErrorText('Please enter both PIN and OTP');
-      return;
-    }
-
-    setIsOTPModalOpen(false);
-    setCurrentStep('processing');
-    setErrorText('');
-
-    try {
+  const { execute: confirmCashOut, isLoading: isConfirming } = useApiCall({
+    successMessage: 'Cash out completed!',
+    showToast,
+    onSuccess: async (data) => {
+      await fetchUserProfile();
+      
       const cashOutAmt = parseFloat(amount);
       const feeAmt = cashOutAmt * 0.015;
       const totalDebited = cashOutAmt + feeAmt;
       
-      const response = await fetch(API_BASE_URL + '/api/transactions/cashout', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          agent_phone: selectedAgent.phone,
-          amount: totalDebited,
-          pin: cashOutPin,
-          otp: cashOutOtp
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Cash out failed');
-        setCurrentStep('input');
-        return;
-      }
-
-      const data = await response.json();
-      
-      // Update local balance
-      await fetchUserProfile();
-
-      // Trigger SMS alert in notification logs
-      addNotification(
-        `Cashed Out ৳${cashOutAmt} successfully`,
-        `Withdrew ৳${cashOutAmt} at ${selectedAgent.name}. Fee charged: ৳${feeAmt}. Reference ID: ${data.transaction_id}.`,
-        'debit'
-      );
-
       setReceipt({
         ref: data.transaction_id,
         amount: cashOutAmt,
@@ -157,16 +86,59 @@ export const CashOutPage: React.FC = () => {
         location: selectedAgent.location,
         date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
       });
-
       setCurrentStep('success');
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error processing cash out');
-      setCurrentStep('input');
     }
+  });
+
+  const handleInitiateCashOut = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsedAmt = parseFloat(amount);
+    if (isNaN(parsedAmt) || parsedAmt <= 0) {
+      showToast('Please enter a valid cash-out amount', 'error');
+      return;
+    }
+    if (user && user.balance < cleanTotal) {
+      showToast(`Insufficient funds. Total wallet deduction is ${formatBDT(cleanTotal)} but you only have ${formatBDT(user.balance)}`, 'error');
+      return;
+    }
+
+    sendOtp(() => api.post('/api/transactions/cashout/send-otp', {
+      agent_phone: selectedAgent.phone
+    }));
+  };
+
+  const handleConfirmCashOut = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cashOutPin || !cashOutOtp) {
+      showToast('Please enter both PIN and OTP', 'error');
+      return;
+    }
+
+    setIsOTPModalOpen(false);
+    setCurrentStep('processing');
+
+    confirmCashOut(async () => {
+      const cashOutAmt = parseFloat(amount);
+      const feeAmt = cashOutAmt * 0.015;
+      const totalDebited = cashOutAmt + feeAmt;
+      
+      const res = await api.post<any>('/api/transactions/cashout', {
+        agent_phone: selectedAgent.phone,
+        amount: totalDebited,
+        pin: cashOutPin,
+        otp: cashOutOtp
+      });
+      return res;
+    }).then(res => {
+      if (!res) {
+        setCurrentStep('input');
+      }
+    });
   };
 
   return (
+    <>
+    <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-in fade-in duration-300">
       
       {/* Navigation Headers */}
@@ -277,20 +249,26 @@ export const CashOutPage: React.FC = () => {
                 </div>
               </div>
 
-              {errorText && (
-                <p className="text-xs text-rose-400 font-semibold py-1.5 px-3 bg-rose-500/10 rounded-lg text-center">
-                  {errorText}
-                </p>
-              )}
+
 
               <Button
                 type="submit"
                 variant="primary"
                 className="w-full mt-2 bg-gradient-to-r from-rose-500 to-red-500"
                 id="btn-cash-out-submit"
+                disabled={isSendingOtp}
               >
-                <TrendingDown size={16} />
-                <span>Validate & Withdraw Cash</span>
+                {isSendingOtp ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    Sending OTP...
+                  </span>
+                ) : (
+                  <>
+                    <TrendingDown size={16} />
+                    <span>Validate & Withdraw Cash</span>
+                  </>
+                )}
               </Button>
 
             </form>
@@ -397,11 +375,7 @@ export const CashOutPage: React.FC = () => {
             Enter your <strong>6-digit wallet PIN</strong> and the <strong>OTP</strong> sent to your email to confirm this cash outflow of {formatBDT(cleanTotal)} including commission fees.
           </p>
           
-          {errorText && (
-            <p className="text-xs text-rose-400 font-semibold py-2 px-3 bg-rose-500/10 rounded-lg text-center">
-              {errorText}
-            </p>
-          )}
+
 
           {/* PIN Input */}
           <div className="flex flex-col gap-1.5">
@@ -443,8 +417,9 @@ export const CashOutPage: React.FC = () => {
             type="submit"
             variant="primary"
             className="w-full"
+            disabled={isConfirming || cashOutPin.length < 6 || cashOutOtp.length < 6}
           >
-            Confirm Withdrawal
+            {isConfirming ? 'Processing...' : 'Confirm Withdrawal'}
           </Button>
         </form>
       </Modal>
@@ -457,6 +432,7 @@ export const CashOutPage: React.FC = () => {
       `}</style>
 
     </div>
+    </>
   );
 };
 

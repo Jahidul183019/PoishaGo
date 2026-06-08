@@ -55,7 +55,15 @@ export const AdminOccasionsPage: React.FC = () => {
     }
 
     // Add to store dataset
-    createCampaign(title, occasionType, pct, maxCap, validUntilDate);
+    createCampaign({
+      name: title,
+      type: occasionType,
+      percent: pct,
+      max_limit: maxCap,
+      min_txn_amount: 0,
+      is_active: true,
+      end_date: validUntilDate
+    });
 
     // Clean states & shut
     setTitle('');

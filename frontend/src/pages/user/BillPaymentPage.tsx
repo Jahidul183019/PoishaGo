@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
-import { API_BASE_URL } from '../../utils/api';
+import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import OTPInput from '../../components/ui/OTPInput';
+import { useToast } from '../../hooks/useToast';
+import { useApiCall } from '../../hooks/useApiCall';
+import { ToastContainer } from '../../components/ui/Toast';
 import { 
   ArrowLeft, 
   Zap, 
@@ -45,8 +48,9 @@ const categoryCompanies: Record<string, string[]> = {
 
 export const BillPaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token, fetchUserProfile } = useAuthStore();
-  const { addNotification, billCategories, fetchBillCategories } = useWalletStore();
+  const { user, fetchUserProfile } = useAuthStore();
+  const { billCategories, fetchBillCategories } = useWalletStore();
+  const { toasts, showToast, dismissToast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -54,12 +58,9 @@ export const BillPaymentPage: React.FC = () => {
   const [customerID, setCustomerID] = useState('');
   const [billPeriod, setBillPeriod] = useState('June 2026');
   const [amount, setAmount] = useState('');
-  const [errorText, setErrorText] = useState('');
   const [billPin, setBillPin] = useState('');
   const [billOtp, setBillOtp] = useState('');
   const [receipt, setReceipt] = useState<any>(null);
-
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (billCategories.length === 0) {
@@ -77,87 +78,23 @@ export const BillPaymentPage: React.FC = () => {
     setCurrentStep(3);
   };
 
-  const handleInitiatePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorText('');
-
-    if (customerID.trim().length < 5) {
-      setErrorText('Please enter a valid Customer / Account ID (minimum 5 characters)');
-      return;
+  const { execute: sendOtp, isLoading: isSendingOtp } = useApiCall({
+    successMessage: 'OTP sent to your email successfully',
+    showToast,
+    onSuccess: () => {
+      setCurrentStep(4);
     }
+  });
 
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) {
-      setErrorText('Please enter a valid amount greater than 0');
-      return;
-    }
-
-    if (user && user.balance < amt) {
-      setErrorText(`Insufficient balance. Your current purse represents ${formatBDT(user.balance)}`);
-      return;
-    }
-
-    // Request OTP to sender email
-    try {
-      const res = await fetch(API_BASE_URL + '/api/transactions/bill/send-otp', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setErrorText(data.detail || 'Failed to send OTP');
-        return;
-      }
-      setCurrentStep(4); 
-    } catch {
-      setErrorText('Network error requesting OTP');
-    }
-  };
-
-  const handleConfirmPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!billPin || billOtp.length < 6) return;
-    
-    setIsProcessing(true);
-    try {
-      const payAmount = parseFloat(amount);
-      const response = await fetch(API_BASE_URL + '/api/transactions/bill', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          biller_name: selectedCompany,
-          account_number: customerID,
-          amount: payAmount,
-          pin: billPin,
-          otp: billOtp
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setErrorText(err.detail || 'Bill payment failed');
-        setCurrentStep(3); // Go back to form
-        return;
-      }
-
-      const data = await response.json();
-      
-      // Update local balance
+  const { execute: confirmPayment, isLoading: isConfirming } = useApiCall({
+    successMessage: 'Bill paid successfully!',
+    showToast,
+    onSuccess: async (data) => {
       await fetchUserProfile();
-
-      // Inbox notification trigger
-      addNotification(
-        `Utility bill paid to ${selectedCompany}`,
-        `Payment of ${formatBDT(payAmount)} to bill account: ${customerID} settled successfully. Reference: ${data.transaction_id}.`,
-        'debit'
-      );
-
+      
       setReceipt({
         ref: data.transaction_id,
-        amount: payAmount,
+        amount: parseFloat(amount),
         company: selectedCompany,
         customer: customerID,
         period: billPeriod,
@@ -165,27 +102,66 @@ export const BillPaymentPage: React.FC = () => {
       });
 
       setCurrentStep(5);
-    } catch (e) {
-      console.error(e);
-      setErrorText('Network error processing bill payment');
-      setCurrentStep(3);
-    } finally {
-      setIsProcessing(false);
     }
+  });
+
+  const handleInitiatePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (customerID.trim().length < 5) {
+      showToast('Please enter a valid Customer / Account ID (minimum 5 characters)', 'error');
+      return;
+    }
+
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      showToast('Please enter a valid amount greater than 0', 'error');
+      return;
+    }
+
+    if (user && user.balance < amt) {
+      showToast(`Insufficient balance. Your current purse represents ${formatBDT(user.balance)}`, 'error');
+      return;
+    }
+
+    sendOtp(() => api.post('/api/transactions/bill/send-otp', {}));
+  };
+
+  const handleConfirmPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billPin || billOtp.length < 6) return;
+    
+    confirmPayment(async () => {
+      const payAmount = parseFloat(amount);
+      const res = await api.post<any>('/api/transactions/bill', {
+        biller_name: selectedCompany,
+        account_number: customerID,
+        amount: payAmount,
+        pin: billPin,
+        otp: billOtp
+      });
+      return res;
+    }).then(res => {
+      if (!res) {
+        setCurrentStep(3);
+      }
+    });
   };
 
   const handleBackNavigation = () => {
-    if (isProcessing) return;
+    if (isSendingOtp || isConfirming) return;
     if (currentStep === 5) {
       setCurrentStep(1);
     } else if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3 | 4 | 5);
     } else {
       navigate('/home');
     }
   };
 
   return (
+    <>
+    <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-in fade-in duration-300">
       
       {/* Universal Heading Row */}
@@ -336,20 +312,26 @@ export const BillPaymentPage: React.FC = () => {
               </div>
             </div>
 
-            {errorText && (
-              <p className="text-xs text-rose-400 font-semibold py-1.5 px-3 bg-rose-500/10 rounded-lg text-center">
-                {errorText}
-              </p>
-            )}
+
 
             <Button
               type="submit"
               variant="primary"
               className="w-full mt-2"
               id="btn-bill-pay-initiate"
+              disabled={isSendingOtp}
             >
-              <Receipt size={16} />
-              <span>Validate Invoice details</span>
+              {isSendingOtp ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Sending OTP...
+                </span>
+              ) : (
+                <>
+                  <Receipt size={16} />
+                  <span>Validate Invoice details</span>
+                </>
+              )}
             </Button>
 
           </form>
@@ -367,11 +349,7 @@ export const BillPaymentPage: React.FC = () => {
               Authorize <strong>{formatBDT(parseFloat(amount))}</strong> payment to <strong>{selectedCompany}</strong>.
             </p>
             
-            {errorText && (
-              <p className="text-xs text-rose-400 font-semibold p-2 bg-rose-500/10 rounded-lg">
-                {errorText}
-              </p>
-            )}
+
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -399,12 +377,12 @@ export const BillPaymentPage: React.FC = () => {
               type="submit"
               variant="primary"
               className="w-full mt-2"
-              disabled={isProcessing || billOtp.length < 6}
+              disabled={isConfirming || billOtp.length < 6}
             >
-              {isProcessing ? 'Processing...' : 'Confirm Payment'}
+              {isConfirming ? 'Processing...' : 'Confirm Payment'}
             </Button>
 
-            {!isProcessing && (
+            {!isConfirming && (
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
@@ -501,6 +479,7 @@ export const BillPaymentPage: React.FC = () => {
       `}</style>
 
     </div>
+    </>
   );
 };
 

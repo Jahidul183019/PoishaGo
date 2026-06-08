@@ -4,6 +4,7 @@ import { useWalletStore, WalletTransaction } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/Badge';
+import Pagination from '../../components/ui/Pagination';
 import { 
   ArrowLeft, 
   Search, 
@@ -35,7 +36,13 @@ export const AdminTransactionsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all'); // all, today, week, month
   const [curPage, setCurPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePageChange = (page: number) => {
+    setCurPage(page);
+    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const toggleRowDetail = (id: number) => {
     setExpandedTxnId(expandedTxnId === id ? null : id);
@@ -81,7 +88,7 @@ export const AdminTransactionsPage: React.FC = () => {
   const paginatedTxns = useMemo(() => {
     const startIdx = (curPage - 1) * itemsPerPage;
     return filteredTransactions.slice(startIdx, startIdx + itemsPerPage);
-  }, [filteredTransactions, curPage]);
+  }, [filteredTransactions, curPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage) || 1;
 
@@ -218,7 +225,7 @@ export const AdminTransactionsPage: React.FC = () => {
       </Card>
 
       {/* TRANSACTIONS STATEMENT DATA TABLE */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-lg select-none">
+      <div ref={tableRef} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-lg select-none">
         
         {/* Mobile column sticky helper is implemented implicitly with responsive styles */}
         <div className="overflow-x-auto">
@@ -244,7 +251,7 @@ export const AdminTransactionsPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay';
+                  const isDebit = txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill';
 
                   return (
                     <React.Fragment key={txn.txn_id}>
@@ -335,32 +342,17 @@ export const AdminTransactionsPage: React.FC = () => {
         </div>
 
         {/* PAGINATION PANEL FOOTER */}
-        {totalPages > 1 && (
-          <div className="py-4 px-6 bg-[var(--bg-secondary)] flex items-center justify-between border-t border-[var(--border)] select-none">
-            <span className="text-xs font-semibold text-[var(--text-secondary)]">
-              Showing page <strong>{curPage}</strong> of <strong>{totalPages}</strong> ({filteredTransactions.length} items total)
-            </span>
-            
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurPage(prev => Math.max(prev - 1, 1))}
-                disabled={curPage === 1}
-                className="py-1.5 px-3 rounded-lg border border-[var(--border)] hover:bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] disabled:opacity-40 disabled:pointer-events-none transition-all outline-none"
-                id="btn-ledger-prev"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={curPage === totalPages}
-                className="py-1.5 px-3 rounded-lg border border-[var(--border)] hover:bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] disabled:opacity-40 disabled:pointer-events-none transition-all outline-none"
-                id="btn-ledger-next"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={curPage}
+          totalPages={totalPages}
+          totalItems={filteredTransactions.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={(count) => {
+            setItemsPerPage(count);
+            setCurPage(1);
+          }}
+        />
 
       </div>
       

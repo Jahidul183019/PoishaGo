@@ -94,9 +94,9 @@ export const NotificationsPage: React.FC = () => {
               className={`relative bg-[var(--bg-card)] border rounded-2xl p-4.5 transition-all duration-200 flex flex-col gap-3 group shadow ${
                 msg.is_read 
                   ? 'border-[var(--border)] opacity-65 hover:opacity-100' 
-                  : msg.notif_type === 'debit'
+                  : msg.notif_type === 'sms'
                     ? 'border-rose-500/30 shadow-md bg-gradient-to-r from-rose-500/5 to-transparent'
-                    : msg.notif_type === 'credit'
+                    : msg.notif_type === 'email'
                       ? 'border-emerald-500/30 shadow-md bg-gradient-to-r from-emerald-500/5 to-transparent'
                       : 'border-blue-500/30 shadow-md bg-gradient-to-r from-blue-500/5 to-transparent'
               }`}
@@ -105,18 +105,18 @@ export const NotificationsPage: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center border shrink-0 ${
-                    msg.notif_type === 'debit' 
+                    msg.notif_type === 'sms' 
                       ? 'bg-rose-500/10 text-rose-400 border-rose-500/15' 
-                      : msg.notif_type === 'credit'
+                      : msg.notif_type === 'email'
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'
                         : 'bg-blue-500/10 text-blue-400 border-blue-500/15'
                   }`}>
-                    {msg.notif_type === 'debit' && <ShieldAlert size={14} />}
-                    {msg.notif_type === 'credit' && <DollarSign size={14} />}
-                    {msg.notif_type !== 'debit' && msg.notif_type !== 'credit' && <Info size={14} />}
+                    {msg.notif_type === 'sms' && <ShieldAlert size={14} />}
+                    {msg.notif_type === 'email' && <DollarSign size={14} />}
+                    {msg.notif_type !== 'sms' && msg.notif_type !== 'email' && <Info size={14} />}
                   </div>
                   <h4 className="font-sora font-extrabold text-xs text-[var(--text-primary)]">
-                    {msg.title}
+                    System Alert
                   </h4>
                 </div>
 
@@ -125,9 +125,9 @@ export const NotificationsPage: React.FC = () => {
                     <button
                       onClick={() => markAsRead(msg.id)}
                       className={`text-[10px] font-mono tracking-wide py-0.5 px-2 border rounded font-bold transition-all outline-none ${
-                        msg.notif_type === 'debit'
+                        msg.notif_type === 'sms'
                           ? 'bg-rose-500/20 border-rose-500/10 text-rose-500 hover:bg-rose-500/30'
-                          : msg.notif_type === 'credit'
+                          : msg.notif_type === 'email'
                             ? 'bg-emerald-500/20 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/30'
                             : 'bg-blue-500/20 border-blue-500/10 text-blue-500 hover:bg-blue-500/30'
                       }`}
