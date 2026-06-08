@@ -163,20 +163,7 @@ export const LoginPage: React.FC = () => {
 
                 </form>
 
-                <div className="relative py-1 flex items-center">
-                  <div className="flex-grow border-t border-[var(--border)]"></div>
-                  <span className="flex-shrink mx-4 text-[var(--text-secondary)] text-xs font-bold uppercase tracking-wider">or</span>
-                  <div className="flex-grow border-t border-[var(--border)]"></div>
-                </div>
-
-                <button 
-                  type="button"
-                  onClick={() => useToastStore.getState().showToast("Google OAuth integration is currently unavailable", 'warning')}
-                  className="w-full h-12 border border-[var(--border)] bg-[var(--bg-secondary)] rounded-xl flex items-center justify-center gap-3 font-medium text-[var(--text-primary)] hover:bg-[var(--border)] transition-colors active:scale-[0.98] outline-none"
-                >
-                  <img alt="Google" className="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaVWBU7GSxRuiRhxYUb1hqC6fxo2LZOpmlQmq4bEUdVs4FausaaHRJnWJcUQAgTw2tcmrrNf3fpOy8VZSF2K2UfN-AUr_htx5L4mkRC80XKzeHyf4Tx5n42jgm3ZksdKbKnDmt95OnupY7yYApRBHwcIv_PqjvYmK-9dbgda0KfzB0npiJY1t9vjSYXSxlGyzT6k5g5_x1GmU8vqJ4motyKw6PnEtJFqbZLWC8nq5Q2tj83es-np27zS0IkCcOKr1qy1RFyG9xzEM" />
-                  Continue with Google
-                </button>
+ 
 
                 <div className="flex flex-col items-center gap-2 pt-2">
                   <p className="text-center text-sm text-[var(--text-secondary)]">
