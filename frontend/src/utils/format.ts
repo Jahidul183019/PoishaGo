@@ -1,5 +1,5 @@
 export const formatBDT = (amount: number): string => {
-  const formatted = new Intl.NumberFormat('en-IN', {
+  const formatted = new Intl.NumberFormat('en-BD', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
