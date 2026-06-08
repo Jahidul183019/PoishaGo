@@ -30,12 +30,15 @@ export const SendMoneyPage: React.FC = () => {
 
   const [suggestedContacts, setSuggestedContacts] = useState<{contact_id?: number, name: string, phone: string, initials: string}[]>([]);
 
+  const { execute: loadContacts } = useApiCall({
+    showToast,
+    onSuccess: (data) => {
+      if (Array.isArray(data)) setSuggestedContacts(data);
+    }
+  });
+
   const fetchContacts = () => {
-    api.get<any[]>('/api/contacts')
-      .then(data => {
-        if (Array.isArray(data)) setSuggestedContacts(data);
-      })
-      .catch(e => useToastStore.getState().showToast(e.message || 'Failed to fetch data', 'error'));
+    loadContacts(() => api.get<any[]>('/api/contacts'));
   };
 
   React.useEffect(() => {
@@ -67,14 +70,16 @@ export const SendMoneyPage: React.FC = () => {
     addContact(() => api.post<any>('/api/contacts', { phone: newContactPhone, nickname: newContactNickname }));
   };
 
-  const handleRemoveContact = async (contactId: number) => {
-    try {
-      await api.delete(`/api/contacts/${contactId}`);
-      showToast('Contact removed', 'success');
+  const { execute: removeContact } = useApiCall({
+    successMessage: 'Contact removed',
+    showToast,
+    onSuccess: () => {
       fetchContacts();
-    } catch (e: any) {
-      showToast(e.message || 'Failed to remove contact', 'error');
     }
+  });
+
+  const handleRemoveContact = (contactId: number) => {
+    removeContact(() => api.delete(`/api/contacts/${contactId}`));
   };
 
 
