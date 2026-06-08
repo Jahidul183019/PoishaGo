@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
-import { useToast } from '../../hooks/useToast';
+import { useToast, useToastStore } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
 import { 
   ArrowLeft, 
@@ -28,7 +28,7 @@ export const CashOutPage: React.FC = () => {
   useEffect(() => {
     api.get<any[]>('/api/agents')
       .then(data => setAgentsList(data))
-      .catch(err => console.error(err));
+      .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch data', 'error'));
   }, []);
 
   const [selectedAgentId, setSelectedAgentId] = useState('1');

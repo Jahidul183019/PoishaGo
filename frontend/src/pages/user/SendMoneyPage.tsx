@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
-import { useToast } from '../../hooks/useToast';
+import { useToast, useToastStore } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
 import { 
   ArrowLeft, 
@@ -35,7 +35,7 @@ export const SendMoneyPage: React.FC = () => {
       .then(data => {
         if (Array.isArray(data)) setSuggestedContacts(data);
       })
-      .catch(console.error);
+      .catch(e => useToastStore.getState().showToast(e.message || 'Failed to fetch data', 'error'));
   };
 
   React.useEffect(() => {

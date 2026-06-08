@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
+import { useToastStore } from '../../hooks/useToast';
 import { TierBadge } from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -37,11 +38,11 @@ export const RewardsPage: React.FC = () => {
   useEffect(() => {
     api.get<any[]>('/api/rewards/leaderboard')
       .then(data => setLeaderboardUsers(data))
-      .catch(err => console.error(err));
+      .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch options', 'error'));
 
     api.get<any[]>('/api/rewards/tiers')
       .then(data => setRewardTiers(data))
-      .catch(err => console.error(err));
+      .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch history', 'error'));
 
     fetchRewardOptions();
   }, []);
@@ -72,8 +73,7 @@ export const RewardsPage: React.FC = () => {
 
       setRedeemSuccess(`Successfully claimed '${option.title}'! ৳${option.value_bdt} added to balance.`);
     } catch (e: any) {
-      console.error(e);
-      setRedeemError(e.message || 'An error occurred during redemption processing. Try again.');
+      useToastStore.getState().showToast(e.message || 'Failed to redeem points', 'error');
     } finally {
       setIsSubmitting(false);
     }

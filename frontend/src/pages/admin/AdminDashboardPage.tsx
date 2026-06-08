@@ -65,7 +65,7 @@ export const AdminDashboardPage: React.FC = () => {
         );
         setRevenueTrendData(mappedData);
       })
-      .catch(err => console.error(err));
+      .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch graph data', 'error'));
   }, [totalFees]);
 
   const recentFrds = fraudFlags.slice(0, 3);
