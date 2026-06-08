@@ -22,20 +22,17 @@ import {
 export const RewardsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateUserPoints, updateUserBalance, token, fetchUserProfile } = useAuthStore();
-  const { pointsRedeemedHistory } = useWalletStore();
+  const { rewardOptions, fetchRewardOptions, pointsRedeemedHistory } = useWalletStore();
 
   const [activeTab, setActiveTab] = useState<'rewards' | 'leaderboard' | 'history'>('rewards');
 
-  const [pointsRedeemValue, setPointsRedeemValue] = useState(1000); // starts at 1,000 pts
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState('');
   const [redeemError, setRedeemError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
   const [rewardTiers, setRewardTiers] = useState<any[]>([]);
-  const [rewardConfig, setRewardConfig] = useState<any>({ conversion_rate: 0.10, slider_min: 100, slider_max: 5000, slider_step: 100 });
-
-  // Live calculation: cashback = points * conversion_rate
-  const convertedCashbackBDT = pointsRedeemValue * rewardConfig.conversion_rate;
 
   useEffect(() => {
     fetch(API_BASE_URL + '/api/rewards/leaderboard')
@@ -48,25 +45,20 @@ export const RewardsPage: React.FC = () => {
       .then(data => setRewardTiers(data))
       .catch(err => console.error(err));
 
-    fetch(API_BASE_URL + '/api/rewards/config')
-      .then(res => res.json())
-      .then(data => {
-        setRewardConfig(data);
-        if (pointsRedeemValue < data.slider_min) setPointsRedeemValue(data.slider_min);
-      })
-      .catch(err => console.error(err));
+    fetchRewardOptions();
   }, []);
 
-  const handleRedeemPointsSubmit = async () => {
+  const handleRedeemPointsSubmit = async (optionId: number) => {
     setRedeemSuccess('');
     setRedeemError('');
 
-    if (!user) return;
+    if (!user || !token) return;
+    
+    const option = rewardOptions.find(o => o.id === optionId);
+    if (!option) return;
 
-    if (user.current_points < pointsRedeemValue) {
-      setRedeemError(`Insufficient points. You only have ${user.current_points} points.`);
-      return;
-    }
+    setIsSubmitting(true);
+    setSelectedOptionId(optionId);
 
     try {
       const response = await fetch(API_BASE_URL + '/api/rewards/redeem', {
@@ -76,8 +68,7 @@ export const RewardsPage: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          points: pointsRedeemValue,
-          bdt_value: convertedCashbackBDT
+          option_id: optionId
         })
       });
 
@@ -94,10 +85,12 @@ export const RewardsPage: React.FC = () => {
       const { fetchRewardsHistory } = useWalletStore.getState();
       if (fetchRewardsHistory) await fetchRewardsHistory();
 
-      setRedeemSuccess(`Successfully redeemed ${pointsRedeemValue} points for ${formatBDT(convertedCashbackBDT)} BDT direct wallet cashback!`);
+      setRedeemSuccess(`Successfully claimed '${option.title}'! ৳${option.valueBDT} added to balance.`);
     } catch (e) {
       console.error(e);
       setRedeemError('An error occurred during redemption processing. Try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -159,70 +152,69 @@ export const RewardsPage: React.FC = () => {
       {activeTab === 'rewards' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
           
-          {/* Points Redemption Slider Block */}
-          <Card className="flex flex-col gap-5">
+          {/* Feedback Messages */}
+          {(redeemError || redeemSuccess) && (
+            <div className="flex flex-col gap-3">
+              {redeemError && (
+                <p className="text-xs text-rose-400 font-semibold text-center select-none bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20">
+                  {redeemError}
+                </p>
+              )}
+              {redeemSuccess && (
+                <div className="text-xs text-[#00C9A7] font-semibold text-center select-none bg-[#00C9A7]/10 p-3 rounded-xl flex items-start justify-center gap-2 border border-[#00C9A7]/20">
+                  <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{redeemSuccess}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Points Redemption Grid */}
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2.5 pl-1 select-none">
-              <Gift size={18} className="text-[#00C9A7]" />
-              <h2 className="font-sora font-bold text-sm text-[var(--text-primary)]">
-                Redeem points for Wallet Balance
-              </h2>
-            </div>
-
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6 text-center flex flex-col gap-3 shadow-inner relative overflow-hidden select-none">
-              <div className="absolute top-0 left-0 w-24 h-24 bg-teal-500/5 rounded-full blur-xl pointer-events-none" />
-              
-              <span className="text-[11px] font-mono tracking-widest text-[var(--text-secondary)] uppercase">
-                Selected points to convert
-              </span>
-              <h1 className="font-sora font-extrabold text-3xl text-amber-400">
-                {pointsRedeemValue} <span className="text-xs font-semibold text-[var(--text-secondary)] font-dm">pts</span>
-              </h1>
-              <span className="text-xs text-[var(--text-secondary)]">Converting equivalent value of:</span>
-              <h2 className="font-sora font-extrabold text-2xl text-[#00C9A7]">
-                {formatBDT(convertedCashbackBDT)} BDT CASH
-              </h2>
-            </div>
-
-            {/* Slider control input */}
-            <div className="flex flex-col gap-1.5 select-none">
-              <input
-                type="range"
-                min={rewardConfig.slider_min}
-                max={rewardConfig.slider_max}
-                step={rewardConfig.slider_step}
-                value={pointsRedeemValue}
-                onChange={(e) => setPointsRedeemValue(parseInt(e.target.value))}
-                className="w-full h-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
-              />
-              <div className="flex justify-between text-[10px] font-mono font-bold text-[var(--text-secondary)]">
-                <span>{rewardConfig.slider_min} PTS (৳{rewardConfig.slider_min * rewardConfig.conversion_rate})</span>
-                <span>{rewardConfig.slider_max / 2} PTS (৳{rewardConfig.slider_max / 2 * rewardConfig.conversion_rate})</span>
-                <span>{rewardConfig.slider_max} PTS (৳{rewardConfig.slider_max * rewardConfig.conversion_rate})</span>
+                <Gift size={18} className="text-[#00C9A7]" />
+                <h2 className="font-sora font-bold text-sm text-[var(--text-primary)]">
+                  Available Offers & Bonuses
+                </h2>
               </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rewardOptions.map((option) => (
+                <Card key={option.id} className="relative overflow-hidden group hover:border-[#00C9A7]/30 transition-all border-[var(--border)]">
+                  <div className="absolute top-0 right-0 p-3">
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                      option.category === 'cashback' ? 'bg-emerald-500/10 text-emerald-500' :
+                      option.category === 'voucher' ? 'bg-amber-500/10 text-amber-500' :
+                      'bg-blue-500/10 text-blue-500'
+                    }`}>
+                      {option.category}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <h3 className="font-sora font-bold text-[var(--text-primary)] group-hover:text-[#00C9A7] transition-colors">
+                        {option.title}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="font-sora font-extrabold text-[#00C9A7]">
+                        {formatBDT(option.valueBDT)}
+                      </span>
+                      <Button
+                        onClick={() => handleRedeemPointsSubmit(option.id)}
+                        disabled={isSubmitting}
+                        className="text-[10px] h-8 px-3"
+                      >
+                        {isSubmitting && selectedOptionId === option.id ? 'Claiming...' : 'Claim Now'}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
-
-            {redeemError && (
-              <p className="text-xs text-rose-400 font-semibold text-center select-none bg-rose-500/10 p-2.5 rounded-lg">
-                {redeemError}
-              </p>
-            )}
-
-            {redeemSuccess && (
-              <div className="text-xs text-[#00C9A7] font-semibold text-center select-none bg-[#00C9A7]/10 p-3 rounded-xl flex items-start justify-center gap-2 border border-[#00C9A7]/10">
-                <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                <span>{redeemSuccess}</span>
-              </div>
-            )}
-
-            <Button
-              onClick={handleRedeemPointsSubmit}
-              variant="primary"
-              className="w-full mt-2"
-              id="btn-redeem-points-conversion"
-            >
-              <span>Convert Points to Cash now</span>
-            </Button>
-          </Card>
+          </div>
 
           {/* 4 METALLIC TIERS SUMMARY DETAILS */}
           <div className="flex flex-col gap-3">

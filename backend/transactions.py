@@ -71,10 +71,10 @@ def _execute_transfer(
     amount: float,
     receiver_phone: str,
     txn_type: str,       # 'transfer' | 'cashout' | 'cashin' | 'bill'
-) -> tuple[str, int]:
+) -> tuple[str, int, float, str]:
     """
     Core double-entry ledger update.
-    Returns a tuple: (reference_no, txn_id).
+    Returns a tuple: (reference_no, txn_id, cashback_amount, campaign_name).
     Raises HTTPException on any business-logic failure.
     """
     if amount <= 0:
@@ -161,6 +161,48 @@ def _execute_transfer(
             {"earned": earned, "ntier": new_tier, "uid": sender_user_id}
         )
 
+    # --- OCCASIONAL CASHBACK LOGIC ---
+    # Check for active campaigns matching date and transaction type
+    campaign = conn.execute(
+        text("""
+            SELECT cashback_pct, max_cashback, min_txn_amount, occasion_name
+            FROM occasion_cashbacks
+            WHERE is_active = true
+              AND CURRENT_DATE BETWEEN start_date AND end_date
+              AND (eligible_txn_type = 'all' OR eligible_txn_type = :ttype)
+              AND :amt >= min_txn_amount
+            ORDER BY cashback_pct DESC
+            LIMIT 1
+        """),
+        {"ttype": txn_type, "amt": amount}
+    ).mappings().first()
+
+    cashback_applied = 0.0
+    campaign_name = None
+    if campaign:
+        pct = float(campaign["cashback_pct"])
+        limit = float(campaign["max_cashback"])
+        
+        calc_cashback = (amount * pct) / 100.0
+        cashback_applied = min(calc_cashback, limit)
+
+        if cashback_applied > 0:
+            campaign_name = campaign["occasion_name"]
+            # Credit the sender's wallet immediately
+            conn.execute(
+                text("UPDATE wallets SET balance = balance + :cb WHERE wallet_id = :wid"),
+                {"cb": cashback_applied, "wid": sender_wallet_id}
+            )
+
+            # Create a notification for the user
+            conn.execute(
+                text("""
+                    INSERT INTO notifications (user_id, message, notif_type)
+                    VALUES (:uid, :msg, 'in_app')
+                """),
+                {"uid": sender_user_id, "msg": f"Congratulations! You received ৳{cashback_applied:.2f} cashback from the '{campaign_name}' campaign."}
+            )
+
     # Update favorite_contacts counter if a relationship exists
     conn.execute(
         text("""
@@ -189,7 +231,7 @@ def _execute_transfer(
     )
     txn_id = res.first()[0]
 
-    return ref, txn_id
+    return ref, txn_id, cashback_applied, campaign_name
 
 
 # ── POST /api/transactions/send  (SendMoneyPage) ──────────────────────────────
@@ -231,7 +273,7 @@ def send_money(
         )
 
         # Now verify PIN and execute transfer
-        ref, txn_id = _execute_transfer(conn, user_id, req.pin, req.amount, req.receiver_phone, "transfer")
+        ref, txn_id, cb_amt, cb_name = _execute_transfer(conn, user_id, req.pin, req.amount, req.receiver_phone, "transfer")
 
         # --- REAL-TIME FRAUD DETECTION ---
         if req.amount >= 40000:
@@ -244,7 +286,12 @@ def send_money(
             )
 
         conn.commit()
-    return {"message": "Transaction successful", "transaction_id": ref}
+    return {
+        "message": "Transaction successful", 
+        "transaction_id": ref,
+        "cashback_amount": cb_amt,
+        "cashback_campaign": cb_name
+    }
 
 
 # ── POST /api/transactions/cashout/send-otp  (CashOutPage — request OTP) ──────
@@ -332,7 +379,7 @@ def cash_out(
         )
 
         # Now verify PIN and execute transfer
-        ref, txn_id = _execute_transfer(conn, user_id, req.pin, req.amount, req.agent_phone, "cashout")
+        ref, txn_id, cb_amt, cb_name = _execute_transfer(conn, user_id, req.pin, req.amount, req.agent_phone, "cashout")
 
         # --- REAL-TIME FRAUD DETECTION ---
         if req.amount >= 40000:
@@ -345,7 +392,12 @@ def cash_out(
             )
 
         conn.commit()
-    return {"message": "Cash out successful", "transaction_id": ref}
+    return {
+        "message": "Cash out successful", 
+        "transaction_id": ref,
+        "cashback_amount": cb_amt,
+        "cashback_campaign": cb_name
+    }
 
 
 # ── POST /api/transactions/cashin/send-otp  (CashInPage — request OTP) ─────────
@@ -515,6 +567,9 @@ def cash_in(
             {"oid": user_id, "cid": agent_wallet[2]}
         )
 
+        # Note: Cash-in typically doesn't award occasional cashback to the agent, 
+        # but if needed, logic similar to _execute_transfer can be added here.
+
         ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
         res = conn.execute(
             text("""
@@ -648,7 +703,7 @@ def pay_bill(
         ).first()
         sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
 
-        ref, _ = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+        ref, txn_id, cb_amt, cb_name = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
 
         # Update existing bill_payments table (linking to the transaction)
         txn_row = conn.execute(
@@ -685,7 +740,12 @@ def pay_bill(
             )
         conn.commit()
 
-    return {"message": "Bill paid successfully", "transaction_id": ref}
+    return {
+        "message": "Bill paid successfully", 
+        "transaction_id": ref,
+        "cashback_amount": cb_amt,
+        "cashback_campaign": cb_name
+    }
 
 
 # ── POST /api/recharge  (MobileRechargePage) ─────────────────────────────────
@@ -711,7 +771,7 @@ def mobile_recharge(
         ).first()
         sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
 
-        ref, _ = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
+        ref, txn_id, cb_amt, cb_name = _execute_transfer(conn, user_id, req.pin, req.amount, sys_phone, "bill")
 
         # Update existing bill_payments table (linking to the transaction)
         txn_row = conn.execute(
@@ -733,7 +793,12 @@ def mobile_recharge(
             )
         conn.commit()
 
-    return {"message": "Recharge successful", "transaction_id": ref}
+    return {
+        "message": "Recharge successful", 
+        "transaction_id": ref,
+        "cashback_amount": cb_amt,
+        "cashback_campaign": cb_name
+    }
 
 
 # ── GET /api/transactions  (TransactionHistoryPage) ───────────────────────────

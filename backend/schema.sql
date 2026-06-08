@@ -183,8 +183,6 @@ create table reward_redemptions(
 	wallet_id integer not null,
 	status varchar(20) not null default 'pending' check(status in('pending','credited','failed')),
 	redeemed_at timestamptz not null default now(),
-	constraint chk_point_used_min check(points_used >=100),
-	constraint chk_point_used_max check(points_used <=5000),
 	foreign key(user_id) references users(user_id) on delete cascade,
 	foreign key(wallet_id) references wallets(wallet_id) on delete cascade
 );
@@ -192,7 +190,7 @@ create table reward_redemptions(
 CREATE TABLE reward_options (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    points_required INT NOT NULL,
+    points_required INT NOT NULL DEFAULT 0,
     value_bdt DECIMAL(12,2) NOT NULL,
     category VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
