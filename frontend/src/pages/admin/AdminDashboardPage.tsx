@@ -47,10 +47,10 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
-    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'transfer').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cashin').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cashout').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill_pay').reduce((acc, t) => acc + t.amount, 0) },
   ];
 
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);

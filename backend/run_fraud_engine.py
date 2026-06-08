@@ -101,19 +101,22 @@ def run_fraud_engine():
     conn = psycopg2.connect(os.getenv('DATABASE_URL'))
     cur = conn.cursor()
     
-    # 1. Clear old flags to prevent duplicates if we run this often
-    cur.execute("DELETE FROM fraud_flags")
-    
-    # 2. Run the user's fraud engine query
+    # 1. Run the user's fraud engine query
     print("Running fraud detection engine...")
     cur.execute(fraud_query)
     anomalies = cur.fetchall()
     
     print(f"Engine detected {len(anomalies)} anomalous transactions!")
     
-    # 3. Insert anomalies into fraud_flags
+    # 2. Insert anomalies into fraud_flags if they don't already exist
     for anomaly in anomalies:
         txn_id, user_id, amount, rule, risk_score = anomaly
+
+        # Prevent duplicate entries for the same transaction and rule combination
+        cur.execute("SELECT 1 FROM fraud_flags WHERE txn_id = %s AND rule_triggered = %s", (txn_id, rule))
+        if cur.fetchone():
+            continue
+
         print(f"Flagging txn {txn_id} (User {user_id}) - Rule: {rule}")
         cur.execute("""
             INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score, flagged_at)
