@@ -137,6 +137,7 @@ export const LoginPage: React.FC = () => {
                         type="button" 
                         onClick={() => setShowPin(!showPin)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors outline-none"
+                        aria-label={showPin ? "Hide password" : "Show password"}
                       >
                         {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>

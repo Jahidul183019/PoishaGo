@@ -211,6 +211,7 @@ export const RegisterPage: React.FC = () => {
                         type="button" 
                         onClick={() => setShowPin(!showPin)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors outline-none"
+                        aria-label={showPin ? "Hide pin" : "Show pin"}
                       >
                         {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -239,6 +240,7 @@ export const RegisterPage: React.FC = () => {
                         type="button" 
                         onClick={() => setShowConfirmPin(!showConfirmPin)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors outline-none"
+                        aria-label={showConfirmPin ? "Hide confirm pin" : "Show confirm pin"}
                       >
                         {showConfirmPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>

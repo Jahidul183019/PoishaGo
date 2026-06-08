@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate as useNav } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
-  const navigate = useNav();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { transactions } = useWalletStore();
 
@@ -95,6 +95,7 @@ export const HomePage: React.FC = () => {
               className="p-1.5 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all outline-none"
               id="btn-toggle-balance"
               title={showBalance ? "Hide Balance" : "Display Balance"}
+              aria-label={showBalance ? "Hide balance" : "Show balance"}
             >
               {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>

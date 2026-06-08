@@ -47,6 +47,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
           </p>
           <button
             onClick={() => onDismiss(toast.id)}
+            aria-label="Dismiss toast"
             className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                        transition-colors shrink-0"
           >
