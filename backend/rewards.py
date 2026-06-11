@@ -134,10 +134,17 @@ def get_rewards_config():
     }
 
 
+# ── GET /api/rewards/options  (RewardsPage + AdminConfigPage) ────────────────
+# FIX: removed camelCase aliases ("pointsRequired", "valueBDT")
+# Frontend interface expects snake_case: points_required, value_bdt
+
 @router.get("/rewards/options")
 def get_reward_options(db: Session = Depends(get_db)):
     with db.connection().engine.connect() as conn:
-        rows = conn.execute(text("SELECT id, title, points_required as \"pointsRequired\", value_bdt as \"valueBDT\", category FROM reward_options ORDER BY points_required ASC")).mappings().all()
+        rows = conn.execute(text(
+            "SELECT id, title, points_required, value_bdt, category "
+            "FROM reward_options ORDER BY points_required ASC"
+        )).mappings().all()
     return [dict(r) for r in rows]
 
 
@@ -149,7 +156,7 @@ def get_rewards_history(
     db: Session = Depends(get_db),
 ):
     with db.connection().engine.connect() as conn:
-        # We now query the main transactions ledger for records where the 
+        # We now query the main transactions ledger for records where the
         # Rewards System was the sender.
         rows = conn.execute(
             text("""
@@ -210,9 +217,9 @@ def redeem_rewards(
         wallet_id = wallet_row[0]
 
         # 3. Log as a main transaction instead of reward_redemptions
-        # This satisfies the requirement to store the info without hitting 
+        # This satisfies the requirement to store the info without hitting
         # check constraints on the redemptions table.
-        
+
         # Create/Get System Wallet for Rewards
         sys_wallet = conn.execute(
             text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REWARDS'")
@@ -228,18 +235,27 @@ def redeem_rewards(
                     RETURNING user_id
                 """)
             ).first()
-            sys_uid = sys_user[0] if sys_user else conn.execute(text("SELECT user_id FROM users WHERE phone='SYSTEM_REWARDS'")).scalar()
-            
+            sys_uid = sys_user[0] if sys_user else conn.execute(
+                text("SELECT user_id FROM users WHERE phone='SYSTEM_REWARDS'")
+            ).scalar()
+
             conn.execute(
-                text("INSERT INTO wallets (user_id, wallet_number, balance, is_active) VALUES (:uid, 'SYSTEM_REWARDS', 0, true) ON CONFLICT DO NOTHING"),
+                text("""
+                    INSERT INTO wallets (user_id, wallet_number, balance, is_active)
+                    VALUES (:uid, 'SYSTEM_REWARDS', 0, true)
+                    ON CONFLICT DO NOTHING
+                """),
                 {"uid": sys_uid}
             )
-            sys_wallet = conn.execute(text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REWARDS'")).first()
+            sys_wallet = conn.execute(
+                text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REWARDS'")
+            ).first()
 
         ref = f"RWD{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
         conn.execute(
             text("""
-                INSERT INTO transactions (reference_no, sender_wallet_id, receiver_wallet_id, txn_type, amount, fee, status)
+                INSERT INTO transactions
+                    (reference_no, sender_wallet_id, receiver_wallet_id, txn_type, amount, fee, status)
                 VALUES (:ref, :sw, :rw, 'cashin', :amt, 0.00, 'success')
             """),
             {"ref": ref, "sw": sys_wallet[0], "rw": wallet_id, "amt": bdt_to_add}
@@ -251,7 +267,10 @@ def redeem_rewards(
                 INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
                 VALUES (NULL, 'USER_CLAIM_REWARD', 'reward_options', :opt_id, :val)
             """),
-            {"opt_id": req.option_id, "val": f'{{"user_id": {user_id}, "amount": {bdt_to_add}, "title": "{reward_title}"}}'}
+            {
+                "opt_id": req.option_id,
+                "val": f'{{"user_id": {user_id}, "amount": {bdt_to_add}, "title": "{reward_title}"}}'
+            }
         )
 
         # 5. Notify the user
@@ -275,7 +294,7 @@ def redeem_rewards(
 
 @router.post("/admin/rewards/options")
 def create_reward_option(
-    req: RewardOptionRequest, 
+    req: RewardOptionRequest,
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
     db: Session = Depends(get_db)
 ):
@@ -295,7 +314,7 @@ def create_reward_option(
 
 @router.delete("/admin/rewards/options/{option_id}")
 def delete_reward_option(
-    option_id: int, 
+    option_id: int,
     admin: dict = Depends(require_permission("MANAGE_CONFIG")),
     db: Session = Depends(get_db)
 ):
