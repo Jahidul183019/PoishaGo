@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToastStore } from '../../hooks/useToast';
-import { LayoutDashboard, Users, History, ShieldAlert, Award, LogOut, ShieldCheck, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, History, ShieldAlert, Award, LogOut, ShieldCheck, Settings, Headphones } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import ThemeToggle from '../ui/ThemeToggle';
 
@@ -26,6 +26,7 @@ export const AdminSidebar: React.FC = () => {
     { label: 'Fraud Detection', path: '/admin/fraud', icon: ShieldAlert, perm: 'REVIEW_FRAUD' },
     { label: 'Campaign Manager', path: '/admin/occasions', icon: Award, perm: 'MANAGE_CAMPAIGNS' },
     { label: 'Configurations', path: '/admin/config', icon: Settings, perm: 'MANAGE_CONFIG' },
+    { label: 'Support Tickets', path: '/admin/support', icon: Headphones, perm: 'HANDLE_COMPLAINTS' },
   ];
 
   const handleLogout = () => {
