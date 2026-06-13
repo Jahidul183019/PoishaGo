@@ -148,7 +148,7 @@ def _execute_transfer(
         elif new_pts >= 5000: new_tier = "gold"
         elif new_pts >= 1000: new_tier = "silver"
 
-                conn.execute(
+        conn.execute(
             text("""
                 UPDATE reward_points
                 SET current_points = current_points + :earned,
