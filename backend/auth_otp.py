@@ -125,10 +125,11 @@ def send_transfer_otp(user_id: str = Depends(get_current_user), db: Session = De
     Sends a one-time OTP to the authenticated user's registered email
     for authorizing a transfer. Purpose stored as 'transfer'.
     """
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         user_row = conn.execute(
             text("SELECT email FROM users WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not user_row or not user_row[0]:
             raise HTTPException(status_code=400, detail="No email configured for this account.")
@@ -142,7 +143,7 @@ def send_transfer_otp(user_id: str = Depends(get_current_user), db: Session = De
                 INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
                 VALUES (:uid, :otp, 'transfer', :exp, false)
             """),
-            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+            {"uid": uid_int, "otp": otp_code, "exp": expires_at},
         )
         conn.commit()
 
