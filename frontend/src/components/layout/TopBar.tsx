@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, ShieldAlert, MoreVertical, X, Home, Send, Wallet, Activity, Trophy, User, LogOut, Receipt, HelpCircle } from 'lucide-react';
+import { Bell, ShieldAlert, MoreVertical, X, Home, Send, Wallet, Activity, Trophy, User, LogOut, Receipt, HelpCircle, Menu } from 'lucide-react';
 import { useWalletStore } from '../../store/useWalletStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -73,7 +73,7 @@ export const TopBar: React.FC = () => {
               onClick={() => setIsMobileMenuOpen(true)}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-              <MoreVertical size={24} />
+              <Menu size={24} />
             </button>
           </>
         ) : (
