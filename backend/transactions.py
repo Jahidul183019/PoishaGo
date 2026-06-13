@@ -157,8 +157,7 @@ def _execute_transfer(
                     tier_updated_at = CASE WHEN tier <> :ntier THEN now() ELSE tier_updated_at END
                 WHERE user_id = :uid
             """),
-            {"earned": earned, "ntier": new_tier, "uid": sender_user_id}
-        )
+            {"earned": earned, "ntier": str(new_tier), "uid": sender_user_id}
 
     # --- OCCASIONAL CASHBACK LOGIC ---
     campaign = conn.execute(
