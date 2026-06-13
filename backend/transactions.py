@@ -231,6 +231,37 @@ def _execute_transfer(
 
     return ref, txn_id, cashback_applied, campaign_name
 
+# ── POST /api/transactions/send/send-otp ─────────────────────────────────────
+
+@router.post("/transactions/send/send-otp")
+def send_money_otp(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    uid_int = int(user_id)
+    with db.connection().engine.connect() as conn:
+        user_row = conn.execute(
+            text("SELECT email FROM users WHERE user_id = :uid"),
+            {"uid": uid_int},
+        ).first()
+        if not user_row or not user_row[0]:
+            raise HTTPException(400, "No email configured for this account.")
+
+        user_email = user_row[0].strip().lower()
+        otp_code   = "".join(secrets.choice("0123456789") for _ in range(6))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+
+        conn.execute(
+            text("""
+                INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
+                VALUES (:uid, :otp, 'transfer', :exp, false)
+            """),
+            {"uid": uid_int, "otp": otp_code, "exp": expires_at},
+        )
+        conn.commit()
+
+    send_otp_email(user_email, otp_code)
+    return {"status": "success", "detail": "Send money OTP sent to your email."}
 
 # ── POST /api/transactions/send  (SendMoneyPage) ──────────────────────────────
 
