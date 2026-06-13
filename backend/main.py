@@ -21,7 +21,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-import auth_otp, auth, transactions, user, rewards, bills, admin
+import auth_otp, auth, transactions, user, rewards, bills, admin, support
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -48,6 +48,7 @@ app.include_router(user.router)           # /api/contacts, /api/notifications, /
 app.include_router(rewards.router)        # /api/rewards/*, /api/admin/rewards/*
 app.include_router(bills.router)          # /api/bill/categories, /api/admin/bill/categories
 app.include_router(admin.router)          # /api/fraud-flags, /api/campaigns
+app.include_router(support.router)        # /api/support/*, /api/ws/support/*
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
