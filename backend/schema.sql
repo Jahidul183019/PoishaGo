@@ -232,7 +232,7 @@ INSERT INTO users (full_name, phone, email, password_hash, nid, user_type, is_ve
   ('Fatema Begum', '01711000002', 'fatema@email.com', '$2b$12$hash002', '1991234567890', 'personal', TRUE, NOW() - INTERVAL '150 days'),
   ('Nasreen Akter', '01711000003', 'nasreen@email.com', '$2b$12$hash003', '1992345678901', 'personal', TRUE, NOW() - INTERVAL '120 days'),
   ('Jubayer Islam', '01711000004', 'jubayer@email.com', '$2b$12$hash004', '1993456789012', 'personal', TRUE, NOW() - INTERVAL '90 days'),
-  ('Rima Khatun', '01711000005', 'rima@email.com', '$2b$12$hash005', '1994567890123', 'personal', TRUE, NOW() - INTERVAL '60 days'),
+  ('Rima Khatun', '01711000005', 'rima@email.com', '$2b$12$3tU1vKeB9eAu0kaJH57.ne7S8Sy0w/KJuW5MK7Iat5X.FHK43NzvK', '1994567890123', 'personal', TRUE, NOW() - INTERVAL '60 days'),
   ('Kamal Hossain', '01711000006', 'kamal@email.com', '$2b$12$hash006', '1995678901234', 'agent', TRUE, NOW() - INTERVAL '200 days'),
   ('Sumon Mia', '01711000007', 'sumon@email.com', '$2b$12$hash007', '1996789012345', 'agent', TRUE, NOW() - INTERVAL '170 days'),
   ('Admin Raihan', '01711000008', 'raihan@email.com', '$2b$12$hash008', '1997890123456', 'personal', TRUE, NOW() - INTERVAL '365 days'),
@@ -261,11 +261,12 @@ INSERT INTO wallets (user_id, wallet_number, balance, currency, is_active) VALUE
   (14, 'PG-WAL-00014', 38000.00, 'BDT', TRUE),
   (15, 'PG-WAL-00015', 310000.00, 'BDT', TRUE);
 
-INSERT INTO admins (user_id, role) VALUES
-  (8, 'SUPER_ADMIN'),
-  (9, 'FINANCE_ADMIN'),
-  (6, 'RISK_MANAGER'),
-  (7, 'SUPPORT');
+INSERT INTO admins (admin_id, user_id, role) VALUES
+  (1, 8, 'SUPER_ADMIN'),
+  (2, 9, 'FINANCE_ADMIN'),
+  (3, 6, 'RISK_MANAGER'),
+  (4, 7, 'SUPPORT'),
+  (5, 5, 'SUPER_ADMIN');
 
 INSERT INTO admin_permissions(role,permission) VALUES
 ('SUPER_ADMIN', 'MANAGE_USERS'),
@@ -498,3 +499,21 @@ INSERT INTO bill_categories (id, label, icon_id, color) VALUES
     ('internet', 'Internet', 'Globe', 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'),
     ('education', 'Education', 'BookOpen', 'text-green-400 bg-green-500/10 border-green-500/20'),
     ('tv', 'Cable TV', 'Tv', 'text-purple-400 bg-purple-500/10 border-purple-500/20');
+
+-- ── Support / Help Center ────────────────────────────────────────────────────
+CREATE TABLE support_tickets (
+    ticket_id   SERIAL PRIMARY KEY,
+    user_id     INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    subject     VARCHAR(255) NOT NULL,
+    status      VARCHAR(20) DEFAULT 'OPEN' CHECK (status IN ('OPEN','RESOLVED')),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE support_messages (
+    message_id  SERIAL PRIMARY KEY,
+    ticket_id   INT NOT NULL REFERENCES support_tickets(ticket_id) ON DELETE CASCADE,
+    sender_type VARCHAR(10) NOT NULL CHECK (sender_type IN ('USER','ADMIN')),
+    sender_id   INT NOT NULL,
+    message     TEXT NOT NULL,
+    sent_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
