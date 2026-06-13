@@ -27,11 +27,14 @@ export const CashOutPage: React.FC = () => {
 
   useEffect(() => {
     api.get<any[]>('/api/agents')
-      .then(data => setAgentsList(data))
+      .then(data => {
+        setAgentsList(data);
+        if (data.length > 0) setSelectedAgentId(data[0].id);
+      })
       .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch data', 'error'));
   }, []);
 
-  const [selectedAgentId, setSelectedAgentId] = useState('1');
+  const [selectedAgentId, setSelectedAgentId] = useState('');
   const [amount, setAmount] = useState('');
 
   const { toasts, showToast, dismissToast } = useToast();

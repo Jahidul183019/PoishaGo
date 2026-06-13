@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import OTPInput from '../../components/ui/OTPInput';
-import { API_BASE_URL } from '../../utils/api';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 import { ShieldCheck, MessageSquare, RefreshCw, ArrowLeft } from 'lucide-react';
 
@@ -11,7 +10,7 @@ export const OTPPage: React.FC = () => {
   const location = useLocation();
 
   // Pull updated asynchronous API actions from Zustand store layer
-  const { user, verifyUserOTP, resendUserOTP } = useAuthStore();
+  const { user, verifyUserOTP, resendUserOTP, resetUserPin } = useAuthStore();
 
   const isPasswordReset = location.state?.isPasswordReset;
   const initialEmail = location.state?.email || (isPasswordReset ? '' : user?.email || '');
@@ -98,7 +97,7 @@ export const OTPPage: React.FC = () => {
     }
   };
 
-  const handleResetPin = (e: React.FormEvent) => {
+  const handleResetPin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPin.length !== 6 || confirmPin.length !== 6) {
       setErrorText('PIN must be exactly 6 digits.');
@@ -108,33 +107,18 @@ export const OTPPage: React.FC = () => {
       setErrorText('PINs do not match.');
       return;
     }
-    (async () => {
-      setIsVerifying(true);
-      setErrorText('');
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('Missing session token.');
 
-        const res = await fetch(`${API_BASE_URL}/api/reset-pin`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ new_pin: newPin })
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.detail || 'Failed to update PIN');
-        }
-        // After successful reset, route to login
-        navigate('/login');
-      } catch (err: any) {
-        setErrorText(err.message || 'Failed to reset PIN');
-      } finally {
-        setIsVerifying(false);
-      }
-    })();
+    setIsVerifying(true);
+    setErrorText('');
+
+    try {
+      await resetUserPin(newPin);
+      navigate('/login');
+    } catch (err: any) {
+      setErrorText(err.message || 'Failed to reset PIN');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleResendCode = async () => {

@@ -6,7 +6,6 @@ import ThemeToggle from '../../components/ui/ThemeToggle';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '../../utils/validators';
-import { useToastStore } from '../../hooks/useToast';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +13,6 @@ export const LoginPage: React.FC = () => {
 
   const [showPin, setShowPin] = useState(false);
   const [errorMSG, setErrorMSG] = useState('');
-  const [isSendingOTP, setIsSendingOTP] = useState(false);
 
   const {
     register,
@@ -119,10 +117,9 @@ export const LoginPage: React.FC = () => {
                       <button 
                         type="button" 
                         onClick={handleForgotPassword}
-                        disabled={isSendingOTP}
                         className="text-[#2563EB] text-xs font-medium hover:underline outline-none disabled:opacity-50"
                       >
-                        {isSendingOTP ? 'Sending...' : 'Forgot?'}
+                        Forgot?
                       </button>
                     </div>
                     <div className="relative">

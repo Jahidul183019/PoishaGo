@@ -211,10 +211,10 @@ export const SendMoneyPage: React.FC = () => {
             {suggestedContacts.length === 0 ? (
               <div className="text-xs text-[var(--text-secondary)] pl-1 py-1">No contacts yet. Click "Add Contact" to save someone!</div>
             ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              <div className="flex flex-wrap gap-3 pb-2">
                 {suggestedContacts.map((contact) => (
                   <div
-                    key={contact.phone}
+                    key={contact.contact_id || contact.phone}
                     className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shrink-0 hover:border-[#00C9A7]/40 transition-all relative group"
                   >
                     <button

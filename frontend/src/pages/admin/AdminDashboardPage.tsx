@@ -23,6 +23,7 @@ import {
   TrendingUp, 
   ArrowUpRight, 
   Bell,
+  Megaphone,
   Settings,
   Cpu,
   CalendarCheck2
@@ -269,6 +270,20 @@ export const AdminDashboardPage: React.FC = () => {
 
               return (
                 <>
+                  {/* System Broadcast */}
+                  {(admin?.role === 'SUPER_ADMIN' || admin?.role === 'SUPPORT') && (
+                    <button
+                      onClick={() => navigate('/admin/config')}
+                      className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-amber-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Megaphone size={16} className="text-amber-400" />
+                        <span className="text-xs font-bold text-[var(--text-primary)]">System Broadcast</span>
+                      </div>
+                      <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
+                    </button>
+                  )}
+
                   {/* User mgmt */}
                   <button
                     onClick={() => checkAccess('VIEW_USERS') && navigate('/admin/users')}
@@ -319,7 +334,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                   {/* System Configuration */}
                   <button
-                    onClick={() => checkAccess('MANAGE_CONFIG') && navigate('/admin/config')}
+                    onClick={() => (checkAccess('MANAGE_CONFIG') || admin?.role === 'SUPPORT') && navigate('/admin/config')}
                     className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-purple-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
                   >
                     <div className="flex items-center gap-3">

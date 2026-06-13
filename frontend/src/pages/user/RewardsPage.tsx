@@ -17,13 +17,18 @@ import {
   Users, 
   Award, 
   CheckCircle,
-  Clock
+  Clock,
+  ChevronRight,
+  Coins,
+  ArrowRightLeft,
+  Zap,
+  Lock
 } from 'lucide-react';
 
 export const RewardsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateUserPoints, updateUserBalance, fetchUserProfile } = useAuthStore();
-  const { rewardOptions, fetchRewardOptions, pointsRedeemedHistory } = useWalletStore();
+  const { rewardOptions, fetchRewardOptions, pointsRedeemedHistory, convertPointsToCash } = useWalletStore();
 
   const [activeTab, setActiveTab] = useState<'rewards' | 'leaderboard' | 'history'>('rewards');
 
@@ -31,6 +36,7 @@ export const RewardsPage: React.FC = () => {
   const [redeemSuccess, setRedeemSuccess] = useState('');
   const [redeemError, setRedeemError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [convertPoints, setConvertPoints] = useState('1000');
 
   const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
   const [rewardTiers, setRewardTiers] = useState<any[]>([]);
@@ -79,6 +85,25 @@ export const RewardsPage: React.FC = () => {
     }
   };
 
+  const handleQuickConvert = async () => {
+    const pts = parseInt(convertPoints);
+    if (isNaN(pts) || pts < 100) return;
+    
+    setIsSubmitting(true);
+    await convertPointsToCash(pts);
+    await fetchUserProfile();
+    setIsSubmitting(false);
+  };
+
+  const getTierRate = () => {
+    if (user?.tier === 'platinum') return 0.175;
+    if (user?.tier === 'gold') return 0.15;
+    if (user?.tier === 'silver') return 0.125;
+    return 0.10;
+  };
+
+  const isEligible = (user?.current_points || 0) >= 100;
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
       
@@ -123,7 +148,7 @@ export const RewardsPage: React.FC = () => {
             className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all capitalize outline-none ${
               activeTab === tab
                 ? 'bg-[var(--bg-card)] text-[#00C9A7] border-b-2 border-[#00C9A7] shadow-sm font-semibold'
-                : 'text-[var(--text-secondary)] hover:text-white'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             {tab === 'rewards' && 'Redeem Cashback'}
@@ -137,6 +162,129 @@ export const RewardsPage: React.FC = () => {
       {activeTab === 'rewards' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
           
+          {/* ENHANCED QUICK CONVERSION WIDGET */}
+          <Card className="bg-gradient-to-br from-[#00C9A7]/15 via-[var(--bg-card)] to-transparent border-[#00C9A7]/30 p-6 overflow-hidden relative">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-[#00C9A7]/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col gap-6 relative z-10">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-[#00C9A7]/20 rounded-lg text-[#00C9A7]">
+                      <ArrowRightLeft size={16} />
+                    </div>
+                    <h2 className="font-sora font-extrabold text-[var(--text-primary)]">Convert Points to Cash</h2>
+                  </div>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">
+                    Instant Wallet Credit • {user?.tier} Rate Enabled
+                  </p>
+                </div>
+                <div className="bg-[#00C9A7]/10 border border-[#00C9A7]/20 px-3 py-1 rounded-full">
+                   <span className="text-[10px] font-bold text-[#00C9A7]">৳{(getTierRate() * 100).toFixed(2)} / 100 PTS</span>
+                </div>
+              </div>
+
+              {!isEligible ? (
+                <div className="bg-[var(--bg-secondary)]/50 border border-[var(--border)] border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 text-center">
+                   <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                      <Lock size={20} />
+                   </div>
+                   <div>
+                     <h4 className="text-sm font-bold text-[var(--text-primary)]">Conversion Not Eligible</h4>
+                     <p className="text-xs text-[var(--text-secondary)] mt-1">You need a minimum of 100 points to start converting to cash.</p>
+                   </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
+                    {/* Input Control Area */}
+                    <div className="lg:col-span-3 space-y-4">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[var(--text-primary)] px-1">
+                        <span className="opacity-70 uppercase tracking-tight">Select Point Volume</span>
+                        <div className="flex items-center gap-1.5">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#00C9A7]" />
+                           <span>Wallet Balance: {user?.current_points} PTS</span>
+                        </div>
+                      </div>
+                      
+                      <div className="relative group px-1">
+                        <input 
+                          type="range" 
+                          min="100" 
+                          max={Math.max(100, user?.current_points || 0)} 
+                          step="10"
+                          value={convertPoints}
+                          onChange={(e) => setConvertPoints(e.target.value)}
+                          className="w-full h-1.5 bg-[var(--border)] rounded-lg appearance-none cursor-pointer accent-[#00C9A7] transition-all hover:h-2"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setConvertPoints('100')} 
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-extrabold transition-all border ${
+                            convertPoints === '100' 
+                              ? 'bg-[#00C9A7] text-white border-[#00C9A7]' 
+                              : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border)] hover:border-[#00C9A7]/50'
+                          }`}
+                        >
+                          MIN (100)
+                        </button>
+                        <button 
+                          onClick={() => setConvertPoints(String(Math.floor((user?.current_points || 0)/10)*10))} 
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-extrabold transition-all border ${
+                            parseInt(convertPoints) >= Math.floor((user?.current_points || 0)/10)*10
+                              ? 'bg-[#00C9A7] text-white border-[#00C9A7]' 
+                              : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border)] hover:border-[#00C9A7]/50'
+                          }`}
+                        >
+                          MAX
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Results Visual Area */}
+                    <div className="lg:col-span-2 flex items-center justify-center gap-4 bg-[var(--bg-secondary)] p-4 rounded-2xl border border-[var(--border)] border-dashed">
+                      <div className="text-center">
+                        <div className="text-lg font-sora font-extrabold text-[var(--text-primary)] leading-none">{convertPoints}</div>
+                        <div className="text-[9px] text-[var(--text-secondary)] font-bold uppercase mt-1">Points</div>
+                      </div>
+                      
+                      <div className="w-8 h-8 rounded-full bg-[#00C9A7] flex items-center justify-center text-white shadow-[0_0_15px_rgba(0,201,167,0.4)] shrink-0">
+                        <ChevronRight size={20} />
+                      </div>
+
+                      <div className="text-center">
+                        <div className="text-lg font-sora font-extrabold text-[#00C9A7] leading-none">৳{(parseInt(convertPoints) * getTierRate() || 0).toFixed(2)}</div>
+                        <div className="text-[9px] text-[var(--text-secondary)] font-bold uppercase mt-1">Balance</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <div className="relative flex-1">
+                      <input 
+                        type="number" 
+                        value={convertPoints}
+                        onChange={(e) => setConvertPoints(e.target.value)}
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-mono text-[var(--text-primary)] focus:border-[#00C9A7] outline-none transition-all"
+                        placeholder="1000"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--text-secondary)] tracking-widest">PTS</span>
+                    </div>
+                    <Button 
+                      onClick={handleQuickConvert}
+                      disabled={isSubmitting || (user?.current_points || 0) < parseInt(convertPoints) || parseInt(convertPoints) < 100 || isNaN(parseInt(convertPoints))}
+                      className="sm:w-48 h-12 text-xs font-bold shadow-lg"
+                    >
+                      {isSubmitting ? 'Processing...' : 'Confirm Conversion'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+
           {/* Feedback Messages */}
           {(redeemError || redeemSuccess) && (
             <div className="flex flex-col gap-3">
@@ -164,6 +312,11 @@ export const RewardsPage: React.FC = () => {
               </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rewardOptions.length === 0 && (
+                <div className="col-span-full py-8 text-center text-xs text-[var(--text-secondary)] font-semibold border border-dashed border-[var(--border)] rounded-2xl">
+                  No active reward redemptions available at this moment.
+                </div>
+              )}
               {rewardOptions.map((option) => (
                 <Card key={option.id} className="relative overflow-hidden group hover:border-[#00C9A7]/30 transition-all border-[var(--border)]">
                   <div className="absolute top-0 right-0 p-3">
@@ -181,6 +334,9 @@ export const RewardsPage: React.FC = () => {
                       <h3 className="font-sora font-bold text-[var(--text-primary)] group-hover:text-[#00C9A7] transition-colors">
                         {option.title}
                       </h3>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-1 font-mono">
+                        Redeem for <span className="font-bold text-amber-400">{option.points_required} PTS</span>
+                      </p>
                     </div>
 
                     <div className="flex items-center justify-between mt-auto">
@@ -192,7 +348,7 @@ export const RewardsPage: React.FC = () => {
                         disabled={isSubmitting}
                         className="text-[10px] h-8 px-3"
                       >
-                        {isSubmitting && selectedOptionId === option.id ? 'Claiming...' : 'Claim Now'}
+                        {isSubmitting && selectedOptionId === option.id ? 'Redeeming...' : 'Redeem Now'}
                       </Button>
                     </div>
                   </div>
@@ -265,7 +421,7 @@ export const RewardsPage: React.FC = () => {
                   </span>
                   
                   {/* Ledger points */}
-                  <span className="font-mono text-white text-right w-20">
+                  <span className="font-mono text-[var(--text-primary)] text-right w-20">
                     {leader.points} PTS
                   </span>
                 </div>

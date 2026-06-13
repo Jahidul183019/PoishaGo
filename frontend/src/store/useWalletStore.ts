@@ -123,6 +123,7 @@ interface WalletState {
   fetchUsers: () => Promise<void>;
   fetchFraudFlags: () => Promise<void>;
   fetchCampaigns: () => Promise<void>;
+  convertPointsToCash: (points: number) => Promise<void>;
 
   // ── Admin actions ──
   toggleCitizenStatus: (userId: number, currentStatus: string) => Promise<void>;
@@ -133,6 +134,7 @@ interface WalletState {
   addRewardOption: (option: Omit<RewardRedeemOption, 'id'>) => Promise<void>;
   deleteRewardOption: (id: number) => Promise<void>;
   addBillCategory: (category: any) => Promise<void>;
+  broadcastNotification: (message: string) => Promise<void>;
   deleteBillCategory: (id: string) => Promise<void>;
 }
 
@@ -399,6 +401,24 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       }));
     } catch (err: any) {
       useToastStore.getState().showToast(err.message || 'Failed to delete bill category', 'error');
+    }
+  },
+
+  broadcastNotification: async (message) => {
+    try {
+      await api.post('/api/broadcast-notification', { message });
+      useToastStore.getState().showToast('Broadcast sent successfully', 'success');
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to send broadcast', 'error');
+    }
+  },
+
+  convertPointsToCash: async (points) => {
+    try {
+      await api.post('/api/rewards/convert', { points });
+      useToastStore.getState().showToast('Points converted successfully!', 'success');
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Conversion failed', 'error');
     }
   },
 }));

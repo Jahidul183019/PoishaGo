@@ -68,7 +68,7 @@ def get_contacts(
                 JOIN users u ON u.user_id = fc.contact_user_id
                 WHERE fc.owner_user_id = :uid
                 ORDER BY fc.added_at DESC
-                LIMIT 20
+                LIMIT 50
             """),
             {"uid": user_id},
         ).mappings().all()

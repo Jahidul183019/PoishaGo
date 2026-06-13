@@ -30,6 +30,10 @@ class BalanceAdjustmentRequest(BaseModel):
     amount: float
     type: str # 'credit' | 'debit'
 
+class BroadcastNotificationRequest(BaseModel):
+    message: str
+    notif_type: str = "in_app"
+
 router = APIRouter(prefix="/api", tags=["Admin"])
 
 
@@ -317,3 +321,33 @@ def toggle_campaign(
         )
         conn.commit()
     return {"message": "Campaign status updated", "is_active": new_status}
+
+@router.post("/broadcast-notification")
+def broadcast_notification(
+    req: BroadcastNotificationRequest,
+    admin: dict = Depends(require_permission("MANAGE_CONFIG")),
+    db: Session = Depends(get_db)
+):
+    """Sends a notification message to every registered user."""
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO notifications (user_id, message, notif_type, is_read, created_at)
+                SELECT user_id, :msg, :type, false, NOW()
+                FROM users
+                WHERE user_type != 'admin'  -- Optional: avoid notifying other admins
+            """),
+            {"msg": req.message, "type": req.notif_type}
+        )
+
+        # Log the administrative action in the audit trail
+        conn.execute(
+            text("""
+                INSERT INTO audit_logs (admin_id, action, target_table, new_value)
+                VALUES (:aid, 'SYSTEM_BROADCAST', 'notifications', :val)
+            """),
+            {"aid": admin["admin_id"], "val": f'{{"message": "{req.message}", "type": "{req.notif_type}"}}'}
+        )
+        conn.commit()
+    
+    return {"message": f"Notification successfully broadcasted to all users."}

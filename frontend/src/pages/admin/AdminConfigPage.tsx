@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../store/useWalletStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import { Settings, Plus, Tag, Gift, Trash2 } from 'lucide-react';
+import { Settings, Plus, Tag, Gift, Trash2, Megaphone, Send } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { formatBDT } from '../../utils/format';
 
 export const AdminConfigPage: React.FC = () => {
-  const { rewardOptions, billCategories, fetchRewardOptions, fetchBillCategories, addRewardOption, addBillCategory, deleteRewardOption, deleteBillCategory } = useWalletStore();
+  const { rewardOptions, billCategories, fetchRewardOptions, fetchBillCategories, addRewardOption, addBillCategory, deleteRewardOption, deleteBillCategory, broadcastNotification } = useWalletStore();
+  const { admin } = useAuthStore();
 
   useEffect(() => {
     fetchRewardOptions();
@@ -21,6 +23,10 @@ export const AdminConfigPage: React.FC = () => {
   const [pointsReq, setPointsReq] = useState('');
   const [valueBdt, setValueBdt] = useState('');
   const [rewardCat, setRewardCat] = useState('cashback');
+
+  // Broadcast states
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // Form states for Bill Category
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -51,6 +57,16 @@ export const AdminConfigPage: React.FC = () => {
     setIsBillModalOpen(false);
     setBillId('');
     setBillLabel('');
+  };
+
+  const handleBroadcast = async () => {
+    if (!broadcastMessage.trim()) return;
+    if (!window.confirm("Are you sure you want to send this notification to ALL registered users?")) return;
+    
+    setIsBroadcasting(true);
+    await broadcastNotification(broadcastMessage);
+    setBroadcastMessage('');
+    setIsBroadcasting(false);
   };
 
   return (
@@ -145,6 +161,28 @@ export const AdminConfigPage: React.FC = () => {
         </Card>
 
       </div>
+
+      {/* System Broadcast Section - Only for SUPPORT & SUPER_ADMIN */}
+      {(admin?.role === 'SUPER_ADMIN' || admin?.role === 'SUPPORT') && (
+        <Card className="p-6 border-amber-500/20 bg-amber-500/5">
+          <div className="flex items-center gap-2 mb-4">
+            <Megaphone className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">System-wide Broadcast</h2>
+          </div>
+          <div className="space-y-4">
+            <textarea
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              placeholder="Announce maintenance, holidays, or alerts to all citizens..."
+              className="w-full h-32 p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl outline-none focus:border-amber-500 transition-colors resize-none text-sm text-[var(--text-primary)]"
+            />
+            <Button onClick={handleBroadcast} disabled={isBroadcasting || !broadcastMessage.trim()} className="w-full bg-amber-600 hover:bg-amber-700 text-white border-none h-12">
+              <Send size={16} className="mr-2" />
+              <span>{isBroadcasting ? 'Dispatching...' : 'Broadcast to All Users'}</span>
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Reward Modal */}
       <Modal 

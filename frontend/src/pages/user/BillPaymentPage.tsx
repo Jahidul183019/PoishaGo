@@ -218,7 +218,7 @@ export const BillPaymentPage: React.FC = () => {
             Choose Bill Organization Provider
           </h3>
           <div className="flex flex-col gap-2.5">
-            {categoryCompanies[selectedCategory]?.map((company) => (
+            {(categoryCompanies[selectedCategory] || ['Standard Service Provider']).map((company) => (
               <button
                 key={company}
                 onClick={() => handleSelectCompany(company)}

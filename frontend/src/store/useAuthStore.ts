@@ -52,6 +52,7 @@ interface AuthState {
   updateUserBalance: (newBalance: number) => void;
   updateUserPoints: (newPoints: number) => void;
   updateUserPIN: (oldPin: string, newPin: string) => Promise<boolean>;
+  resetUserPin: (newPin: string) => Promise<void>;
   adminLogin: (username: string, passcode: string) => Promise<boolean>;
 }
 
@@ -232,6 +233,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Failed to update PIN:', e);
       return false;
     }
+  },
+
+  resetUserPin: async (newPin) => {
+    await api.post('/api/reset-pin', { new_pin: newPin });
   },
 
   adminLogin: async (username, passcode) => {
