@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Send, Wallet, Activity, Trophy, Bell, User, LogOut, Receipt } from 'lucide-react';
+import { Home, Send, Wallet, Activity, Trophy, Bell, User, LogOut, Receipt, HelpCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import ThemeToggle from '../ui/ThemeToggle';
 
@@ -19,6 +19,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Rewards Portal', path: '/rewards', icon: Trophy },
     { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'My profile', path: '/profile', icon: User },
+    { label: 'Help Center', path: '/help-center', icon: HelpCircle },
   ];
 
   const handleLogout = () => {
