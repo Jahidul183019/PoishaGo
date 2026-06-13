@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Lock, LayoutDashboard, Users, History, ShieldAlert, Award, Menu, X } from 'lucide-react';
+import { Lock, LayoutDashboard, Users, History, ShieldAlert, Award, Menu, X, Settings, Headphones } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useToastStore } from '../../hooks/useToast';
 import AdminSidebar from './AdminSidebar';
 import TopBar from './TopBar';
 
@@ -14,12 +15,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { admin, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const checkAccess = (perm: string) => {
+    if (admin?.role === 'SUPER_ADMIN') return true;
+    if (!perm) return true; // Always allow dashboard
+    if (admin?.permissions?.includes(perm)) return true;
+    const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
+    useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
+    return false;
+  };
+
   const adminMenuItems = [
-    { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'User Directory', path: '/admin/users', icon: Users },
-    { label: 'Transactions History', path: '/admin/transactions', icon: History },
-    { label: 'Fraud Alerts', path: '/admin/fraud', icon: ShieldAlert },
-    { label: 'Rewards & Cashbacks', path: '/admin/occasions', icon: Award },
+    { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, perm: '' },
+    { label: 'User Directory', path: '/admin/users', icon: Users, perm: 'VIEW_USERS' },
+    { label: 'Transactions History', path: '/admin/transactions', icon: History, perm: 'MANAGE_TRANSACTIONS' },
+    { label: 'Fraud Alerts', path: '/admin/fraud', icon: ShieldAlert, perm: 'REVIEW_FRAUD' },
+    { label: 'Rewards & Cashbacks', path: '/admin/occasions', icon: Award, perm: 'MANAGE_CAMPAIGNS' },
+    { label: 'Configurations', path: '/admin/config', icon: Settings, perm: 'MANAGE_CONFIG' },
+    { label: 'Support Tickets', path: '/admin/support', icon: Headphones, perm: 'HANDLE_COMPLAINTS' },
   ];
 
   const handleLogout = () => {
@@ -75,8 +87,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     <button
                       key={item.path}
                       onClick={() => {
-                        navigate(item.path);
-                        setIsMobileMenuOpen(false);
+                        if (checkAccess(item.perm)) {
+                          navigate(item.path);
+                          setIsMobileMenuOpen(false);
+                        }
                       }}
                       className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
                     >
