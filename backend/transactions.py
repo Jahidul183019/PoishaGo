@@ -66,7 +66,7 @@ class RechargeRequest(BaseModel):
 
 def _execute_transfer(
     conn,
-    sender_user_id: str,
+    sender_user_id,
     sender_pin: str,
     amount: float,
     receiver_phone: str,
@@ -77,6 +77,7 @@ def _execute_transfer(
     Returns a tuple: (reference_no, txn_id, cashback_amount, campaign_name).
     Raises HTTPException on any business-logic failure.
     """
+    sender_user_id = int(sender_user_id)
     if amount <= 0:
         raise HTTPException(400, "Amount must be greater than 0.")
 
@@ -239,6 +240,7 @@ def send_money(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
@@ -250,7 +252,7 @@ def send_money(
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": user_id, "otp": req.otp},
+            {"uid": uid_int, "otp": req.otp},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
@@ -277,7 +279,7 @@ def send_money(
                     INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
                     VALUES (:tid, :uid, :rule, :score)
                 """),
-                {"tid": txn_id, "uid": user_id,
+                {"tid": txn_id, "uid": uid_int,
                  "rule": "Large Swift Transaction Flag (>= ৳40,000)",
                  "score": random.randint(75, 95)}
             )
@@ -299,10 +301,11 @@ def send_cashout_otp(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         user_row = conn.execute(
             text("SELECT email FROM users WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not user_row or not user_row[0]:
             raise HTTPException(400, "No email configured for this account.")
@@ -316,7 +319,7 @@ def send_cashout_otp(
                 INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
                 VALUES (:uid, :otp, 'transfer', :exp, false)
             """),
-            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+            {"uid": uid_int, "otp": otp_code, "exp": expires_at},
         )
         conn.commit()
 
@@ -332,6 +335,7 @@ def cash_out(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
@@ -343,7 +347,7 @@ def cash_out(
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": user_id, "otp": req.otp},
+            {"uid": uid_int, "otp": req.otp},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
@@ -370,7 +374,7 @@ def cash_out(
                     INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
                     VALUES (:tid, :uid, :rule, :score)
                 """),
-                {"tid": txn_id, "uid": user_id,
+                {"tid": txn_id, "uid": uid_int,
                  "rule": "Large Withdrawal Alert (>= ৳40,000)",
                  "score": random.randint(80, 98)}
             )
@@ -392,6 +396,7 @@ def send_cashin_otp(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         agent_row = conn.execute(
             text("SELECT user_id, email FROM users WHERE phone = :phone"),
@@ -409,7 +414,7 @@ def send_cashin_otp(
                 INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
                 VALUES (:uid, :otp, 'transfer', :exp, false)
             """),
-            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+            {"uid": uid_int, "otp": otp_code, "exp": expires_at},
         )
         conn.commit()
 
@@ -425,6 +430,7 @@ def cash_in(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
@@ -436,7 +442,7 @@ def cash_in(
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": user_id, "otp": req.otp},
+            {"uid": uid_int, "otp": req.otp},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
@@ -455,7 +461,7 @@ def cash_in(
 
         pw_row = conn.execute(
             text("SELECT password_hash FROM users WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not pw_row or not verify_pin(req.pin, pw_row[0]):
             raise HTTPException(401, "Invalid PIN.")
@@ -473,7 +479,7 @@ def cash_in(
 
         user_wallet = conn.execute(
             text("SELECT wallet_id FROM wallets WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not user_wallet:
             raise HTTPException(400, "User wallet not found.")
@@ -490,7 +496,7 @@ def cash_in(
         # Award points to user for cashing in
         reward_row = conn.execute(
             text("SELECT current_points, tier FROM reward_points WHERE user_id = :uid FOR UPDATE"),
-            {"uid": user_id}
+            {"uid": uid_int}
         ).first()
 
         if reward_row:
@@ -518,7 +524,7 @@ def cash_in(
                         tier_updated_at = CASE WHEN tier <> :ntier THEN now() ELSE tier_updated_at END
                     WHERE user_id = :uid
                 """),
-                {"earned": earned, "ntier": new_tier, "uid": user_id}
+                {"earned": earned, "ntier": new_tier, "uid": uid_int}
             )
 
         conn.execute(
@@ -550,7 +556,7 @@ def cash_in(
                     INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
                     VALUES (:tid, :uid, :rule, :score)
                 """),
-                {"tid": txn_id, "uid": user_id,
+                {"tid": txn_id, "uid": uid_int,
                  "rule": "Large Deposit Flag (>= ৳40,000)",
                  "score": random.randint(70, 90)}
             )
@@ -567,10 +573,11 @@ def send_bill_otp(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         user_row = conn.execute(
             text("SELECT email FROM users WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not user_row or not user_row[0]:
             raise HTTPException(400, "No email configured for this account.")
@@ -584,7 +591,7 @@ def send_bill_otp(
                 INSERT INTO otp_verifications (user_id, otp_code, purpose, expires_at, is_used)
                 VALUES (:uid, :otp, 'transfer', :exp, false)
             """),
-            {"uid": user_id, "otp": otp_code, "exp": expires_at},
+            {"uid": uid_int, "otp": otp_code, "exp": expires_at},
         )
         conn.commit()
 
@@ -600,6 +607,7 @@ def pay_bill(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
@@ -611,7 +619,7 @@ def pay_bill(
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": user_id, "otp": req.otp},
+            {"uid": uid_int, "otp": req.otp},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
@@ -696,7 +704,7 @@ def pay_bill(
                     VALUES (:tid, :uid, :cname, :btype, :acc, :ddate, :amt, 'SUCCESS')
                 """),
                 {
-                    "tid": txn_row[0], "uid": user_id, "cname": req.biller_name,
+                    "tid": txn_row[0], "uid": uid_int, "cname": req.biller_name,
                     "btype": b_type, "acc": req.account_number, "amt": req.amount,
                     "ddate": datetime.now(timezone.utc).date()
                 }
@@ -721,6 +729,7 @@ def mobile_recharge(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     if req.amount < 10 or req.amount > 1000:
         raise HTTPException(400, "Recharge amount must be between ৳10 and ৳1,000.")
 
@@ -754,7 +763,7 @@ def mobile_recharge(
                     VALUES (:tid, :uid, :cname, 'MOBILE', :acc, :ddate, :amt, 'SUCCESS')
                 """),
                 {
-                    "tid": txn_row[0], "uid": user_id, "cname": req.operator.upper(),
+                    "tid": txn_row[0], "uid": uid_int, "cname": req.operator.upper(),
                     "acc": req.phone, "amt": req.amount,
                     "ddate": datetime.now(timezone.utc).date()
                 }
@@ -776,10 +785,11 @@ def get_transactions(
     user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         wallet = conn.execute(
             text("SELECT wallet_id FROM wallets WHERE user_id = :uid"),
-            {"uid": user_id},
+            {"uid": uid_int},
         ).first()
         if not wallet:
             return []
