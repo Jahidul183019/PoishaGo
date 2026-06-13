@@ -38,6 +38,7 @@ class SendMoneyRequest(BaseModel):
     amount: float
     pin: str
     otp: str
+    reference_note: str | None = None  
 
 class CashInOutRequest(BaseModel):
     agent_phone: str
