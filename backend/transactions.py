@@ -158,7 +158,7 @@ def _execute_transfer(
                 WHERE user_id = :uid
             """),
             {"earned": earned, "ntier": str(new_tier), "uid": sender_user_id}
-
+        )
     # --- OCCASIONAL CASHBACK LOGIC ---
     campaign = conn.execute(
         text("""
