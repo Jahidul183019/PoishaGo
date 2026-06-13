@@ -9,13 +9,12 @@ import * as Icons from 'lucide-react';
 import { formatBDT } from '../../utils/format';
 
 export const AdminConfigPage: React.FC = () => {
-  const { rewardOptions, billCategories, fetchRewardOptions, fetchBillCategories, addRewardOption, addBillCategory, deleteRewardOption, deleteBillCategory, broadcastNotification } = useWalletStore();
+  const { rewardOptions, fetchRewardOptions, addRewardOption, deleteRewardOption, broadcastNotification } = useWalletStore();
   const { admin } = useAuthStore();
 
   useEffect(() => {
     fetchRewardOptions();
-    fetchBillCategories();
-  }, [fetchRewardOptions, fetchBillCategories]);
+  }, [fetchRewardOptions]);
 
   // Form states for Reward Option
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
@@ -28,10 +27,6 @@ export const AdminConfigPage: React.FC = () => {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
-  // Form states for Bill Category
-  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
-  const [billId, setBillId] = useState('');
-  const [billLabel, setBillLabel] = useState('');
   const handleAddReward = async () => {
     if(!rewardTitle || !pointsReq || !valueBdt) return;
     await addRewardOption({
@@ -44,19 +39,6 @@ export const AdminConfigPage: React.FC = () => {
     setRewardTitle('');
     setPointsReq('');
     setValueBdt('');
-  };
-
-  const handleAddBill = async () => {
-    if(!billId || !billLabel) return;
-    await addBillCategory({
-      id: billId,
-      label: billLabel,
-      icon_id: 'Tag',
-      color: 'text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20'
-    });
-    setIsBillModalOpen(false);
-    setBillId('');
-    setBillLabel('');
   };
 
   const handleBroadcast = async () => {
@@ -112,51 +94,6 @@ export const AdminConfigPage: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
-        </Card>
-
-        {/* Bill Categories Section */}
-        <Card className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Tag className="w-5 h-5 text-emerald-400" />
-              Bill Categories
-            </h2>
-            <Button className="py-1.5 px-3 text-xs" onClick={() => setIsBillModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Category
-            </Button>
-          </div>
-          
-          <p className="text-[var(--text-secondary)] text-sm mb-4">
-            Bill categories currently require a hard reload to reflect on the user dashboard.
-          </p>
-
-          <div className="space-y-3">
-            {billCategories.length === 0 ? (
-               <div className="p-4 rounded-lg border border-dashed border-slate-700 text-center text-[var(--text-secondary)]">
-                  Click "Add Category" to configure a new biller
-               </div>
-            ) : (
-               billCategories.map((cat) => {
-                 const IconComp = (Icons as any)[cat.icon_id] || Tag;
-                 return (
-                   <div key={cat.id} className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex justify-between items-center">
-                     <div className="flex items-center gap-3">
-                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cat.color}`}>
-                         <IconComp className="w-4 h-4" />
-                       </div>
-                       <div>
-                         <div className="font-medium text-[var(--text-primary)]">{cat.label}</div>
-                         <div className="text-xs text-[var(--text-secondary)]">ID: {cat.id}</div>
-                       </div>
-                     </div>
-                     <button onClick={() => deleteBillCategory(cat.id)} className="text-[var(--text-secondary)] hover:text-red-400 transition-colors">
-                       <Trash2 className="w-4 h-4" />
-                     </button>
-                   </div>
-                 );
-               })
-            )}
           </div>
         </Card>
 
@@ -233,39 +170,6 @@ export const AdminConfigPage: React.FC = () => {
             </select>
           </div>
           <Button className="w-full mt-4" onClick={handleAddReward}>Save Reward</Button>
-        </div>
-      </Modal>
-
-      {/* Bill Modal */}
-      <Modal 
-        isOpen={isBillModalOpen} 
-        onClose={() => setIsBillModalOpen(false)}
-        title="Add Bill Category"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Category ID</label>
-            <input 
-              type="text" 
-              value={billId}
-              onChange={(e) => setBillId(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-teal)] transition-colors"
-              placeholder="e.g. credit-card"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Label</label>
-            <input 
-              type="text" 
-              value={billLabel}
-              onChange={(e) => setBillLabel(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-teal)] transition-colors"
-              placeholder="e.g. Credit Card Payment"
-            />
-          </div>
-
-
-          <Button className="w-full mt-4" onClick={handleAddBill}>Save Category</Button>
         </div>
       </Modal>
 
