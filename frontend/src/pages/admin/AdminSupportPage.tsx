@@ -123,7 +123,7 @@ export const AdminSupportPage: React.FC = () => {
   // ── Chat View ──────────────────────────────────────────────────────────────
   if (activeTicket) {
     return (
-      <div className="flex flex-col h-[calc(100vh-48px)]">
+      <div className="flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-48px)]">
         {/* Chat Header */}
         <div className="flex items-center gap-3 pb-4 border-b border-[var(--border)]">
           <button onClick={handleBack} className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors outline-none">
