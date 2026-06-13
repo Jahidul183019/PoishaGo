@@ -518,9 +518,9 @@ def cash_in(
                     UPDATE reward_points
                     SET current_points = current_points + :earned,
                         lifetime_earned = lifetime_earned + :earned,
-                        tier = :ntier,
-                        updated_at = now(),
-                        tier_updated_at = CASE WHEN tier <> :ntier THEN now() ELSE tier_updated_at END
+                        tier = CAST(:ntier AS VARCHAR),
+                    updated_at = now(),
+                    tier_updated_at = CASE WHEN tier <> CAST(:ntier AS VARCHAR) THEN now() ELSE tier_updated_at END
                     WHERE user_id = :uid
                 """),
                 {"earned": earned, "ntier": new_tier, "uid": uid_int}
