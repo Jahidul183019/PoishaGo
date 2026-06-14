@@ -779,7 +779,7 @@ def mobile_recharge(
         sys_phone = sys_phone_row[0] if sys_phone_row else "BILL_SYSTEM"
 
         ref, txn_id, cb_amt, cb_name = _execute_transfer(
-            conn, user_id, req.pin, req.amount, sys_phone, "bill"
+            conn, user_id, req.pin, req.amount, sys_phone, "recharge"
         )
 
         txn_row = conn.execute(
@@ -854,6 +854,7 @@ def get_transactions(
         "cashout":  "cash_out",
         "cashin":   "cash_in",
         "bill":     "bill_pay",
+        "recharge": "mobile_recharge",
     }
     status_map = {
         "success": "completed",
