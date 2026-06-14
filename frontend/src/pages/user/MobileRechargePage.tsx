@@ -6,7 +6,7 @@ import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-
+import OTPInput from '../../components/ui/OTPInput';
 import {
   ArrowLeft,
   Smartphone,
@@ -37,7 +37,6 @@ export const MobileRechargePage: React.FC = () => {
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<'input' | 'processing' | 'success'>('input');
   const [receiptRef, setReceiptRef] = useState('');
-  const [rechargePin, setRechargePin] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +58,6 @@ export const MobileRechargePage: React.FC = () => {
       setErrorText(`Insufficient balance. Your current balance is ${formatBDT(user.balance)}`);
       return;
     }
-    setRechargePin('');
     setIsOTPModalOpen(true);
   };
 
@@ -254,52 +252,24 @@ export const MobileRechargePage: React.FC = () => {
         </>
       )}
 
-      {/* PIN Modal */}
+      {/* OTP Modal */}
       <Modal
         isOpen={isOTPModalOpen}
         onClose={() => setIsOTPModalOpen(false)}
         title="Confirm Recharge"
       >
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleOTPComplete(rechargePin); }}
-          className="flex flex-col gap-4"
-        >
+        <div className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> to confirm the{' '}
             <strong>{formatBDT(parseFloat(amount) || 0)}</strong> recharge to <strong>{phone}</strong>.
           </p>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[var(--text-secondary)]">
-              Your Wallet Security PIN
-            </label>
-            <input
-              type="password"
-              placeholder="••••••"
-              maxLength={6}
-              value={rechargePin}
-              onChange={(e) => setRechargePin(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-3 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-              autoFocus
-              required
-            />
+          <div className="py-4">
+            <OTPInput length={6} onComplete={handleOTPComplete} />
           </div>
-
           <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
             Safety tip: Never disclose your authorization PIN.
           </p>
-
-          {/* Sticky bottom button */}
-          <div className="sticky bottom-0 pt-2 pb-1 bg-[var(--bg-card)]">
-            <Button
-              type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-500"
-              disabled={rechargePin.length < 6}
-            >
-              Confirm Recharge
-            </Button>
-          </div>
-        </form>
+        </div>
       </Modal>
 
     </div>
