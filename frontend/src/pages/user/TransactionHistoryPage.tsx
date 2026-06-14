@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore, WalletTransaction } from '../../store/useWalletStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -21,6 +22,7 @@ import {
 export const TransactionHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { transactions } = useWalletStore();
+  const { user } = useAuthStore();
 
   const [expandedTxnId, setExpandedTxnId] = useState<number | null>(null);
 
@@ -250,7 +252,7 @@ export const TransactionHistoryPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill';
+                  const isDebit = txn.sender_wallet_id === user?.wallet_number;
 
                   return (
                     <React.Fragment key={txn.txn_id}>
