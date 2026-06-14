@@ -251,7 +251,7 @@ export const TransactionHistoryPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay';
+                  const isDebit = txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay' || txn.txn_type === 'mobile_recharge';
 
                   return (
                     <React.Fragment key={txn.txn_id}>
