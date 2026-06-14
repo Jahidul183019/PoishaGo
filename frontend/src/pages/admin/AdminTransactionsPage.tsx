@@ -251,7 +251,6 @@ export const AdminTransactionsPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.txn_type === 'transfer' || txn.txn_type === 'cashout' || txn.txn_type === 'bill';
 
                   return (
                     <React.Fragment key={txn.txn_id}>
@@ -286,8 +285,7 @@ export const AdminTransactionsPage: React.FC = () => {
                         </td>
 
                         {/* Amount cost */}
-                        <td className={`py-4.5 px-6 text-right font-sora font-extrabold text-xs ${isDebit ? 'text-rose-400' : 'text-[#00C9A7]'}`}>
-                          {isDebit ? '-' : '+'}
+                        <td className="py-4.5 px-6 text-right font-sora font-extrabold text-xs text-[var(--text-primary)]">
                           {formatBDT(txn.amount)}
                         </td>
 
