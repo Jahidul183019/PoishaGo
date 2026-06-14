@@ -1,5 +1,4 @@
-   
-import React, { useState, useEffect } from 'react';
+   import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
@@ -316,6 +315,7 @@ export const CashInPage: React.FC = () => {
         </Card>
       )}
 
+      {/* PIN + OTP Modal */}
       <Modal
         isOpen={isOTPModalOpen}
         onClose={() => setIsOTPModalOpen(false)}
@@ -325,6 +325,8 @@ export const CashInPage: React.FC = () => {
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> and ask the agent for the <strong>OTP</strong> sent to their email.
           </p>
+          
+
 
           {/* PIN Input */}
           <div className="flex flex-col gap-1.5">
@@ -337,7 +339,7 @@ export const CashInPage: React.FC = () => {
               maxLength={6}
               value={cashInPin}
               onChange={(e) => setCashInPin(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-3 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
               required
             />
           </div>
@@ -353,7 +355,7 @@ export const CashInPage: React.FC = () => {
               maxLength={6}
               value={cashInOtp}
               onChange={(e) => setCashInOtp(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-3 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
               required
             />
           </div>
@@ -362,17 +364,14 @@ export const CashInPage: React.FC = () => {
             Security Tip: Never share your PIN or OTP with anyone.
           </p>
 
-          {/* Sticky bottom button */}
-          <div className="sticky bottom-0 pt-2 pb-1 bg-[var(--bg-card)]">
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full"
-              disabled={isConfirming || cashInPin.length < 6 || cashInOtp.length < 6}
-            >
-              {isConfirming ? 'Processing...' : 'Confirm Cash In'}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full"
+            disabled={isConfirming || cashInPin.length < 6 || cashInOtp.length < 6}
+          >
+            {isConfirming ? 'Processing...' : 'Confirm Payment'}
+          </Button>
         </form>
       </Modal>
 
