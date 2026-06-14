@@ -20,7 +20,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       />
 
       {/* Modal element */}
-      <div className="relative w-full md:max-w-md bg-[var(--bg-card)] border-t md:border border-[var(--border)] rounded-t-3xl md:rounded-2xl shadow-2xl transition-all max-h-[90vh] flex flex-col z-10 animate-in slide-in-from-bottom md:zoom-in-95 duration-200">
+      <div className="relative w-full md:max-w-md bg-[var(--bg-card)] border-t md:border border-[var(--border)] rounded-t-3xl md:rounded-2xl shadow-2xl transition-all max-h-[85vh] overflow-y-auto z-10 animate-in slide-in-from-bottom md:zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
@@ -36,7 +36,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         </div>
 
         {/* Content body */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6">
           {children}
         </div>
       </div>
