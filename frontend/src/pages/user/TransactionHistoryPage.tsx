@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore, WalletTransaction } from '../../store/useWalletStore';
-import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -22,7 +21,6 @@ import {
 export const TransactionHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { transactions } = useWalletStore();
-  const { user } = useAuthStore();
 
   const [expandedTxnId, setExpandedTxnId] = useState<number | null>(null);
 
@@ -185,6 +183,7 @@ export const TransactionHistoryPage: React.FC = () => {
               <option value="cash_in">Bank Cash In</option>
               <option value="cash_out">Agent Cash Out</option>
               <option value="bill_pay">Utility Bill Payments</option>
+              <option value="mobile_recharge">Mobile Recharge</option>
             </select>
           </div>
 
@@ -252,7 +251,7 @@ export const TransactionHistoryPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.sender_wallet_id === user?.wallet_number;
+                  const isDebit = txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay';
 
                   return (
                     <React.Fragment key={txn.txn_id}>
@@ -278,7 +277,13 @@ export const TransactionHistoryPage: React.FC = () => {
 
                         {/* Service Type */}
                         <td className="py-4.5 px-6 text-xs text-[var(--text-secondary)] uppercase tracking-wide font-bold">
-                          {txn.txn_type.replace('_', ' ')}
+                          {{
+                            send_money: 'SEND MONEY',
+                            cash_in: 'CASH IN',
+                            cash_out: 'CASH OUT',
+                            bill_pay: 'BILL PAY',
+                            mobile_recharge: 'MOBILE RECHARGE',
+                          }[txn.txn_type] ?? txn.txn_type.replace(/_/g, ' ')}
                         </td>
 
                         {/* Status tag */}
