@@ -27,6 +27,7 @@ export const OTPPage: React.FC = () => {
   const [canResend, setCanResend] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   // Decrement counter clock
   useEffect(() => {
@@ -276,9 +277,17 @@ export const OTPPage: React.FC = () => {
                     </button>
                   </form>
                 ) : (
-                  <div className="py-2">
-                    <OTPInput length={6} onComplete={handleOTPComplete} />
-                  </div>
+                  <form onSubmit={(e) => { e.preventDefault(); if (otpCode.length === 6) handleOTPComplete(otpCode); }} className="py-2 flex flex-col gap-4">
+                    <OTPInput length={6} onComplete={(code) => setOtpCode(code)} />
+                    <button
+                      type="submit"
+                      disabled={isVerifying || otpCode.length < 6}
+                      className="w-full h-12 bg-[#2563EB] text-white font-medium rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-50 mt-2"
+                      id="btn-verify-otp"
+                    >
+                      {isVerifying ? 'Verifying...' : 'Verify OTP Code'}
+                    </button>
+                  </form>
                 )}
 
                 {/* Verification indicator */}
