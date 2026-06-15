@@ -466,12 +466,17 @@ export const SendMoneyPage: React.FC = () => {
               <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Wallet PIN</label>
               <input
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                enterKeyHint="done"
+                autoFocus
+                autoComplete="current-password"
                 maxLength={6}
                 value={transferPin}
-                onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, '').slice(0,6))}
-                className="mx-auto w-48 text-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-                placeholder="••••••"
-              />
+               onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, '').slice(0,6))}
+              className="mx-auto w-48 text-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+              placeholder="••••••"
+             />
             </div>
 
             <div className="flex flex-col gap-1.5">
