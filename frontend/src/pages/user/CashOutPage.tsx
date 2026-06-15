@@ -384,14 +384,18 @@ export const CashOutPage: React.FC = () => {
               Your Wallet Security PIN
             </label>
             <input
-              type="password"
-              placeholder="••••••"
-              maxLength={6}
-              value={cashOutPin}
-              onChange={(e) => setCashOutPin(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-              required
-            />
+               type="password"
+               inputMode="numeric"
+               pattern="[0-9]*"
+               enterKeyHint="next"
+               autoFocus
+               placeholder="••••••"
+               maxLength={6}
+               value={cashOutPin}
+               onChange={(e) => setCashOutPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+               className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+               required
+             />
           </div>
 
           {/* OTP Input */}
@@ -400,14 +404,17 @@ export const CashOutPage: React.FC = () => {
               6-Digit OTP (Check Email)
             </label>
             <input
-              type="text"
-              placeholder="000000"
-              maxLength={6}
-              value={cashOutOtp}
-              onChange={(e) => setCashOutOtp(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-              required
-            />
+               type="text"
+               inputMode="numeric"
+               pattern="[0-9]*"
+               enterKeyHint="done"
+               placeholder="000000"
+               maxLength={6}
+               value={cashOutOtp}
+               onChange={(e) => setCashOutOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+               className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+               required
+             />
           </div>
 
           <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
@@ -415,13 +422,14 @@ export const CashOutPage: React.FC = () => {
           </p>
 
           <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={isConfirming || cashOutPin.length < 6 || cashOutOtp.length < 6}
-          >
-            {isConfirming ? 'Processing...' : 'Confirm Withdrawal'}
-          </Button>
+             type="submit"
+             variant="primary"
+             className="w-full"
+             id="btn-confirm-cashout"
+             disabled={isConfirming || cashOutPin.length < 6 || cashOutOtp.length < 6}
+           >
+             {isConfirming ? 'Processing...' : `Confirm Withdrawal of ${formatBDT(cleanTotal)}`}
+           </Button>
         </form>
       </Modal>
 
