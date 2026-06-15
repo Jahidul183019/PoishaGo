@@ -24,6 +24,9 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
     const combinedStr = newOtp.join('');
     if (combinedStr.length === length) {
       onComplete(combinedStr);
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
   };
 
@@ -40,7 +43,9 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
       const codeArray = pastedData.split('');
       setOtp(codeArray);
       onComplete(pastedData);
-      inputsRef.current[length - 1]?.focus();
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
   };
 
