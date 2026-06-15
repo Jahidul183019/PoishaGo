@@ -3,9 +3,16 @@ import React, { useState, useRef } from 'react';
 interface OTPInputProps {
   length?: number;
   onComplete: (code: string) => void;
+  isPassword?: boolean;
+  clearOnDelete?: boolean;
 }
 
-export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) => {
+export const OTPInput: React.FC<OTPInputProps> = ({ 
+  length = 6, 
+  onComplete, 
+  isPassword = false, 
+  clearOnDelete = false 
+}) => {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -31,8 +38,15 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
-      inputsRef.current[index - 1]?.focus();
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      if (clearOnDelete) {
+        e.preventDefault();
+        setOtp(Array(length).fill(''));
+        onComplete('');
+        inputsRef.current[0]?.focus();
+      } else if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
+        inputsRef.current[index - 1]?.focus();
+      }
     }
   };
 
@@ -54,7 +68,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
       {otp.map((digit, i) => (
         <input
           key={i}
-          type="text"
+          type={isPassword ? 'password' : 'text'}
           inputMode="numeric"        // shows numpad on iOS & Android
           pattern="[0-9]*"           //  enforces numeric on some browsers
           autoComplete="one-time-code" // iOS SMS autofill
