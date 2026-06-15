@@ -5,12 +5,12 @@ This is the backend API for PoishaGo, a digital wallet and financial services ap
 ## Features
 
 - **User Authentication**: Registration and Login using phone numbers and PINs, secured with JWT (JSON Web Tokens) and bcrypt password hashing.
-- **OTP Verification**: Email-based OTP verification for secure sign-ups.
+- **2FA OTP Verification**: Email-based OTP verification required for secure sign-ups AND all critical money-movement transactions.
 - **Transactions**: Secure endpoints to send money, cash in, cash out, and pay bills. 
 - **Mobile Recharge**: Supports mobile recharge across multiple operators (Grameenphone, Robi, Airtel, Banglalink, Teletalk).
 - **Reward Points System**: Users can earn reward points for transactions, redeem them for balance, and view leaderboards.
 - **Contact Management**: Users can add, view, and remove favorite contacts for quick transactions.
-- **Admin Dashboard**: Admin login and transaction monitoring.
+- **Admin & Agent Portals**: Endpoints dedicated to Admin overviews, system revenue monitoring, and agent-specific actions.
 
 ## Tech Stack
 
@@ -64,8 +64,9 @@ This is the backend API for PoishaGo, a digital wallet and financial services ap
 
 ## Project Structure
 
-- `main.py`: The core FastAPI application containing all API endpoints.
+- `main.py`: The entry point for the FastAPI application. Includes middleware and dependency setup.
+- `routers/`: Directory containing modularized API endpoints (`auth.py`, `transactions.py`, `admin.py`, `contacts.py`, etc.).
+- `dependencies.py` & `security.py`: JWT authentication dependencies and bcrypt hashing utilities.
 - `schema.sql`: Database schema definition for PostgreSQL.
 - `indexes.sql`: Database indexes for performance optimization.
-- `hash_generator.py`: Utility script for generating password hashes.
-- `seed_fraud.py` / `run_fraud_engine.py`: Utilities for simulating and running the fraud detection engine.
+- `seed_fraud.py` & `run_fraud_engine.py`: Utilities for simulating and running the background fraud detection engine.
