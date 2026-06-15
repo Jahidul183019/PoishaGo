@@ -107,8 +107,8 @@ Follow these steps to run PoishaGo locally for development and testing.
 ---
 
 ### Contributors
-- Maheru Tafannum
-- MD.Jahidul Islam Sarker
+- Kazi Maheru Tafannum
+- MD.Jahidul Islam
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
