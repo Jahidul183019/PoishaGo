@@ -456,7 +456,7 @@ export const SendMoneyPage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Secured Authorization"
       >
-        <div className="flex flex-col gap-4 text-center">
+        <form onSubmit={(e) => { e.preventDefault(); handleConfirmTransfer(); }} className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter both your 6-digit wallet PIN and the 6-digit OTP sent to your email.
           </p>
@@ -468,7 +468,7 @@ export const SendMoneyPage: React.FC = () => {
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                enterKeyHint="done"
+                enterKeyHint="next"
                 autoFocus
                 autoComplete="current-password"
                 maxLength={6}
@@ -491,12 +491,12 @@ export const SendMoneyPage: React.FC = () => {
             </p>
 
             <div className="pt-2">
-              <Button onClick={handleConfirmTransfer} className="w-full" disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}>
-                {isConfirming ? 'Processing...' : 'Confirm Transfer'}
+              <Button type="submit" className="w-full" id="btn-confirm-transfer" disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}>
+                {isConfirming ? 'Processing...' : `Confirm Transfer of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
               </Button>
             </div>
           </div>
-        </div>
+        </form>
       </Modal>
 
       {/* ADD CONTACT MODAL */}
