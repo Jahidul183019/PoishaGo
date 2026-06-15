@@ -25,7 +25,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   return (
     // FIX: Use items-end always on mobile so modal anchors to bottom above keyboard
     // Use justify-end on mobile so it slides up from bottom sheet style
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 pb-[72px] md:p-4">
 
       {/* Backdrop */}
       <div
@@ -69,7 +69,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         </div>
 
         {/*
-          Content scrolls independently
+          FIX: Content scrolls independently
           pb-8 ensures submit button is never clipped by home bar on iPhone
         */}
         <div className="overflow-y-auto flex-1 p-6 pb-12">
