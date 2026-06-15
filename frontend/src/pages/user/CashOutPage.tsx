@@ -412,7 +412,11 @@ export const CashOutPage: React.FC = () => {
                placeholder="000000"
                maxLength={6}
                value={cashOutOtp}
-               onChange={(e) => setCashOutOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+               onChange={(e) => {
+                 const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                 setCashOutOtp(val);
+                 if (val.length === 6) e.target.blur();
+               }}
                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                required
              />
