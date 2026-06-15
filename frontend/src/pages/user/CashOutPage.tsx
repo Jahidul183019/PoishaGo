@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
+import TapAndHoldButton from '../../components/ui/TapAndHoldButton';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
@@ -109,8 +110,8 @@ export const CashOutPage: React.FC = () => {
     }));
   };
 
-  const handleConfirmCashOut = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmCashOut = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!cashOutPin || !cashOutOtp) {
       showToast('Please enter both PIN and OTP', 'error');
       return;
@@ -371,7 +372,7 @@ export const CashOutPage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Secured Authorization"
       >
-        <form onSubmit={handleConfirmCashOut} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> and the <strong>OTP</strong> sent to your email to confirm this cash outflow of {formatBDT(cleanTotal)} including commission fees.
           </p>
@@ -421,16 +422,15 @@ export const CashOutPage: React.FC = () => {
             Security Tip: Always count cash banknotes from active agents prior to validating OTP.
           </p>
 
-          <Button
-             type="submit"
-             variant="primary"
+          <TapAndHoldButton
+             onComplete={handleConfirmCashOut}
              className="w-full"
              id="btn-confirm-cashout"
              disabled={isConfirming || cashOutPin.length < 6 || cashOutOtp.length < 6}
            >
              {isConfirming ? 'Processing...' : `Confirm Withdrawal of ${formatBDT(cleanTotal)}`}
-           </Button>
-        </form>
+           </TapAndHoldButton>
+        </div>
       </Modal>
 
       <style>{`
