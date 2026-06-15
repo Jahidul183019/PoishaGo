@@ -37,6 +37,7 @@ export const MobileRechargePage: React.FC = () => {
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<'input' | 'processing' | 'success'>('input');
   const [receiptRef, setReceiptRef] = useState('');
+  const [rechargePin, setRechargePin] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,18 +259,21 @@ export const MobileRechargePage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Confirm Recharge"
       >
-        <div className="flex flex-col gap-4 text-center">
+        <form onSubmit={(e) => { e.preventDefault(); if (rechargePin.length === 6) handleOTPComplete(rechargePin); }} className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> to confirm the{' '}
             <strong>{formatBDT(parseFloat(amount) || 0)}</strong> recharge to <strong>{phone}</strong>.
           </p>
           <div className="py-4">
-            <OTPInput length={6} onComplete={handleOTPComplete} />
+            <OTPInput length={6} onComplete={(code) => setRechargePin(code)} />
           </div>
           <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
             Safety tip: Never disclose your authorization PIN.
           </p>
-        </div>
+          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-500" id="btn-confirm-recharge" disabled={rechargePin.length < 6}>
+            {`Confirm Recharge of ${formatBDT(parseFloat(amount) || 0)}`}
+          </Button>
+        </form>
       </Modal>
 
     </div>
