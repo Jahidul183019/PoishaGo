@@ -85,7 +85,7 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
   return (
     <div
       id={id}
-      className={`relative overflow-hidden cursor-pointer touch-none select-none transition-all duration-300 bg-[var(--bg-secondary)] border-t border-[var(--border)] ${
+      className={`relative overflow-hidden cursor-pointer touch-none select-none transition-all duration-300 bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-teal)] ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'
       } ${className}`}
       // Break out of typical modal padding by using negative margins
@@ -110,27 +110,27 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
       onTouchCancel={cancelHold}
     >
       
-      {/* Progress Fill - uses the brand gradient */}
+      {/* Progress Fill - adaptive overlay (lightens in light mode, darkens in dark mode) */}
       <div 
-        className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#2563EB] to-[#00C9A7] transition-none"
+        className="absolute inset-y-0 left-0 bg-white/30 dark:bg-black/30 transition-none"
         style={{ width: `${progress}%` }}
       ></div>
 
       {/* Ripple Animation Indicator when holding */}
       {isHolding && progress < 100 && (
         <div 
-          className="absolute inset-0 bg-[var(--text-primary)] opacity-10 animate-pulse"
+          className="absolute inset-0 bg-white/20 animate-pulse"
         ></div>
       )}
 
       {/* Content */}
-      <div className={`relative z-10 flex flex-col items-center justify-center w-full px-6 font-sora transition-colors duration-200 ${progress > 40 ? 'text-white' : 'text-[var(--text-primary)]'}`}>
+      <div className="relative z-10 flex flex-col items-center justify-center w-full px-6 font-sora transition-colors duration-200">
         <img 
           src="/logo.png" 
           alt="PoishaGo" 
-          className="w-12 h-12 object-contain mb-3" 
+          className="w-12 h-12 object-contain mb-3 brightness-0 invert" 
         />
-        <span className="text-base md:text-lg font-medium tracking-wide text-center">
+        <span className="text-white text-base md:text-lg font-medium tracking-wide text-center">
           {isHolding && progress < 100 ? 'Hold to Confirm...' : `Tap and hold to confirm`}
         </span>
       </div>
