@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/src/assets/logo.svg" alt="PoishaGo Logo" width="120" height="120" />
+  <img src="frontend/public/logo.png" alt="PoishaGo Logo" width="120" height="120" />
   <h1>PoishaGo</h1>
   <p><strong>A Next-Generation Mobile Financial Service (MFS) Platform</strong></p>
   
@@ -106,8 +106,9 @@ Follow these steps to run PoishaGo locally for development and testing.
 
 ---
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](#) if you want to contribute.
+### Contributors
+- Maheru Tafannum
+- MD.Jahidul Islam Sarker
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
