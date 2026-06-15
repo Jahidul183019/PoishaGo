@@ -1,17 +1,28 @@
 // frontend/src/utils/api.ts
 /// <reference types="vite/client" />
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://127.0.0.1:8080';
+// Empty string = same origin = goes through Vercel serverless proxy
+// Backend URL is NEVER in the browser or repo
+const API_BASE_URL = '';
 
-// ── Token helper ─────────────────────────────────────────────────────────────
 const getToken = (): string | null => {
-  return localStorage.getItem('token');
+  // Try direct localStorage key first
+  const direct = localStorage.getItem('token');
+  if (direct) return direct;
+
+  // Try Zustand persist wrapper
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.token ?? null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 };
 
-// ── Core request function ─────────────────────────────────────────────────────
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -32,46 +43,30 @@ async function request<T>(
     headers,
   });
 
-  // Handle non-2xx responses
   if (!response.ok) {
     let errorMessage = `Request failed: ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData?.detail || errorData?.message || errorMessage;
     } catch {
-      // response wasn't JSON
+      // not JSON
     }
     throw new Error(errorMessage);
   }
 
-  // Handle empty responses (204 No Content)
   const text = await response.text();
   return text ? JSON.parse(text) : ({} as T);
 }
 
-// ── Public API methods ────────────────────────────────────────────────────────
 export const api = {
-  get: <T>(endpoint: string) =>
+  get:    <T>(endpoint: string) =>
     request<T>(endpoint),
-
-  post: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-
-  put: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    }),
-
-  patch: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
-
+  post:   <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, { method: 'POST', body: JSON.stringify(body) }),
+  put:    <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+  patch:  <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, { method: 'DELETE' }),
 };
