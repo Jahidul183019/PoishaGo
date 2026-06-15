@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
+import TapAndHoldButton from '../../components/ui/TapAndHoldButton';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
@@ -456,7 +457,7 @@ export const SendMoneyPage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Secured Authorization"
       >
-        <form onSubmit={(e) => { e.preventDefault(); handleConfirmTransfer(); }} className="flex flex-col gap-4 text-center">
+        <div className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter both your 6-digit wallet PIN and the 6-digit OTP sent to your email.
           </p>
@@ -491,12 +492,17 @@ export const SendMoneyPage: React.FC = () => {
             </p>
 
             <div className="pt-2">
-              <Button type="submit" className="w-full" id="btn-confirm-transfer" disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}>
+              <TapAndHoldButton 
+                onComplete={handleConfirmTransfer} 
+                className="w-full" 
+                id="btn-confirm-transfer" 
+                disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}
+              >
                 {isConfirming ? 'Processing...' : `Confirm Transfer of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
-              </Button>
+              </TapAndHoldButton>
             </div>
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* ADD CONTACT MODAL */}
