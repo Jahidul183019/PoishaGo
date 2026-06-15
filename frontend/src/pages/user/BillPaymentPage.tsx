@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
+import TapAndHoldButton from '../../components/ui/TapAndHoldButton';
 import Card from '../../components/ui/Card';
 import OTPInput from '../../components/ui/OTPInput';
 import { useToast } from '../../hooks/useToast';
@@ -126,8 +127,8 @@ export const BillPaymentPage: React.FC = () => {
     sendOtp(() => api.post('/api/transactions/bill/send-otp', {}));
   };
 
-  const handleConfirmPayment = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmPayment = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!billPin || billOtp.length < 6) return;
     
     confirmPayment(async () => {
@@ -339,7 +340,7 @@ export const BillPaymentPage: React.FC = () => {
       {/* STEP 4: OTP DRAWER AUTHENTICATION PIN */}
       {currentStep === 4 && (
         <Card className="flex flex-col gap-5 text-center p-6 select-none">
-          <form onSubmit={handleConfirmPayment} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
             <h3 className="font-sora font-bold text-lg text-[var(--text-primary)]">
               Authorization Invoice
             </h3>
@@ -375,15 +376,14 @@ export const BillPaymentPage: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              variant="primary"
+            <TapAndHoldButton
+              onComplete={handleConfirmPayment}
               className="w-full mt-2"
               id="btn-confirm-billpay"
               disabled={isConfirming || billPin.length < 6 || billOtp.length < 6}
             >
               {isConfirming ? 'Processing...' : `Confirm Payment of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
-            </Button>
+            </TapAndHoldButton>
 
             {!isConfirming && (
               <button
@@ -395,7 +395,7 @@ export const BillPaymentPage: React.FC = () => {
                 <span>Amend Billing Parameters</span>
               </button>
             )}
-          </form>
+          </div>
         </Card>
       )}
 
