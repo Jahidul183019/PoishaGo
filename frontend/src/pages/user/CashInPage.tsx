@@ -80,7 +80,7 @@ export const CashInPage: React.FC = () => {
   const handleInitiateCashIn = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 100) {
+    if (isNaN(amt) || amt < 100) {
       showToast('Minimum Cash In threshold is ৳100.00', 'error');
       return;
     }
