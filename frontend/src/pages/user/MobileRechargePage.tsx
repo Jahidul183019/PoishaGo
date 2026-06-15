@@ -266,7 +266,12 @@ export const MobileRechargePage: React.FC = () => {
             <strong>{formatBDT(parseFloat(amount) || 0)}</strong> recharge to <strong>{phone}</strong>.
           </p>
           <div className="py-4">
-            <OTPInput length={6} onComplete={(code) => setRechargePin(code)} />
+            <OTPInput 
+              length={6} 
+              onComplete={(code) => setRechargePin(code)} 
+              isPassword={true}
+              clearOnDelete={true}
+            />
           </div>
           <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
             Safety tip: Never disclose your authorization PIN.
