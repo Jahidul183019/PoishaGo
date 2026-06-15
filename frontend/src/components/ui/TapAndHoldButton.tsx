@@ -85,40 +85,55 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
   return (
     <div
       id={id}
-      className={`relative overflow-hidden rounded-full cursor-pointer touch-none select-none transition-all duration-300 shadow-md ${
-        disabled ? 'opacity-50 cursor-not-allowed shadow-none' : 'hover:shadow-lg active:scale-[0.98]'
+      className={`relative overflow-hidden cursor-pointer touch-none select-none transition-all duration-300 ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'
       } ${className}`}
+      // Break out of typical modal padding by using negative margins
+      // Use negative margins to touch the edges of the modal
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        backgroundColor: '#E2136E',
+        // Creating the gentle bKash-style top curve
+        borderTopLeftRadius: '50% 20px',
+        borderTopRightRadius: '50% 20px',
+        width: 'calc(100% + 3rem)',
+        marginLeft: '-1.5rem',
+        marginBottom: '-3rem',
+        marginTop: '1rem',
+        paddingTop: '1.5rem',
+        paddingBottom: '2.5rem',
+      }}
       onMouseDown={startHold}
       onMouseUp={cancelHold}
       onMouseLeave={cancelHold}
       onTouchStart={startHold}
       onTouchEnd={cancelHold}
       onTouchCancel={cancelHold}
-      style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      {/* Background/Base Button */}
-      <div className="absolute inset-0 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full dark:bg-slate-800"></div>
       
-      {/* Progress Fill */}
+      {/* Progress Fill - fills with a slightly darker or lighter pink to show progress */}
       <div 
-        className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#2563EB] to-[#00C9A7] rounded-full transition-none"
+        className="absolute inset-y-0 left-0 bg-white/20 transition-none"
         style={{ width: `${progress}%` }}
       ></div>
 
       {/* Ripple Animation Indicator when holding */}
       {isHolding && progress < 100 && (
         <div 
-          className="absolute inset-0 bg-white/20 dark:bg-white/10 animate-pulse rounded-full"
+          className="absolute inset-0 bg-white/10 animate-pulse"
         ></div>
       )}
 
       {/* Content */}
-      <div 
-        className={`relative z-10 flex items-center justify-center w-full px-6 py-4 font-sora font-semibold text-sm transition-colors duration-200 ${
-          progress > 40 ? 'text-white' : 'text-[var(--text-primary)]'
-        }`}
-      >
-        {isHolding && progress < 100 ? 'Hold to Confirm...' : children}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full px-6 font-sora transition-colors duration-200">
+        <img 
+          src="/logo.png" 
+          alt="PoishaGo" 
+          className="w-12 h-12 object-contain mb-3 brightness-0 invert" 
+        />
+        <span className="text-white text-base md:text-lg font-medium tracking-wide text-center">
+          {isHolding && progress < 100 ? 'Hold to Confirm...' : `Tap and hold to confirm`}
+        </span>
       </div>
     </div>
   );
