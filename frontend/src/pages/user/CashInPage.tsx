@@ -334,14 +334,19 @@ export const CashInPage: React.FC = () => {
               Your Wallet Security PIN
             </label>
             <input
-              type="password"
-              placeholder="••••••"
-              maxLength={6}
-              value={cashInPin}
-              onChange={(e) => setCashInPin(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-              required
-            />
+             type="password"
+             inputMode="numeric"
+             pattern="[0-9]*"
+             enterKeyHint="next"
+             autoFocus
+             autoComplete="current-password"
+             placeholder="••••••"
+             maxLength={6}
+             value={cashInPin}
+             onChange={(e) => setCashInPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+            required
+           />
           </div>
 
           {/* OTP Input */}
