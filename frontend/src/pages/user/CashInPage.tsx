@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
+import TapAndHoldButton from '../../components/ui/TapAndHoldButton';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
@@ -89,8 +90,8 @@ export const CashInPage: React.FC = () => {
     }));
   };
 
-  const handleConfirmCashIn = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmCashIn = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!cashInPin || !cashInOtp) {
       showToast('Please enter both PIN and OTP', 'error');
       return;
@@ -321,7 +322,7 @@ export const CashInPage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Secured Authorization"
       >
-        <form onSubmit={handleConfirmCashIn} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> and ask the agent for the <strong>OTP</strong> sent to their email.
           </p>
@@ -371,16 +372,15 @@ export const CashInPage: React.FC = () => {
             Security Tip: Never share your PIN or OTP with anyone.
           </p>
 
-          <Button
-             type="submit"
-             variant="primary"
+          <TapAndHoldButton
+             onComplete={handleConfirmCashIn}
              className="w-full"
              id="btn-confirm-cashin"
              disabled={isConfirming || cashInPin.length < 6 || cashInOtp.length < 6}
            >
              {isConfirming ? 'Processing...' : `Confirm Deposit of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
-           </Button>
-        </form>
+           </TapAndHoldButton>
+        </div>
       </Modal>
 
       <style>{`
