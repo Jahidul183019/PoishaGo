@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -19,12 +20,16 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    // FIX: Use items-end always on mobile so modal anchors to bottom above keyboard
-    // Use justify-end on mobile so it slides up from bottom sheet style
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 pb-[72px] md:p-4">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
 
       {/* Backdrop */}
       <div
@@ -75,7 +80,8 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
