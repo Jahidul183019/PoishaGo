@@ -100,7 +100,7 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
         marginBottom: '-3rem',
         marginTop: '1rem',
         paddingTop: '1.5rem',
-        paddingBottom: '2.5rem',
+        paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))',
       }}
       onMouseDown={startHold}
       onMouseUp={cancelHold}
