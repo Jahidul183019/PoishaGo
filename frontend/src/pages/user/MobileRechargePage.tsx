@@ -5,6 +5,7 @@ import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import TapAndHoldButton from '../../components/ui/TapAndHoldButton';
 import Modal from '../../components/ui/Modal';
 import OTPInput from '../../components/ui/OTPInput';
 import {
@@ -259,7 +260,7 @@ export const MobileRechargePage: React.FC = () => {
         onClose={() => setIsOTPModalOpen(false)}
         title="Confirm Recharge"
       >
-        <form onSubmit={(e) => { e.preventDefault(); if (rechargePin.length === 6) handleOTPComplete(rechargePin); }} className="flex flex-col gap-4 text-center">
+        <div className="flex flex-col gap-4 text-center">
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2">
             Enter your <strong>6-digit wallet PIN</strong> to confirm the{' '}
             <strong>{formatBDT(parseFloat(amount) || 0)}</strong> recharge to <strong>{phone}</strong>.
@@ -270,10 +271,15 @@ export const MobileRechargePage: React.FC = () => {
           <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono">
             Safety tip: Never disclose your authorization PIN.
           </p>
-          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-500" id="btn-confirm-recharge" disabled={rechargePin.length < 6}>
+          <TapAndHoldButton 
+            onComplete={() => { if (rechargePin.length === 6) handleOTPComplete(rechargePin); }} 
+            className="w-full bg-purple-600 hover:bg-purple-500" 
+            id="btn-confirm-recharge" 
+            disabled={rechargePin.length < 6}
+          >
             {`Confirm Recharge of ${formatBDT(parseFloat(amount) || 0)}`}
-          </Button>
-        </form>
+          </TapAndHoldButton>
+        </div>
       </Modal>
 
     </div>
