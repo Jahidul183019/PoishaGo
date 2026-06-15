@@ -13,11 +13,10 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
     if (isNaN(Number(val))) return;
 
     const newOtp = [...otp];
-    // Keep only the last character entered
     newOtp[index] = val.substring(val.length - 1);
     setOtp(newOtp);
 
-    // Auto-advance to the next field
+    // Auto-advance to next field
     if (val !== '' && index < length - 1) {
       inputsRef.current[index + 1]?.focus();
     }
@@ -29,7 +28,6 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    // Auto-backspace shift focus
     if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
@@ -52,12 +50,22 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
         <input
           key={i}
           type="text"
+          inputMode="numeric"        // shows numpad on iOS & Android
+          pattern="[0-9]*"           //  enforces numeric on some browsers
+          autoComplete="one-time-code" // iOS SMS autofill
+          enterKeyHint={i === length - 1 ? 'done' : 'next'} // keyboard action label
           maxLength={1}
           value={digit}
           ref={(el) => { inputsRef.current[i] = el; }}
           onChange={(e) => handleChange(e.target.value, i)}
           onKeyDown={(e) => handleKeyDown(e, i)}
-          className="w-12 h-14 text-center text-xl font-bold font-mono rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:border-[var(--accent-teal)] focus:ring-1 focus:ring-[var(--accent-teal)] outline-none transition-all duration-200"
+          className="
+            w-12 h-14 text-center text-xl font-bold font-mono
+            rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)]
+            text-[var(--text-primary)]
+            focus:border-[var(--accent-teal)] focus:ring-1 focus:ring-[var(--accent-teal)]
+            outline-none transition-all duration-200
+          "
         />
       ))}
     </div>
@@ -65,3 +73,4 @@ export const OTPInput: React.FC<OTPInputProps> = ({ length = 6, onComplete }) =>
 };
 
 export default OTPInput;
+
