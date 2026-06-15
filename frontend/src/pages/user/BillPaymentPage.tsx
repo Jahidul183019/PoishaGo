@@ -354,9 +354,13 @@ export const BillPaymentPage: React.FC = () => {
                 <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase text-left">Wallet Security PIN</label>
                 <input
                   type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  enterKeyHint="next"
+                  autoFocus
                   maxLength={6}
                   value={billPin}
-                  onChange={(e) => setBillPin(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setBillPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-center text-xl font-bold tracking-widest text-[var(--text-primary)] outline-none focus:border-[#00C9A7]"
                   placeholder="••••••"
                   required
@@ -375,9 +379,10 @@ export const BillPaymentPage: React.FC = () => {
               type="submit"
               variant="primary"
               className="w-full mt-2"
-              disabled={isConfirming || billOtp.length < 6}
+              id="btn-confirm-billpay"
+              disabled={isConfirming || billPin.length < 6 || billOtp.length < 6}
             >
-              {isConfirming ? 'Processing...' : 'Confirm Payment'}
+              {isConfirming ? 'Processing...' : `Confirm Payment of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
             </Button>
 
             {!isConfirming && (
