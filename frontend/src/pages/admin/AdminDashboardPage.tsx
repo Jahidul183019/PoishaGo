@@ -55,11 +55,7 @@ export const AdminDashboardPage: React.FC = () => {
   useEffect(() => {
     api.get<any[]>('/api/admin/revenue-trend')
       .then(data => {
-        // Find 'Sun' and append the dynamic fee to make it look dynamic if we want, or just use the data
-        const mappedData = data.map((item: any) => 
-          item.day === 'Sun' ? { ...item, revenue: totalFees + 2000 } : item
-        );
-        setRevenueTrendData(mappedData);
+        setRevenueTrendData(data);
       })
       .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch graph data', 'error'));
   }, [totalFees]);
