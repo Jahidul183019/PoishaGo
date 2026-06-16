@@ -56,10 +56,11 @@ def get_current_user(authorization: str = Header(None)) -> str:
 
 def get_current_admin(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     """Ensures the authenticated user is an admin and returns their details."""
+    uid_int = int(user_id)
     with db.connection().engine.connect() as conn:
         row = conn.execute(
             text("SELECT admin_id, role FROM admins WHERE user_id = :uid"),
-            {"uid": user_id}
+            {"uid": uid_int}
         ).first()
         if not row:
             raise HTTPException(status_code=403, detail="Admin access required")
