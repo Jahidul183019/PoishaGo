@@ -37,8 +37,9 @@ This is the backend API for PoishaGo, a digital wallet and financial services ap
    ```
 
 3. **Install Dependencies:**
-   Ensure you have all the required Python packages (such as `fastapi`, `uvicorn`, `psycopg2-binary`, `passlib`, `pyjwt`, `pydantic`, `python-dotenv`). You can install them via pip.
-   
+   ```bash
+   pip install -r requirements.txt
+   ```
 4. **Environment Variables:**
    Create a `.env` file based on the `.env.example` file and configure your credentials:
    ```env
@@ -58,14 +59,14 @@ This is the backend API for PoishaGo, a digital wallet and financial services ap
 6. **Run the API:**
    Start the FastAPI development server using Uvicorn:
    ```bash
-   uvicorn main:app --reload
+   uvicorn main:app --reload --port 8080
    ```
-   The API will be accessible at `http://127.0.0.1:8000`. You can also view the interactive API documentation at `http://127.0.0.1:8000/docs`.
+   The API will be accessible at `http://127.0.0.1:8080`. You can also view the interactive API documentation at `http://127.0.0.1:8080/docs`.
 
 ## Project Structure
 
 - `main.py`: The entry point for the FastAPI application. Includes middleware and dependency setup.
-- `routers/`: Directory containing modularized API endpoints (`auth.py`, `transactions.py`, `admin.py`, `contacts.py`, etc.).
+- Route Files (`auth.py`, `transactions.py`, `admin.py`, `user.py`, etc.): Modularized API endpoints.
 - `dependencies.py` & `security.py`: JWT authentication dependencies and bcrypt hashing utilities.
 - `schema.sql`: Database schema definition for PostgreSQL.
 - `indexes.sql`: Database indexes for performance optimization.
