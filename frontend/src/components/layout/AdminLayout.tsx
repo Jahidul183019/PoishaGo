@@ -31,7 +31,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'Support Tickets', path: '/admin/support', icon: Headphones, perm: 'HANDLE_COMPLAINTS' },
   ];
 
-  const adminMenuItems = allMenuItems.filter(item => hasAccess(item.perm));
+  const adminMenuItems = allMenuItems;
 
   const handleLogout = () => {
     logout();
@@ -85,7 +85,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   return (
                     <button
                       key={item.path}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (!hasAccess(item.perm)) {
+                          e.preventDefault();
+                          useToastStore.getState().showToast('Admin clearance required for this sector', 'error');
+                          return;
+                        }
                         navigate(item.path);
                         setIsMobileMenuOpen(false);
                       }}
