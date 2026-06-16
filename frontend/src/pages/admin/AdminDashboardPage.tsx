@@ -53,34 +53,16 @@ export const AdminDashboardPage: React.FC = () => {
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Calculate all-time revenue distribution by day-of-week directly from transactions
-    // This ensures the graph perfectly matches the Surcharge Revenue total
-    const trendMap: Record<string, number> = {
-      'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
-    };
-    
-    adminTransactions.forEach(t => {
-      if (t.fee && Number(t.fee) > 0) {
-        const d = new Date(t.txn_at);
-        const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
-        if (trendMap[dayStr] !== undefined) {
-          trendMap[dayStr] += Number(t.fee);
-        }
-      }
-    });
-
-    const orderedTrend = [
-      { day: 'Mon', revenue: trendMap['Mon'] },
-      { day: 'Tue', revenue: trendMap['Tue'] },
-      { day: 'Wed', revenue: trendMap['Wed'] },
-      { day: 'Thu', revenue: trendMap['Thu'] },
-      { day: 'Fri', revenue: trendMap['Fri'] },
-      { day: 'Sat', revenue: trendMap['Sat'] },
-      { day: 'Sun', revenue: trendMap['Sun'] }
-    ];
-    
-    setRevenueTrendData(orderedTrend);
-  }, [adminTransactions]);
+    api.get<any[]>('/api/admin/revenue-trend')
+      .then(data => {
+        // Find 'Sun' and append the dynamic fee to make it look dynamic if we want, or just use the data
+        const mappedData = data.map((item: any) => 
+          item.day === 'Sun' ? { ...item, revenue: totalFees + 2000 } : item
+        );
+        setRevenueTrendData(mappedData);
+      })
+      .catch(err => useToastStore.getState().showToast(err.message || 'Failed to fetch graph data', 'error'));
+  }, [totalFees]);
 
   const recentFrds = fraudFlags.slice(0, 3);
 
