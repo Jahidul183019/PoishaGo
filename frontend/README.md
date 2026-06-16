@@ -43,10 +43,7 @@ To run all tests once (CI mode):
 npm run test:run
 ```
 
-To open the Vitest UI dashboard:
-```bash
-npm run test:ui
-```
+
 
 ### 4. Build for Production
 
