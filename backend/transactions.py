@@ -264,27 +264,36 @@ def send_money(
     db: Session = Depends(get_db),
 ):
     uid_int = int(user_id)
+    otp_clean = req.otp.strip()
+
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
                 SELECT otp_id, expires_at, is_used
                 FROM otp_verifications
                 WHERE user_id = :uid
-                  AND otp_code = :otp
+                  AND otp_code = :otp_code
                   AND purpose = 'transfer'
+                  AND is_used = false
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": uid_int, "otp": req.otp},
+            {"uid": uid_int, "otp_code": otp_clean},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
 
         otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
         now = datetime.now(timezone.utc)
+
+        if isinstance(db_expires, str):
+            from dateutil.parser import parse
+            db_expires = parse(db_expires)
+
         if db_expires.tzinfo is None:
             db_expires = db_expires.replace(tzinfo=timezone.utc)
-        if is_used or db_expires < now:
+
+        if db_expires < now:
             raise HTTPException(400, "OTP is invalid or expired.")
 
         conn.execute(
@@ -359,27 +368,36 @@ def cash_out(
     db: Session = Depends(get_db),
 ):
     uid_int = int(user_id)
+    otp_clean = req.otp.strip()
+
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
                 SELECT otp_id, expires_at, is_used
                 FROM otp_verifications
                 WHERE user_id = :uid
-                  AND otp_code = :otp
+                  AND otp_code = :otp_code
                   AND purpose = 'transfer'
+                  AND is_used = false
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": uid_int, "otp": req.otp},
+            {"uid": uid_int, "otp_code": otp_clean},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
 
         otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
         now = datetime.now(timezone.utc)
+
+        if isinstance(db_expires, str):
+            from dateutil.parser import parse
+            db_expires = parse(db_expires)
+
         if db_expires.tzinfo is None:
             db_expires = db_expires.replace(tzinfo=timezone.utc)
-        if is_used or db_expires < now:
+
+        if db_expires < now:
             raise HTTPException(400, "OTP is invalid or expired.")
 
         conn.execute(
@@ -454,27 +472,36 @@ def cash_in(
     db: Session = Depends(get_db),
 ):
     uid_int = int(user_id)
+    otp_clean = req.otp.strip()
+
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
                 SELECT otp_id, expires_at, is_used
                 FROM otp_verifications
                 WHERE user_id = :uid
-                  AND otp_code = :otp
+                  AND otp_code = :otp_code
                   AND purpose = 'transfer'
+                  AND is_used = false
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": uid_int, "otp": req.otp},
+            {"uid": uid_int, "otp_code": otp_clean},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
 
         otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
         now = datetime.now(timezone.utc)
+
+        if isinstance(db_expires, str):
+            from dateutil.parser import parse
+            db_expires = parse(db_expires)
+
         if db_expires.tzinfo is None:
             db_expires = db_expires.replace(tzinfo=timezone.utc)
-        if is_used or db_expires < now:
+
+        if db_expires < now:
             raise HTTPException(400, "OTP is invalid or expired.")
 
         conn.execute(
@@ -631,26 +658,35 @@ def pay_bill(
     db: Session = Depends(get_db),
 ):
     uid_int = int(user_id)
+    otp_clean = req.otp.strip()
+
     with db.connection().engine.connect() as conn:
         otp_row = conn.execute(
             text("""
                 SELECT otp_id, expires_at, is_used
                 FROM otp_verifications
                 WHERE user_id = :uid
-                  AND otp_code = :otp
+                  AND otp_code = :otp_code
                   AND purpose = 'transfer'
+                  AND is_used = false
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
-            {"uid": uid_int, "otp": req.otp},
+            {"uid": uid_int, "otp_code": otp_clean},
         ).first()
         if not otp_row:
             raise HTTPException(400, "Invalid or missing OTP.")
 
         otp_id, db_expires, is_used = otp_row[0], otp_row[1], otp_row[2]
+
+        if isinstance(db_expires, str):
+            from dateutil.parser import parse
+            db_expires = parse(db_expires)
+
         if db_expires.tzinfo is None:
             db_expires = db_expires.replace(tzinfo=timezone.utc)
-        if is_used or db_expires < datetime.now(timezone.utc):
+
+        if db_expires < datetime.now(timezone.utc):
             raise HTTPException(400, "OTP is invalid or expired.")
 
         conn.execute(

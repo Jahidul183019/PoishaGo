@@ -195,12 +195,20 @@ def redeem_rewards(
     with db.connection().engine.connect() as conn:
         # 1. Validate the Reward Option
         opt = conn.execute(
-            text("SELECT value_bdt, title FROM reward_options WHERE id = :id"),
+            text("SELECT value_bdt, title, points_required FROM reward_options WHERE id = :id"),
             {"id": req.option_id}
         ).mappings().first()
 
         if not opt:
             raise HTTPException(404, "The selected reward option no longer exists.")
+
+        # 1.5 Milestone Check: Ensure user has reached the required points
+        user_pts = conn.execute(
+            text("SELECT current_points FROM reward_points WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).scalar()
+        if user_pts is None or user_pts < opt["points_required"]:
+            raise HTTPException(400, f"You need at least {opt['points_required']} points to claim this reward.")
 
         bdt_to_add = float(opt["value_bdt"])
         reward_title = opt["title"]
