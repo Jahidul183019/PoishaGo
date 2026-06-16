@@ -159,7 +159,7 @@ def get_campaigns(
 @router.post("/users/{user_id}/toggle-status")
 def toggle_user_status(
     user_id: int, 
-    admin: dict = Depends(require_permission("TOGGLE_USER_STATUS")), 
+    admin: dict = Depends(require_permission("MANAGE_USERS")), 
     db: Session = Depends(get_db)
 ):
     """Blocks or restores a user's wallet access."""
@@ -191,7 +191,7 @@ def toggle_user_status(
 def adjust_user_balance(
     user_id: int,
     req: BalanceAdjustmentRequest,
-    admin: dict = Depends(require_permission("ADJUST_BALANCE")),
+    admin: dict = Depends(require_permission("MANAGE_TRANSACTIONS")),
     db: Session = Depends(get_db)
 ):
     """Administratively adjust a user's balance and log the audit trail."""
