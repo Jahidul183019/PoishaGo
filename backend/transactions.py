@@ -93,21 +93,23 @@ def _execute_transfer(
     if sender_wallet[1] < amount:
         raise HTTPException(400, "Insufficient funds.")
 
-    receiver_wallet = conn.execute(
+    receiver_info = conn.execute(
         text("""
-            SELECT w.wallet_id, u.user_id
-            FROM wallets w
-            JOIN users u ON u.user_id = w.user_id
+            SELECT u.user_id, w.wallet_id
+            FROM users u
+            LEFT JOIN wallets w ON u.user_id = w.user_id
             WHERE u.phone = :p
         """),
         {"p": receiver_phone},
     ).first()
-    if not receiver_wallet:
+    if not receiver_info:
         raise HTTPException(400, "Receiver not found.")
+    if not receiver_info[1]:
+        raise HTTPException(400, "Receiver account is unverified and cannot receive money.")
 
     sender_wallet_id   = sender_wallet[0]
-    receiver_wallet_id = receiver_wallet[0]
-    receiver_user_id   = receiver_wallet[1]
+    receiver_wallet_id = receiver_info[1]
+    receiver_user_id   = receiver_info[0]
 
     conn.execute(
         text("UPDATE wallets SET balance = balance - :amt WHERE wallet_id = :wid"),
