@@ -88,8 +88,7 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
       className={`relative overflow-hidden cursor-pointer touch-none select-none transition-all duration-300 bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-teal)] ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'
       } ${className}`}
-      // Break out of typical modal padding by using negative margins
-      // Use negative margins to touch the edges of the modal
+      // Gentle edge-to-edge style within the parent container
       style={{ 
         WebkitTapHighlightColor: 'transparent',
         // Creating the gentle bKash-style top curve
@@ -97,10 +96,11 @@ export const TapAndHoldButton: React.FC<TapAndHoldButtonProps> = ({
         borderTopRightRadius: '50% 20px',
         width: 'calc(100% + 3rem)',
         marginLeft: '-1.5rem',
-        marginBottom: '-3rem',
+        marginRight: '-1.5rem',
+        marginBottom: '-1.5rem',
         marginTop: '1rem',
         paddingTop: '1.5rem',
-        paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))',
+        paddingBottom: '1.5rem',
       }}
       onMouseDown={startHold}
       onMouseUp={cancelHold}
