@@ -263,7 +263,7 @@ export const OTPPage: React.FC = () => {
                   </form>
                 ) : (
                   <form onSubmit={(e) => { e.preventDefault(); handleOTPComplete(otpCode); }} className="py-2 flex flex-col gap-4">
-                    <OTPInput length={6} onComplete={(code) => setOtpCode(code)} clearOnDelete={true} />
+                    <OTPInput length={6} onComplete={(code) => setOtpCode(code)} />
 
                     {isPasswordReset && (
                       <div className="flex flex-col gap-3 mt-2 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -274,6 +274,7 @@ export const OTPPage: React.FC = () => {
                           maxLength={6}
                           value={newPin}
                           onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setNewPin(''); } }}
                           className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
                           placeholder="New 6-digit PIN"
                           required
@@ -285,6 +286,7 @@ export const OTPPage: React.FC = () => {
                           maxLength={6}
                           value={confirmPin}
                           onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setConfirmPin(''); } }}
                           className="w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all text-center placeholder:tracking-normal"
                           placeholder="Confirm New PIN"
                           required
