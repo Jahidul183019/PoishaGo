@@ -930,7 +930,7 @@ def get_transactions(
 
 @router.get("/admin/transactions")
 def get_admin_transactions(
-    admin: dict = Depends(require_permission("MANAGE_TRANSACTIONS")),
+    admin: dict = Depends(require_permission("VIEW_REPORTS")),
     db: Session = Depends(get_db),
 ):
     with db.connection().engine.connect() as conn:

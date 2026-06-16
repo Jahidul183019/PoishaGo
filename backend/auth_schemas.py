@@ -37,6 +37,7 @@ class VerifyOTPRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
     purpose: Optional[str] = None
     new_pin: Optional[str] = Field(None, min_length=6, max_length=6)
+    confirm_new_pin: Optional[str] = Field(None, min_length=6, max_length=6)
 
 
 # ── LoginPage ─────────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ class ChangePinRequest(BaseModel):
 
 class ResetPinRequest(BaseModel):
     new_pin: str = Field(..., min_length=6, max_length=6)
+    confirm_pin: str = Field(..., min_length=6, max_length=6)
 
 
 # ── AdminLoginPage ────────────────────────────────────────────────────────────

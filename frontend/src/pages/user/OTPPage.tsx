@@ -94,7 +94,8 @@ export const OTPPage: React.FC = () => {
         email.trim().toLowerCase(), 
         code.trim(), 
         purpose, 
-        isPasswordReset ? newPin : undefined
+        isPasswordReset ? newPin : undefined,
+        isPasswordReset ? confirmPin : undefined
       );
 
       if (!result.success) {
@@ -125,7 +126,7 @@ export const OTPPage: React.FC = () => {
     setErrorText('');
 
     try {
-      await resetUserPin(newPin);
+      await resetUserPin(newPin, confirmPin);
       navigate('/login');
     } catch (err: any) {
       setErrorText(err.message || 'Failed to reset PIN');

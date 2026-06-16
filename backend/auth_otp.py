@@ -261,6 +261,9 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
             }
 
         elif purpose == 'login':
+            if payload.new_pin and payload.new_pin != payload.confirm_new_pin:
+                raise HTTPException(status_code=400, detail="New PIN and confirmation PIN do not match.")
+            
             # If new_pin is provided (Reset Flow), use it. Otherwise fallback to OTP as temp PIN.
             final_pin = payload.new_pin if payload.new_pin else otp_clean
             conn.execute(

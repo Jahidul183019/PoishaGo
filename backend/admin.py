@@ -37,6 +37,39 @@ class BroadcastNotificationRequest(BaseModel):
 router = APIRouter(prefix="/api", tags=["Admin"])
 
 
+# ── GET /api/admin/stats  (AdminDashboardPage Summary) ──────────────────────
+
+@router.get("/stats")
+def get_dashboard_stats(
+    admin: dict = Depends(require_permission("VIEW_REPORTS")),
+    db: Session = Depends(get_db)
+):
+    """Provides aggregate statistics for the admin dashboard.
+    Accessible to all admins with the VIEW_REPORTS permission.
+    """
+    with db.connection().engine.connect() as conn:
+        stats = conn.execute(
+            text("""
+                SELECT 
+                    (SELECT COUNT(*) FROM users) as total_users,
+                    (SELECT COUNT(*) FROM users WHERE user_type = 'agent') as total_agents,
+                    (SELECT COALESCE(SUM(balance), 0) FROM wallets) as total_assets,
+                    (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE status = 'success') as total_volume,
+                    (SELECT COALESCE(SUM(fee), 0) FROM transactions WHERE status = 'success') as total_revenue,
+                    (SELECT COUNT(*) FROM fraud_flags WHERE reviewed_by IS NULL) as active_flags
+            """)
+        ).mappings().first()
+        
+    return {
+        "total_users": stats["total_users"],
+        "total_agents": stats["total_agents"],
+        "total_assets": float(stats["total_assets"]),
+        "total_volume": float(stats["total_volume"]),
+        "total_revenue": float(stats["total_revenue"]),
+        "active_flags": stats["active_flags"]
+    }
+
+
 # ── GET /api/fraud-flags  (AdminFraudDetectionPage) ──────────────────────────
 
 @router.get("/fraud-flags")

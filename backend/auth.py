@@ -230,6 +230,9 @@ def reset_pin(payload: ResetPinRequest, user_id: str = Depends(get_current_user)
     if not payload.new_pin or len(payload.new_pin) != 6:
         raise HTTPException(400, "Invalid PIN format")
 
+    if payload.new_pin != payload.confirm_pin:
+        raise HTTPException(400, "PINs do not match")
+
     with db.connection().engine.connect() as conn:
         conn.execute(
             text("UPDATE users SET password_hash = :ph WHERE user_id = :uid"),

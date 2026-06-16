@@ -43,7 +43,7 @@ interface AuthState {
   updateUserProfile: (fullName: string, email?: string) => Promise<boolean>;
 
   // FIXED SIGNATURE: Now correctly handles asynchronous network tasks
-  verifyUserOTP: (email: string, code: string, purpose?: string, newPin?: string) => Promise<{ success: boolean; message: string }>;
+  verifyUserOTP: (email: string, code: string, purpose?: string, newPin?: string, confirmPin?: string) => Promise<{ success: boolean; message: string }>;
   resendUserOTP: (email: string, purpose?: string) => Promise<{ success: boolean; message: string }>;
 
   loginAdmin: (username: string, r: 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'RISK_MANAGER') => void;
@@ -52,7 +52,7 @@ interface AuthState {
   updateUserBalance: (newBalance: number) => void;
   updateUserPoints: (newPoints: number) => void;
   updateUserPIN: (oldPin: string, newPin: string) => Promise<boolean>;
-  resetUserPin: (newPin: string) => Promise<void>;
+  resetUserPin: (newPin: string, confirmPin: string) => Promise<void>;
   adminLogin: (username: string, passcode: string) => Promise<boolean>;
 }
 
@@ -144,9 +144,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // FIXED: Hits your live /api/verify-otp backend endpoint over port 8080
-  verifyUserOTP: async (email, code, purpose, newPin) => {
+  verifyUserOTP: async (email, code, purpose, newPin, confirmPin) => {
     try {
-      const data = await api.post<any>('/api/verify-otp', { email, otp: code, purpose, new_pin: newPin });
+      const data = await api.post<any>('/api/verify-otp', { 
+        email, 
+        otp: code, 
+        purpose, 
+        new_pin: newPin,
+        confirm_new_pin: confirmPin 
+      });
 
       // If server returned an access token (login-purpose OTP), persist it and hydrate profile
       if (data.access_token) {
@@ -237,8 +243,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  resetUserPin: async (newPin) => {
-    await api.post('/api/reset-pin', { new_pin: newPin });
+  resetUserPin: async (newPin, confirmPin) => {
+    await api.post('/api/reset-pin', { new_pin: newPin, confirm_pin: confirmPin });
   },
 
   adminLogin: async (username, passcode) => {
