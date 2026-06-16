@@ -475,6 +475,7 @@ export const SendMoneyPage: React.FC = () => {
                 maxLength={6}
                 value={transferPin}
                onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, '').slice(0,6))}
+               onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setTransferPin(''); } }}
               className="mx-auto w-48 text-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
               placeholder="••••••"
              />
