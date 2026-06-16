@@ -85,9 +85,9 @@ Follow these steps to run PoishaGo locally for development and testing.
    ```
 5. Start the FastAPI server:
    ```bash
-   uvicorn main:app --reload --port 3000
+   uvicorn main:app --reload --port 8080
    ```
-   *The interactive API Docs (Swagger UI) will be available at [http://localhost:3000/docs](http://localhost:3000/docs).*
+   *The interactive API Docs (Swagger UI) will be available at [http://localhost:8080/docs](http://localhost:8080/docs).*
 
 ### 3. Frontend Setup
 1. Open a new terminal tab and navigate to the frontend directory:
@@ -102,13 +102,22 @@ Follow these steps to run PoishaGo locally for development and testing.
    ```bash
    npm run dev
    ```
-4. Access the web application at `http://localhost:5173`
+4. Access the web application at `http://localhost:3000`
+
+### 4. Running Tests (Frontend)
+PoishaGo uses Vitest and React Testing Library for frontend unit testing.
+1. Navigate to the frontend directory: `cd frontend`
+2. Run the test suite:
+   ```bash
+   npm run test:run
+   ```
+   *(Alternatively, execute the `./test.sh` bash script).*
 
 ---
 
 ### Contributors
-- Kazi Maheru Tafannum
-- MD.Jahidul Islam
+- Maheru Tafannum
+- MD.Jahidul Islam Sarker
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
