@@ -199,6 +199,64 @@ def get_notifications(
     return result
 
 
+@router.put("/notifications/{notif_id}/read")
+def mark_notification_read(
+    notif_id: int,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("UPDATE notifications SET is_read = true WHERE notif_id = :nid AND user_id = :uid"),
+            {"nid": notif_id, "uid": int(user_id)}
+        )
+        conn.commit()
+    return {"message": "Notification marked as read"}
+
+
+@router.put("/notifications/read-all")
+def mark_all_notifications_read(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("UPDATE notifications SET is_read = true WHERE user_id = :uid"),
+            {"uid": int(user_id)}
+        )
+        conn.commit()
+    return {"message": "All notifications marked as read"}
+
+
+@router.delete("/notifications/{notif_id}")
+def delete_notification(
+    notif_id: int,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM notifications WHERE notif_id = :nid AND user_id = :uid"),
+            {"nid": notif_id, "uid": int(user_id)}
+        )
+        conn.commit()
+    return {"message": "Notification deleted"}
+
+
+@router.delete("/notifications")
+def delete_all_notifications(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    with db.connection().engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM notifications WHERE user_id = :uid"),
+            {"uid": int(user_id)}
+        )
+        conn.commit()
+    return {"message": "All notifications deleted"}
+
+
 # ── /api/users  (AdminUserTxnMgmtPage) ───────────────────────────────────────
 
 @router.get("/users")
