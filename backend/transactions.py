@@ -912,27 +912,42 @@ def get_admin_transactions(
                 JOIN users   su ON su.user_id   = sw.user_id
                 JOIN wallets rw ON rw.wallet_id = t.receiver_wallet_id
                 JOIN users   ru ON ru.user_id   = rw.user_id
+                LEFT JOIN bill_payments bp ON bp.txn_id = t.txn_id
                 ORDER BY t.txn_at DESC
                 LIMIT 500
             """)
         ).mappings().all()
 
-    return [
-        {
+    base_type_map = {
+        "transfer": "send_money",
+        "cashout":  "cash_out",
+        "cashin":   "cash_in",
+    }
+
+    result = []
+    for r in rows:
+        raw_type = r["txn_type"]
+        if raw_type == "bill":
+            # Distinguish mobile recharge from utility bill via the bill_payments table
+            mapped_type = "mobile_recharge" if r.get("bill_type") == "MOBILE" else "bill_pay"
+        else:
+            mapped_type = base_type_map.get(raw_type, raw_type)
+
+        result.append({
             "txn_id":             r["txn_id"],
             "sender_wallet_id":   r["sender_wallet_id"],
             "sender_name":        r["sender_name"],
             "receiver_wallet_id": r["receiver_wallet_id"],
             "receiver_name":      r["receiver_name"],
             "amount":             float(r["amount"]),
-            "txn_type":           r["txn_type"],
+            "txn_type":           mapped_type,
             "status":             r["status"],
             "fee":                float(r["fee"]),
             "reference_no":       r["reference_no"],
             "txn_at":             r["txn_at"].isoformat(),
-        }
-        for r in rows
-    ]
+        })
+
+    return result
 
 
 # ── GET /api/admin/revenue-trend  (AdminDashboardPage chart) ─────────────────

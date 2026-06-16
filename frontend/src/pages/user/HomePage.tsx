@@ -258,23 +258,21 @@ export const HomePage: React.FC = () => {
                 No recent transactions on this account.
               </div>
             ) : (
-              recentTxns.map((txn, index) => {
-                const isDebit = txn.sender_wallet_id === user?.wallet_number;
-                return (
+              recentTxns.map((txn, index) => (
                 <div
                   key={txn.txn_id}
                   className={`p-4 flex items-center justify-between border-[var(--border)] ${index < recentTxns.length - 1 ? 'border-b' : ''
                     }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isDebit
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type)
                         ? 'bg-rose-500/15 text-rose-400'
                         : 'bg-emerald-500/15 text-emerald-400'
                       }`}>
-                      {txn.txn_type === 'transfer' && <Send size={16} />}
-                      {txn.txn_type === 'cashin' && <TrendingUp size={16} />}
-                      {txn.txn_type === 'cashout' && <TrendingDown size={16} />}
-                      {txn.txn_type === 'bill' && <Receipt size={16} />}
+                      {txn.txn_type === 'send_money' && <Send size={16} />}
+                      {txn.txn_type === 'cash_in' && <TrendingUp size={16} />}
+                      {txn.txn_type === 'cash_out' && <TrendingDown size={16} />}
+                      {(txn.txn_type === 'bill_pay' || txn.txn_type === 'mobile_recharge') && <Receipt size={16} />}
                     </div>
                     <div className="min-w-0">
                       <h4 className="font-bold text-xs text-[var(--text-primary)] truncate">
@@ -287,11 +285,11 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <h5 className={`font-sora font-extrabold text-xs ${isDebit
+                    <h5 className={`font-sora font-extrabold text-xs ${['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type)
                         ? 'text-rose-400'
                         : 'text-[#00C9A7]'
                       }`}>
-                      {isDebit ? '-' : '+'}
+                      {['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type) ? '-' : '+'}
                       {formatBDT(txn.amount)}
                     </h5>
                     <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">
@@ -299,7 +297,7 @@ export const HomePage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              )})
+              ))
             )}
           </div>
         </div>

@@ -43,16 +43,16 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Aggregate stats
   const totalUsers = users.length;
-  const totalVolume = adminTransactions.reduce((acc, t) => acc + t.amount, 0);
-  const totalFees = adminTransactions.reduce((acc, t) => acc + t.fee, 0);
+  const totalVolume = adminTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
+  const totalFees = adminTransactions.reduce((acc, t) => acc + Number(t.fee), 0);
   const activeFlagsCount = fraudFlags.filter(f => f.reviewed_by_name === null).length;
 
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
-    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'transfer').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cashin').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cashout').reduce((acc, t) => acc + t.amount, 0) },
-    { name: 'Bill Pay', value: adminTransactions.filter(t => t.txn_type === 'bill').reduce((acc, t) => acc + t.amount, 0) },
+    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + Number(t.amount), 0) },
+    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + Number(t.amount), 0) },
+    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + Number(t.amount), 0) },
+    { name: 'Bill Pay', value: adminTransactions.filter(t => ['bill_pay', 'mobile_recharge'].includes(t.txn_type)).reduce((acc, t) => acc + Number(t.amount), 0) },
   ];
 
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);

@@ -117,8 +117,6 @@ def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
 
     send_otp_email(email_clean, otp_code)
     return {"status": "success", "detail": "Verification code sent."}
-
-
 @router.post("/send-transfer-otp")
 def send_transfer_otp(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     """
@@ -187,6 +185,7 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
                 WHERE user_id  = :uid
                   AND otp_code = :otp
                   AND purpose  = :purpose
+                  AND is_used  = false
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
@@ -200,8 +199,15 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
 
         # 3. Expiry check
         now = datetime.now(timezone.utc)
+        
+        # Handle both datetime objects and ISO strings from DB
+        if isinstance(db_expires, str):
+            from dateutil.parser import parse
+            db_expires = parse(db_expires)
+            
         if db_expires.tzinfo is None:
             db_expires = db_expires.replace(tzinfo=timezone.utc)
+            
         if db_expires < now:
             raise HTTPException(status_code=400, detail="Verification code has expired.")
 
@@ -255,12 +261,11 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
             }
 
         elif purpose == 'login':
-            # Make the OTP the user's temporary password (hash it), so the
-            # user can use the OTP as their 'old PIN' with the existing
-            # /api/change-pin endpoint. Then return an access token.
+            # If new_pin is provided (Reset Flow), use it. Otherwise fallback to OTP as temp PIN.
+            final_pin = payload.new_pin if payload.new_pin else otp_clean
             conn.execute(
                 text("UPDATE users SET password_hash = :ph WHERE user_id = :uid"),
-                {"ph": hash_pin(otp_clean), "uid": user_id},
+                {"ph": hash_pin(final_pin), "uid": user_id},
             )
             conn.commit()
             token = create_access_token({"sub": str(user_id)})

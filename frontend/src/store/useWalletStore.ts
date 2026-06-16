@@ -12,7 +12,7 @@ export interface WalletTransaction {
   receiver_wallet_id: string;
   receiver_name: string;
   amount: number;
-  txn_type: 'transfer' | 'cashin' | 'cashout' | 'bill';
+  txn_type: 'send_money' | 'cash_in' | 'cash_out' | 'bill_pay' | 'mobile_recharge' | string;
   status: 'success' | 'failed' | 'pending' | 'flagged';
   fee: number;
   reference_no: string;
@@ -427,29 +427,4 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   deleteBillCategory: async (id) => {
     try {
       await api.delete(`/api/admin/bill/categories/${id}`);
-      set((state) => ({
-        billCategories: state.billCategories.filter((b) => b.id !== id),
-      }));
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Failed to delete bill category', 'error');
-    }
-  },
-
-  broadcastNotification: async (message) => {
-    try {
-      await api.post('/api/broadcast-notification', { message });
-      useToastStore.getState().showToast('Broadcast sent successfully', 'success');
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Failed to send broadcast', 'error');
-    }
-  },
-
-  convertPointsToCash: async (points) => {
-    try {
-      await api.post('/api/rewards/convert', { points });
-      useToastStore.getState().showToast('Points converted successfully!', 'success');
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Conversion failed', 'error');
-    }
-  },
-}));
+      

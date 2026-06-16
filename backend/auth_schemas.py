@@ -36,6 +36,7 @@ class VerifyOTPRequest(BaseModel):
     email: EmailStr
     otp: str = Field(..., min_length=6, max_length=6)
     purpose: Optional[str] = None
+    new_pin: Optional[str] = Field(None, min_length=6, max_length=6)
 
 
 # ── LoginPage ─────────────────────────────────────────────────────────────────

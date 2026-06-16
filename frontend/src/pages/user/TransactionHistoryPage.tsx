@@ -183,7 +183,6 @@ export const TransactionHistoryPage: React.FC = () => {
               <option value="cash_in">Bank Cash In</option>
               <option value="cash_out">Agent Cash Out</option>
               <option value="bill_pay">Utility Bill Payments</option>
-              <option value="mobile_recharge">Mobile Recharge</option>
             </select>
           </div>
 
@@ -251,7 +250,7 @@ export const TransactionHistoryPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = txn.txn_type === 'send_money' || txn.txn_type === 'cash_out' || txn.txn_type === 'bill_pay' || txn.txn_type === 'mobile_recharge';
+                  const isDebit = ['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type);
 
                   return (
                     <React.Fragment key={txn.txn_id}>
@@ -277,13 +276,7 @@ export const TransactionHistoryPage: React.FC = () => {
 
                         {/* Service Type */}
                         <td className="py-4.5 px-6 text-xs text-[var(--text-secondary)] uppercase tracking-wide font-bold">
-                          {{
-                            send_money: 'SEND MONEY',
-                            cash_in: 'CASH IN',
-                            cash_out: 'CASH OUT',
-                            bill_pay: 'BILL PAY',
-                            mobile_recharge: 'MOBILE RECHARGE',
-                          }[txn.txn_type] ?? txn.txn_type.replace(/_/g, ' ')}
+                          {txn.txn_type.replace('_', ' ')}
                         </td>
 
                         {/* Status tag */}
