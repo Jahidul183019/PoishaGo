@@ -125,6 +125,8 @@ export const LoginPage: React.FC = () => {
                     <div className="relative">
                       <input 
                         type={showPin ? "text" : "password"} 
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={6}
                         {...register('pin')}
                         className={`w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border ${errors.pin ? 'border-rose-400' : 'border-[var(--border)]'} focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all`} 
