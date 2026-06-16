@@ -7,11 +7,11 @@ interface OTPInputProps {
   clearOnDelete?: boolean;
 }
 
-export const OTPInput: React.FC<OTPInputProps> = ({ 
-  length = 6, 
-  onComplete, 
-  isPassword = false, 
-  clearOnDelete = false 
+export const OTPInput: React.FC<OTPInputProps> = ({
+  length = 6,
+  onComplete,
+  isPassword = false,
+  clearOnDelete = false
 }) => {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -64,7 +64,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
   };
 
   return (
-    <div className="flex justify-between items-center gap-2 w-full" onPaste={handlePaste}>
+    <div className="flex justify-center items-center gap-2.5 w-full max-w-xs mx-auto" onPaste={handlePaste}>
       {otp.map((digit, i) => (
         <input
           key={i}
