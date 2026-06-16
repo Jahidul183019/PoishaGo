@@ -24,20 +24,24 @@ import {
   Cpu,
 } from 'lucide-react';
 import api from '../../utils/api';
+
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { adminTransactions, fraudFlags, users, fetchUsers, fetchFraudFlags, fetchAdminTransactions } = useWalletStore();
   const { admin } = useAuthStore();
+
   useEffect(() => {
     fetchUsers();
     fetchAdminTransactions();
     fetchFraudFlags();
   }, [fetchUsers, fetchFraudFlags, fetchAdminTransactions]);
+
   // Aggregate stats
   const totalUsers = users.length;
   const totalVolume = adminTransactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const totalFees = adminTransactions.reduce((acc, t) => acc + Number(t.fee || 0), 0);
   const activeFlagsCount = fraudFlags.filter(f => f.reviewed_by_name === null).length;
+
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
     { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + Number(t.amount || 0), 0) },
@@ -45,7 +49,9 @@ export const AdminDashboardPage: React.FC = () => {
     { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + Number(t.amount || 0), 0) },
     { name: 'Bill Pay', value: adminTransactions.filter(t => ['bill_pay', 'mobile_recharge'].includes(t.txn_type)).reduce((acc, t) => acc + Number(t.amount || 0), 0) },
   ];
+
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
+
   useEffect(() => {
     // Calculate all-time revenue distribution by day-of-week directly from transactions
     // This ensures the graph perfectly matches the Surcharge Revenue total
@@ -62,6 +68,7 @@ export const AdminDashboardPage: React.FC = () => {
         }
       }
     });
+
     const orderedTrend = [
       { day: 'Mon', revenue: trendMap['Mon'] },
       { day: 'Tue', revenue: trendMap['Tue'] },
@@ -74,7 +81,9 @@ export const AdminDashboardPage: React.FC = () => {
     
     setRevenueTrendData(orderedTrend);
   }, [adminTransactions]);
+
   const recentFrds = fraudFlags.slice(0, 3);
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300 select-none">
       
@@ -95,6 +104,7 @@ export const AdminDashboardPage: React.FC = () => {
           <span>Platform Status: ONLINE & SECURED CIVIL CORE</span>
         </div>
       </div>
+
       {/* 4 STUNNING KPI STATS PANELS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         
@@ -108,6 +118,7 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="font-sora font-extrabold text-base lg:text-lg text-[var(--text-primary)] mt-0.5 truncate">{totalUsers} Users</h3>
           </div>
         </Card>
+
         {/* Volume */}
         <Card className="flex items-center gap-4 py-4.5 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-[#00C9A7]/10 text-[#00C9A7] flex items-center justify-center shrink-0">
@@ -118,6 +129,7 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="font-sora font-extrabold text-base lg:text-lg text-[var(--text-primary)] mt-0.5 truncate">{formatBDT(totalVolume)}</h3>
           </div>
         </Card>
+
         {/* Surcharges Fees */}
         <Card className="flex items-center gap-4 py-4.5 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
@@ -128,6 +140,7 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="font-sora font-extrabold text-base lg:text-lg text-[var(--text-primary)] mt-0.5 truncate">{formatBDT(totalFees)}</h3>
           </div>
         </Card>
+
         {/* Critical flags */}
         <Card className={`flex items-center gap-4 py-4.5 min-w-0 border ${activeFlagsCount > 0 ? 'border-rose-500/25 bg-rose-500/5' : ''}`}>
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -140,7 +153,9 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="font-sora font-extrabold text-base lg:text-lg text-[var(--text-primary)] mt-0.5 truncate">{activeFlagsCount} Active</h3>
           </div>
         </Card>
+
       </div>
+
       {/* METRIC CHARTS DUAL COLUMNS USING RECHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -152,7 +167,8 @@ export const AdminDashboardPage: React.FC = () => {
             </span>
             <span className="text-[10px] text-[var(--text-secondary)] font-mono">Real-time stats</span>
           </div>
-          <div className="h-64 mt-2">
+
+          <div className="h-64 mt-2 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
@@ -166,6 +182,7 @@ export const AdminDashboardPage: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </Card>
+
         {/* Revenue Earnings Days Area Chart */}
         <Card className="flex flex-col gap-4">
           <div className="flex justify-between items-center pl-1">
@@ -174,7 +191,8 @@ export const AdminDashboardPage: React.FC = () => {
             </span>
             <span className="text-[10px] text-[var(--accent-teal)] font-mono">Increasing trend</span>
           </div>
-          <div className="h-64 mt-2">
+
+          <div className="h-64 mt-2 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
@@ -193,7 +211,9 @@ export const AdminDashboardPage: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </Card>
+
       </div>
+
       {/* LOWER GRID: FRAUD ALERTS & QUICK DIRECT ACCESS MENU */}
       <div className="grid grid-cols-1 gap-6 items-start">
         
@@ -210,6 +230,7 @@ export const AdminDashboardPage: React.FC = () => {
               Examine full ledger
             </button>
           </div>
+
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl flex flex-col divide-y divide-[var(--border)] overflow-hidden shadow-lg">
             {recentFrds.length === 0 ? (
               <p className="p-8 text-center text-xs text-[var(--text-secondary)]">Zero risk warnings.</p>
@@ -229,6 +250,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
                   <span className={`py-0.5 px-2 rounded-lg text-[9px] uppercase font-mono border ${
                     fName.reviewed_by_name === null 
                       ? 'bg-rose-500/15 border-rose-500/20 text-rose-400' 
@@ -242,7 +264,9 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };
+
 export default AdminDashboardPage;
