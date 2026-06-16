@@ -263,12 +263,14 @@ export const OTPPage: React.FC = () => {
                   </form>
                 ) : (
                   <form onSubmit={(e) => { e.preventDefault(); handleOTPComplete(otpCode); }} className="py-2 flex flex-col gap-4">
-                    <OTPInput length={6} onComplete={(code) => setOtpCode(code)} />
+                    <OTPInput length={6} onComplete={(code) => setOtpCode(code)} clearOnDelete={true} />
 
                     {isPasswordReset && (
                       <div className="flex flex-col gap-3 mt-2 animate-in fade-in slide-in-from-top-2 duration-500">
                         <input
                           type="password"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength={6}
                           value={newPin}
                           onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}
@@ -278,6 +280,8 @@ export const OTPPage: React.FC = () => {
                         />
                         <input
                           type="password"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength={6}
                           value={confirmPin}
                           onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, '')); setErrorText(''); }}

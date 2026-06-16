@@ -294,6 +294,9 @@ def change_pin(
 
         if not verify_pin(payload.old_pin, row[0]):
             raise HTTPException(401, "Invalid current PIN.")
+            
+        if payload.old_pin == payload.new_pin:
+            raise HTTPException(400, "New PIN cannot be the same as your old PIN.")
 
         conn.execute(
             text("UPDATE users SET password_hash = :pw WHERE user_id = :uid"),

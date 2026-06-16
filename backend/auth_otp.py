@@ -18,7 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from auth_schemas import SendOTPRequest, VerifyOTPRequest
-from security import hash_pin
+from security import hash_pin, verify_pin
 from dependencies import create_access_token
 from config import settings
 from database import get_db
@@ -266,6 +266,15 @@ def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
             
             # If new_pin is provided (Reset Flow), use it. Otherwise fallback to OTP as temp PIN.
             final_pin = payload.new_pin if payload.new_pin else otp_clean
+            
+            # Ensure new PIN is not the same as the old PIN
+            current_pw_row = conn.execute(
+                text("SELECT password_hash FROM users WHERE user_id = :uid"),
+                {"uid": user_id}
+            ).first()
+            if current_pw_row and verify_pin(final_pin, current_pw_row[0]):
+                raise HTTPException(status_code=400, detail="New PIN cannot be the same as your old PIN.")
+
             conn.execute(
                 text("UPDATE users SET password_hash = :ph WHERE user_id = :uid"),
                 {"ph": hash_pin(final_pin), "uid": user_id},
