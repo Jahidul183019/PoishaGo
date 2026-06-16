@@ -58,6 +58,23 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boole
   return <>{children}</>;
 };
 
+// SECURITY GUARD: Permission-based access for specific admin pages
+const PermissionGuard: React.FC<{ children: React.ReactNode; permission: string }> = ({
+  children,
+  permission,
+}) => {
+  const { admin } = useAuthStore();
+  
+  // SUPER_ADMIN bypasses all checks
+  if (admin?.role === 'SUPER_ADMIN') return <>{children}</>;
+  
+  // Check if admin has the required permission
+  if (admin?.permissions?.includes(permission)) return <>{children}</>;
+  
+  // Redirect unauthorized admins back to dashboard
+  return <Navigate to="/admin/dashboard" replace />;
+};
+
 // SECURITY GUARD: Guests/Unauthenticated visitors only
 const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoggedIn, isAdmin } = useAuthStore();
@@ -135,12 +152,12 @@ export const App: React.FC = () => {
           {/* Index rerouts to Dashboard */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="users" element={<AdminUserTxnMgmtPage />} />
-          <Route path="transactions" element={<AdminTransactionsPage />} />
-          <Route path="fraud" element={<AdminFraudDetectionPage />} />
-          <Route path="occasions" element={<AdminOccasionsPage />} />
-          <Route path="config" element={<AdminConfigPage />} />
-          <Route path="support" element={<AdminSupportPage />} />
+          <Route path="users" element={<PermissionGuard permission="MANAGE_USERS"><AdminUserTxnMgmtPage /></PermissionGuard>} />
+          <Route path="transactions" element={<PermissionGuard permission="MANAGE_TRANSACTIONS"><AdminTransactionsPage /></PermissionGuard>} />
+          <Route path="fraud" element={<PermissionGuard permission="REVIEW_FRAUD"><AdminFraudDetectionPage /></PermissionGuard>} />
+          <Route path="occasions" element={<PermissionGuard permission="MANAGE_CAMPAIGNS"><AdminOccasionsPage /></PermissionGuard>} />
+          <Route path="config" element={<PermissionGuard permission="MANAGE_CONFIG"><AdminConfigPage /></PermissionGuard>} />
+          <Route path="support" element={<PermissionGuard permission="HANDLE_COMPLAINTS"><AdminSupportPage /></PermissionGuard>} />
         </Route>
 
         {/* Catch-all fallback */}
