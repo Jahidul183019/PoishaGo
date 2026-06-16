@@ -2,7 +2,8 @@
   <img src="frontend/public/logo.png" alt="PoishaGo Logo" width="120" height="120" />
   <h1>PoishaGo</h1>
   <p><strong>A Next-Generation Mobile Financial Service (MFS) Platform</strong></p>
-  
+
+
   [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
   [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org)
