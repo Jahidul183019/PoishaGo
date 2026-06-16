@@ -98,7 +98,7 @@ export const AdminConfigPage: React.FC = () => {
         </Card>
 
       </div>
-
+      
       {/* System Broadcast Section - Only for SUPPORT & SUPER_ADMIN */}
       {(admin?.role === 'SUPER_ADMIN' || admin?.role === 'SUPPORT') && (
         <Card className="p-6 border-amber-500/20 bg-amber-500/5">

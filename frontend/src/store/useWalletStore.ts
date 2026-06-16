@@ -427,4 +427,21 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   deleteBillCategory: async (id) => {
     try {
       await api.delete(`/api/admin/bill/categories/${id}`);
+      set((state) => ({
+        billCategories: state.billCategories.filter((c) => c.id !== id),
+      }));
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to delete bill category', 'error');
+    }
+  },
+
+  broadcastNotification: async (message) => {
+    try {
+      await api.post('/api/admin/broadcast-notification', { message });
+      useToastStore.getState().showToast('Notification broadcasted successfully!', 'success');
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to broadcast notification', 'error');
+    }
+  },
+}));
       

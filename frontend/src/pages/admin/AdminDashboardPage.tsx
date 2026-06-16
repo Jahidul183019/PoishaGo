@@ -20,13 +20,8 @@ import {
   Users, 
   DollarSign, 
   ShieldAlert, 
-  TrendingUp, 
-  ArrowUpRight, 
-  Bell,
-  Megaphone,
-  Settings,
+  TrendingUp,
   Cpu,
-  CalendarCheck2
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -43,16 +38,16 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Aggregate stats
   const totalUsers = users.length;
-  const totalVolume = adminTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
-  const totalFees = adminTransactions.reduce((acc, t) => acc + Number(t.fee), 0);
+  const totalVolume = adminTransactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const totalFees = adminTransactions.reduce((acc, t) => acc + Number(t.fee || 0), 0);
   const activeFlagsCount = fraudFlags.filter(f => f.reviewed_by_name === null).length;
 
   // Recharts Data Compilation 1: Categories Bar Chart
   const categoryData = [
-    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + Number(t.amount), 0) },
-    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + Number(t.amount), 0) },
-    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + Number(t.amount), 0) },
-    { name: 'Bill Pay', value: adminTransactions.filter(t => ['bill_pay', 'mobile_recharge'].includes(t.txn_type)).reduce((acc, t) => acc + Number(t.amount), 0) },
+    { name: 'Transfers', value: adminTransactions.filter(t => t.txn_type === 'send_money').reduce((acc, t) => acc + Number(t.amount || 0), 0) },
+    { name: 'Cashing In', value: adminTransactions.filter(t => t.txn_type === 'cash_in').reduce((acc, t) => acc + Number(t.amount || 0), 0) },
+    { name: 'Withdrawals', value: adminTransactions.filter(t => t.txn_type === 'cash_out').reduce((acc, t) => acc + Number(t.amount || 0), 0) },
+    { name: 'Bill Pay', value: adminTransactions.filter(t => ['bill_pay', 'mobile_recharge'].includes(t.txn_type)).reduce((acc, t) => acc + Number(t.amount || 0), 0) },
   ];
 
   const [revenueTrendData, setRevenueTrendData] = useState<any[]>([]);
@@ -202,10 +197,10 @@ export const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* LOWER GRID: FRAUD ALERTS & QUICK DIRECT ACCESS MENU */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 gap-6 items-start">
         
         {/* Fraud flags lists */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center pl-1">
             <h3 className="text-xs font-bold font-sora text-[var(--text-secondary)] uppercase tracking-widest">
               Critical Risk Telemetry Warnings
@@ -250,105 +245,6 @@ export const AdminDashboardPage: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Quick direct utilities column */}
-        <div className="flex flex-col gap-3">
-          <h3 className="text-xs font-bold font-sora text-[var(--text-secondary)] uppercase tracking-widest pl-1">
-            System Operations Menu
-          </h3>
-
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-            {/* Security Clearance Checker */}
-            {(() => {
-              const checkAccess = (perm: string) => {
-                if (admin?.role === 'SUPER_ADMIN') return true;
-                if (admin?.permissions?.includes(perm)) return true;
-                const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
-                useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
-                return false;
-              };
-
-              return (
-                <>
-                  {/* System Broadcast */}
-                  {(admin?.role === 'SUPER_ADMIN' || admin?.role === 'SUPPORT') && (
-                    <button
-                      onClick={() => navigate('/admin/config')}
-                      className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-amber-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Megaphone size={16} className="text-amber-400" />
-                        <span className="text-xs font-bold text-[var(--text-primary)]">System Broadcast</span>
-                      </div>
-                      <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
-                    </button>
-                  )}
-
-                  {/* User mgmt */}
-                  <button
-                    onClick={() => checkAccess('VIEW_USERS') && navigate('/admin/users')}
-                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-cyan-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Users size={16} className="text-cyan-400" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">Citizens Management</span>
-                    </div>
-                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-cyan-400 transition-colors" />
-                  </button>
-
-                  {/* Fraud triggers */}
-                  <button
-                    onClick={() => checkAccess('REVIEW_FRAUD') && navigate('/admin/fraud')}
-                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-rose-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShieldAlert size={16} className="text-rose-400" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">Risk & Fraud Audit</span>
-                    </div>
-                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-rose-400 transition-colors" />
-                  </button>
-
-                  {/* Campaign cashbacks */}
-                  <button
-                    onClick={() => checkAccess('MANAGE_CAMPAIGNS') && navigate('/admin/occasions')}
-                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-amber-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CalendarCheck2 size={16} className="text-amber-400" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">Cashbacks & Occasions</span>
-                    </div>
-                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-amber-400 transition-colors" />
-                  </button>
-
-                  {/* Transaction Ledger */}
-                  <button
-                    onClick={() => checkAccess('MANAGE_TRANSACTIONS') && navigate('/admin/transactions')}
-                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-blue-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <TrendingUp size={16} className="text-blue-400" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">Transaction Ledger</span>
-                    </div>
-                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-blue-400 transition-colors" />
-                  </button>
-
-                  {/* System Configuration */}
-                  <button
-                    onClick={() => (checkAccess('MANAGE_CONFIG') || admin?.role === 'SUPPORT') && navigate('/admin/config')}
-                    className="w-full text-left p-3.5 bg-[var(--bg-secondary)] hover:bg-slate-800 border border-[var(--border)] hover:border-purple-400/20 rounded-xl transition-all flex items-center justify-between group outline-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Settings size={16} className="text-purple-400" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">System Configuration</span>
-                    </div>
-                    <ArrowUpRight size={14} className="text-[var(--text-secondary)] group-hover:text-purple-400 transition-colors" />
-                  </button>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
       </div>
 
     </div>
