@@ -8,6 +8,7 @@ Shared FastAPI dependencies:
 """
 
 from datetime import datetime, timedelta, timezone
+import logging
 
 import jwt
 from fastapi import Header, HTTPException, Depends, status
@@ -16,6 +17,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # ── JWT ──────────────────────────────────────────────────────────────────────
@@ -63,18 +66,24 @@ def get_current_admin(user_id: str = Depends(get_current_user), db: Session = De
             {"uid": uid_int}
         ).first()
         if not row:
+            logger.error(f"[get_current_admin] No admin found for user_id={uid_int}")
             raise HTTPException(status_code=403, detail="Admin access required")
         
+        admin_id = row[0]
+        role = row[1]
+
         # Fetch permissions for this role
         perms_rows = conn.execute(
             text("SELECT permission FROM admin_permissions WHERE role = :role"),
-            {"role": row[1]}
+            {"role": role}
         ).all()
         permissions = [p[0] for p in perms_rows]
         
+        logger.info(f"[get_current_admin] uid={uid_int} admin_id={admin_id} role={role!r} permissions={permissions}")
+        
         return {
-            "admin_id": row[0], 
-            "role": row[1], 
+            "admin_id": admin_id, 
+            "role": role, 
             "user_id": user_id,
             "permissions": permissions
         }
@@ -82,9 +91,17 @@ def get_current_admin(user_id: str = Depends(get_current_user), db: Session = De
 def require_permission(permission: str):
     """Dependency factory to enforce specific admin permissions."""
     def permission_checker(admin: dict = Depends(get_current_admin)):
-        if admin["role"] == 'SUPER_ADMIN' or permission in admin["permissions"]:
+        role = admin.get("role")
+        perms = admin.get("permissions", [])
+        is_super = role == 'SUPER_ADMIN'
+        has_perm = permission in perms
+        
+        logger.info(f"[require_permission] checking '{permission}': role={role!r} is_super={is_super} has_perm={has_perm} all_perms={perms}")
+        
+        if is_super or has_perm:
             return admin
         else:
+            logger.warning(f"[require_permission] DENIED '{permission}' for role={role!r}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Missing required permission: {permission}"
