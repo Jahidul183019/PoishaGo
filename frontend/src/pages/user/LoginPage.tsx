@@ -113,7 +113,7 @@ export const LoginPage: React.FC = () => {
                   {/* Password/PIN Input */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Password</label>
+                      <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Wallet Pin</label>
                       <button 
                         type="button" 
                         onClick={handleForgotPassword}
