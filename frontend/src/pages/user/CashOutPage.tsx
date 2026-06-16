@@ -394,6 +394,7 @@ export const CashOutPage: React.FC = () => {
                maxLength={6}
                value={cashOutPin}
                onChange={(e) => setCashOutPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+               onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setCashOutPin(''); } }}
                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-2 px-3 text-center text-xl font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                required
              />
