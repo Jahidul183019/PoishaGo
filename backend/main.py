@@ -17,11 +17,15 @@ bills      → BillPaymentPage(categories), AdminConfigPage(bill categories)
 admin      → AdminFraudDetectionPage(fraud-flags), AdminOccasionsPage(campaigns)
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import logging
 
 from config import settings
 import auth_otp, auth, transactions, user, rewards, bills, admin, support
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -42,6 +46,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Global Exception Handler ──────────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Server Error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again later."}
+    )
 
 # ── Router registration ───────────────────────────────────────────────────────
 # Order matters for overlapping paths: more specific routes first.
