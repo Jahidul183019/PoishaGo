@@ -74,7 +74,7 @@ def get_dashboard_stats(
 
 @router.get("/fraud-flags")
 def get_fraud_flags(
-    admin: dict = Depends(require_permission("REVIEW_FRAUD")), 
+    admin: dict = Depends(require_permission("VIEW_REPORTS")), 
     db: Session = Depends(get_db)
 ):
     """Returns fraud flags joined with user and transaction data."""
