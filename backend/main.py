@@ -56,7 +56,7 @@ app.include_router(support.router)        # /api/support/*, /api/ws/support/*
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
     return {
         "status":    "online",
