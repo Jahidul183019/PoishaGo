@@ -17,6 +17,7 @@ export const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -129,6 +130,7 @@ export const LoginPage: React.FC = () => {
                         pattern="[0-9]*"
                         maxLength={6}
                         {...register('pin')}
+                        onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setValue('pin', ''); } }}
                         className={`w-full px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border ${errors.pin ? 'border-rose-400' : 'border-[var(--border)]'} focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none font-mono tracking-widest text-[var(--text-primary)] transition-all`} 
                         placeholder="••••••" 
                       />
