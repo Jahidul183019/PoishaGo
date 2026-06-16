@@ -34,12 +34,27 @@ async function request<T>(
 
   // Handle non-2xx responses
   if (!response.ok) {
-    let errorMessage = `Request failed: ${response.status}`;
+    let errorMessage = `Server error (${response.status})`;
     try {
       const errorData = await response.json();
-      errorMessage = errorData?.detail || errorData?.message || errorMessage;
+      
+      // If FastAPI returns a 422 Validation Error array
+      if (Array.isArray(errorData?.detail)) {
+        errorMessage = errorData.detail.map((err: any) => err.msg).join(', ');
+      } 
+      // If it's a standard string detail or message
+      else if (errorData?.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
     } catch {
-      // response wasn't JSON
+      // If the response wasn't JSON (e.g. 502 Bad Gateway HTML page)
+      if (response.status === 502 || response.status === 503) {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (response.status === 404) {
+        errorMessage = 'Requested resource not found.';
+      }
     }
     throw new Error(errorMessage);
   }
