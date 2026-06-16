@@ -26,8 +26,8 @@ export const AdminSidebar: React.FC = () => {
     { label: 'Support Tickets', path: '/admin/support', icon: Headphones, perm: 'HANDLE_COMPLAINTS' },
   ];
 
-  // Only show menu items the admin's role has access to
-  const menuItems = allMenuItems.filter(item => hasAccess(item.perm));
+  // Show all menu items, but block access on click if unauthorized
+  const menuItems = allMenuItems;
 
   const handleLogout = () => {
     logout();
@@ -63,7 +63,14 @@ export const AdminSidebar: React.FC = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={(e) => {
+                  if (!hasAccess(item.perm)) {
+                    e.preventDefault();
+                    useToastStore.getState().showToast('Admin clearance required for this sector', 'error');
+                    return;
+                  }
+                  navigate(item.path);
+                }}
                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
                   isActive
                     ? 'bg-amber-500/10 text-amber-400 border-l-2 border-amber-400'
