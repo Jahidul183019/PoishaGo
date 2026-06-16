@@ -151,7 +151,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // If server returned an access token (login-purpose OTP), persist it and hydrate profile
       if (data.access_token) {
         localStorage.setItem('token', data.access_token);
-        set({ token: data.access_token });
+        // Always enter customer mode when authenticating via OTP (e.g. forgot password flow)
+        localStorage.setItem('isAdminMode', 'false');
+        set({ token: data.access_token, isAdmin: false });
         await get().fetchUserProfile();
       } else {
         set((state) => {
