@@ -108,10 +108,10 @@ interface WalletState {
   fraudError: string | null;
 
   // ── Notification actions ──
-  markAsRead: (id: number) => void;
-  markAllAsRead: () => void;
-  clearNotification: (id: number) => void;
-  clearAllNotifications: () => void;
+  markAsRead: (id: number) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearNotification: (id: number) => Promise<void>;
+  clearAllNotifications: () => Promise<void>;
 
   // ── Fetch actions ──
   fetchTransactions: () => Promise<void>;
@@ -164,24 +164,55 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   fraudError: null,
 
   // ── Notification actions ──────────────────────────────────────────────────
-  markAsRead: (id) =>
+  markAsRead: async (id) => {
+    // Optimistic update
     set((state) => ({
       notifications: state.notifications.map((n) =>
         n.id === id ? { ...n, is_read: true } : n
       ),
-    })),
+    }));
+    try {
+      await api.put(`/api/notifications/${id}/read`, {});
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+      // Fallback
+      await get().fetchNotifications();
+    }
+  },
 
-  markAllAsRead: () =>
+  markAllAsRead: async () => {
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
-    })),
+    }));
+    try {
+      await api.put('/api/notifications/read-all', {});
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+      await get().fetchNotifications();
+    }
+  },
 
-  clearNotification: (id) =>
+  clearNotification: async (id) => {
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
-    })),
+    }));
+    try {
+      await api.delete(`/api/notifications/${id}`);
+    } catch (err) {
+      console.error('Failed to clear notification:', err);
+      await get().fetchNotifications();
+    }
+  },
 
-  clearAllNotifications: () => set({ notifications: [] }),
+  clearAllNotifications: async () => {
+    set({ notifications: [] });
+    try {
+      await api.delete('/api/notifications');
+    } catch (err) {
+      console.error('Failed to clear all notifications:', err);
+      await get().fetchNotifications();
+    }
+  },
 
   // ── Fetch: User transactions ──────────────────────────────────────────────
   fetchTransactions: async () => {
