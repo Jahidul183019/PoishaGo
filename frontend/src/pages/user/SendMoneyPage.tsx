@@ -269,8 +269,9 @@ export const SendMoneyPage: React.FC = () => {
                     maxLength={11}
                     value={recipientPhone}
                     onChange={(e) => {
-                      setRecipientPhone(e.target.value);
-                      const f = suggestedContacts.find(c => c.phone === e.target.value);
+                      const val = e.target.value.replace(/\\D/g, '').slice(0, 11);
+                      setRecipientPhone(val);
+                      const f = suggestedContacts.find(c => c.phone === val);
                       if (f) setRecipientName(f.name);
                       else setRecipientName('');
                     }}
