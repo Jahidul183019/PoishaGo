@@ -125,9 +125,12 @@ export const AdminLoginPage: React.FC = () => {
                       <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                       <input
                         type="password"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         placeholder="••••••••"
                         value={passcode}
-                        onChange={(e) => setPasscode(e.target.value)}
+                        onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={(e) => { if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setPasscode(''); } }}
                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-mono"
                         required
                       />
