@@ -261,7 +261,7 @@ def delete_all_notifications(
 
 @router.get("/users")
 def get_users(
-    admin: dict = Depends(require_permission("VIEW_USERS")), 
+    admin: dict = Depends(require_permission("MANAGE_USERS")), 
     db: Session = Depends(get_db)
 ):
     """Returns all users with wallet and reward data for the admin panel."""
