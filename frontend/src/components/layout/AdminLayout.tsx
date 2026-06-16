@@ -88,7 +88,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       onClick={(e) => {
                         if (!hasAccess(item.perm)) {
                           e.preventDefault();
-                          useToastStore.getState().showToast('Admin clearance required for this sector', 'error');
+                          const roleName = admin?.role?.replace('_', ' ').toLowerCase() || 'staff';
+                          useToastStore.getState().showToast(`ACCESS DENIED: Your ${roleName} clearance level does not permit this operational procedure.`, 'error');
                           return;
                         }
                         navigate(item.path);
