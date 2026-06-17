@@ -20,10 +20,11 @@
 ## 🚀 Key Features
 
 ### 💸 Core Financial Suite
-- **Send Money**: Instant peer-to-peer transfers with zero commission fees.
+- **Send Money**: Instant peer-to-peer transfers with dynamic, server-controlled commission fees.
 - **Agent Cash In & Out**: Secure deposit and withdrawal mechanics with verified agent networks.
-- **Bill Payments**: Automated integration with utility providers (Electricity, Water, Gas, Internet).
-- **Mobile Recharge**: Instant top-ups across all major telecommunication operators (Grameenphone, Robi, Airtel, Banglalink, Teletalk).
+- **Bill Payments**: Automated integration with utility providers, fully dynamic and fetched from the database.
+- **Mobile Recharge**: Instant top-ups across all major telecommunication operators.
+- **Dynamic Content Delivery**: Promotional banners, transaction fees, and reward configurations are completely database-driven via REST APIs, allowing real-time updates without app redeployments.
 
 ### 🛡️ Enterprise-Grade Security
 - **Dual-Factor Authorization (2FA)**: All critical money-movement events are secured behind a 6-digit Wallet PIN and an asynchronous Email OTP check.
@@ -61,6 +62,10 @@ Follow these steps to run PoishaGo locally for development and testing.
    ```bash
    psql -U postgres -d poishago_db -f backend/schema.sql
    psql -U postgres -d poishago_db -f backend/indexes.sql
+   ```
+4. *Optional*: If you are upgrading an existing database, you can run the safe migration script:
+   ```bash
+   python backend/apply_schema_updates.py
    ```
 
 ### 2. Backend Setup
