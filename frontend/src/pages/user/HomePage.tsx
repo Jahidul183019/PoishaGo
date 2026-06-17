@@ -34,8 +34,8 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await api.get('/banners');
-        setBanners(res.data);
+        const res = await api.get<any[]>('/api/banners');
+        setBanners(res || []);
       } catch (err) {
         console.error('Failed to fetch banners', err);
       }

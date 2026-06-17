@@ -63,8 +63,8 @@ export const BillPaymentPage: React.FC = () => {
     // Fetch dynamic bill providers
     const fetchProviders = async () => {
       try {
-        const res = await api.get('/bill/providers');
-        setCategoryCompanies(res.data);
+        const res = await api.get<any>('/api/bill/providers');
+        setCategoryCompanies(res || {});
       } catch (err) {
         console.error('Failed to fetch bill providers', err);
       }

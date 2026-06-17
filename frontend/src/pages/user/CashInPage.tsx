@@ -29,8 +29,8 @@ export const CashInPage: React.FC = () => {
   const [feesConfig, setFeesConfig] = useState<any>({ cashin_flat: 0.00 });
 
   useEffect(() => {
-    api.get('/api/transactions/fees')
-      .then(res => setFeesConfig(res.data))
+    api.get<any>('/api/transactions/fees')
+      .then(res => setFeesConfig(res || { cashin_flat: 0.00 }))
       .catch(err => console.error('Failed to fetch fees config', err));
     api.get<any[]>('/api/agents')
       .then(data => {

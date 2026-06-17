@@ -28,8 +28,8 @@ export const CashOutPage: React.FC = () => {
   const [feesConfig, setFeesConfig] = useState<any>({ cashout_percentage: 0.015 });
 
   useEffect(() => {
-    api.get('/api/transactions/fees')
-      .then(res => setFeesConfig(res.data))
+    api.get<any>('/api/transactions/fees')
+      .then(res => setFeesConfig(res || { cashout_percentage: 0.015 }))
       .catch(err => console.error('Failed to fetch fees config', err));
     api.get<any[]>('/api/agents')
       .then(data => {
