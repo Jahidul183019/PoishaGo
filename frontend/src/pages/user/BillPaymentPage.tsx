@@ -37,14 +37,6 @@ const iconMap: Record<string, any> = {
   'Tag': Tag
 };
 
-const categoryCompanies: Record<string, string[]> = {
-  electricity: ['DESCO (Dhaka Electricity Supply)', 'DPDC (Dhaka Power)', 'NESCO (Northern Electricity)'],
-  water: ['Dhaka WASA', 'Chittagong WASA', 'Khulna WASA'],
-  gas: ['Titas Gas Transmission', 'Jalalabad Gas Co.', 'Bakhrabad Gas'],
-  internet: ['Link3 Broadband', 'Carnival Internet', 'Amber IT'],
-  education: ['Dhaka University (DU)', 'BUET', 'North South University (NSU)'],
-  tv: ['Akash DTH Bangladesh', 'Bengal Digital Cable TV'],
-};
 
 export const BillPaymentPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,11 +53,23 @@ export const BillPaymentPage: React.FC = () => {
   const [billPin, setBillPin] = useState('');
   const [billOtp, setBillOtp] = useState('');
   const [receipt, setReceipt] = useState<any>(null);
+  const [categoryCompanies, setCategoryCompanies] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (billCategories.length === 0) {
       fetchBillCategories();
     }
+    
+    // Fetch dynamic bill providers
+    const fetchProviders = async () => {
+      try {
+        const res = await api.get('/bill/providers');
+        setCategoryCompanies(res.data);
+      } catch (err) {
+        console.error('Failed to fetch bill providers', err);
+      }
+    };
+    fetchProviders();
   }, [billCategories, fetchBillCategories]);
 
   const handleSelectCategory = (catId: string) => {

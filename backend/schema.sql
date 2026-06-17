@@ -227,6 +227,7 @@ CREATE TABLE favorite_contacts (
     FOREIGN KEY (contact_user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+
 INSERT INTO users (full_name, phone, email, password_hash, nid, user_type, is_verified, created_at) VALUES
   ('Rafiq Ahmed', '01711000001', 'rafiq@email.com', '$2b$12$hash001', '1990123456789', 'personal', TRUE, NOW() - INTERVAL '180 days'),
   ('Fatema Begum', '01711000002', 'fatema@email.com', '$2b$12$hash002', '1991234567890', 'personal', TRUE, NOW() - INTERVAL '150 days'),
@@ -505,6 +506,42 @@ INSERT INTO bill_categories (id, label, icon_id, color) VALUES
     ('internet', 'Internet', 'Globe', 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'),
     ('education', 'Education', 'BookOpen', 'text-green-400 bg-green-500/10 border-green-500/20'),
     ('tv', 'Cable TV', 'Tv', 'text-purple-400 bg-purple-500/10 border-purple-500/20');
+
+CREATE TABLE promotional_banners (
+    banner_id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    action_text VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+INSERT INTO promotional_banners (title, description, action_text) VALUES 
+('Eid-Ul-Adha Special Cashback Promo!', 'Send ৳1,000+ today & stand a chance of earning an instant ৳500 double cashback in your wallet!', NULL);
+
+CREATE TABLE bill_providers (
+    provider_id SERIAL PRIMARY KEY,
+    category VARCHAR(50) REFERENCES bill_categories(id),
+    name VARCHAR(255) NOT NULL
+);
+
+INSERT INTO bill_providers (category, name) VALUES 
+('electricity', 'DESCO (Dhaka Electricity Supply)'),
+('electricity', 'DPDC (Dhaka Power)'),
+('electricity', 'NESCO (Northern Electricity)'),
+('water', 'Dhaka WASA'),
+('water', 'Chittagong WASA'),
+('water', 'Khulna WASA'),
+('gas', 'Titas Gas Transmission'),
+('gas', 'Jalalabad Gas Co.'),
+('gas', 'Bakhrabad Gas'),
+('internet', 'Link3 Broadband'),
+('internet', 'Carnival Internet'),
+('internet', 'Amber IT'),
+('education', 'Dhaka University (DU)'),
+('education', 'BUET'),
+('education', 'North South University (NSU)'),
+('tv', 'Akash DTH Bangladesh'),
+('tv', 'Bengal Digital Cable TV');
 
 -- ── Support / Help Center ────────────────────────────────────────────────────
 CREATE TABLE support_tickets (

@@ -24,6 +24,29 @@ from dependencies import get_current_user, get_current_admin, require_permission
 router = APIRouter(prefix="/api", tags=["User"])
 
 
+# ── /api/banners (HomePage) ──────────────────────────────────────────────────
+
+@router.get("/banners")
+def get_banners(db: Session = Depends(get_db)):
+    """Returns all active promotional banners."""
+    with db.connection().engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT
+                    banner_id AS id,
+                    title,
+                    description,
+                    action_text
+                FROM promotional_banners
+                WHERE is_active = true
+                ORDER BY created_at DESC
+            """)
+        ).mappings().all()
+    return [dict(r) for r in rows]
+
+
+
+
 # ── /api/agents  (CashInPage, CashOutPage) ───────────────────────────────────
 
 @router.get("/agents")

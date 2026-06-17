@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatBDT } from '../../utils/format';
+import api from '../../utils/api';
 import { TierBadge, StatusBadge } from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import {
@@ -28,7 +29,23 @@ export const HomePage: React.FC = () => {
   const { transactions } = useWalletStore();
 
   const [showBalance, setShowBalance] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
+  const [banners, setBanners] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await api.get('/banners');
+        setBanners(res.data);
+      } catch (err) {
+        console.error('Failed to fetch banners', err);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  const dismissBanner = (id: number) => {
+    setBanners((prev) => prev.filter((b) => b.id !== id));
+  };
 
   // Quick navigate helper
   const handleQuickAction = (route: string) => {
@@ -59,25 +76,28 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* DISMISSIBLE CAMPAIGN BONUS ACCENT */}
-      {showBanner && (
-        <div className="relative bg-gradient-to-r from-blue-600/90 to-emerald-600/90 border border-emerald-400/20 rounded-2xl p-4 flex items-center justify-between shadow-lg overflow-hidden shrink-0 animate-in slide-in-from-top-4 duration-300">
+      {banners.map((banner) => (
+        <div key={banner.id} className="relative bg-gradient-to-r from-blue-600/90 to-emerald-600/90 border border-emerald-400/20 rounded-2xl p-4 flex items-center justify-between shadow-lg overflow-hidden shrink-0 animate-in slide-in-from-top-4 duration-300 mb-2">
           <div className="absolute right-0 top-0 w-24 h-24 bg-teal-400/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex-1 pr-6">
             <h4 className="font-sora font-bold text-sm text-white flex items-center gap-1.5 leading-tight">
-              Eid-Ul-Adha Special Cashback Promo!
+              {banner.title}
             </h4>
-            <p className="text-[11px] text-slate-200 mt-1 pl-0.5 leading-relaxed">
-              Send <strong>৳1,000+</strong> today & stand a chance of earning an instant <strong>৳500 double cashback</strong> in your wallet!
-            </p>
+            <p className="text-[11px] text-slate-200 mt-1 pl-0.5 leading-relaxed" dangerouslySetInnerHTML={{ __html: banner.description }} />
+            {banner.action_text && (
+              <button className="mt-2 text-xs font-semibold bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors">
+                {banner.action_text}
+              </button>
+            )}
           </div>
           <button
-            onClick={() => setShowBanner(false)}
+            onClick={() => dismissBanner(banner.id)}
             className="p-1 rounded-full hover:bg-white/15 text-white/85 hover:text-white transition-colors"
           >
             <X size={16} />
           </button>
         </div>
-      )}
+      ))}
 
       {/* CORE GRAND BALANCE & REWARDS BENTO WIDGET */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
