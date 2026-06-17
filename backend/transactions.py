@@ -90,8 +90,6 @@ def _execute_transfer(
     ).first()
     if not sender_wallet:
         raise HTTPException(400, "Sender wallet not found.")
-    if sender_wallet[1] < amount:
-        raise HTTPException(400, "Insufficient funds.")
 
     receiver_info = conn.execute(
         text("""
@@ -111,14 +109,66 @@ def _execute_transfer(
     receiver_wallet_id = receiver_info[1]
     receiver_user_id   = receiver_info[0]
 
+    fee = 0.0
+    if txn_type == "cashout":
+        fee = amount * 0.015
+    elif txn_type == "transfer":
+        is_favorite = conn.execute(
+            text("""
+                SELECT 1 FROM favorite_contacts 
+                WHERE owner_user_id = :sender_id 
+                  AND contact_user_id = :receiver_id
+            """),
+            {"sender_id": sender_user_id, "receiver_id": receiver_user_id}
+        ).first()
+        fee = 0.0 if is_favorite else 5.00
+        
+    total_deduction = amount + fee
+
+    if sender_wallet[1] < total_deduction:
+        raise HTTPException(400, "Insufficient funds to cover amount and fees.")
+
     conn.execute(
-        text("UPDATE wallets SET balance = balance - :amt WHERE wallet_id = :wid"),
-        {"amt": amount, "wid": sender_wallet_id},
+        text("UPDATE wallets SET balance = balance - :deduction WHERE wallet_id = :wid"),
+        {"deduction": total_deduction, "wid": sender_wallet_id},
     )
     conn.execute(
         text("UPDATE wallets SET balance = balance + :amt WHERE wallet_id = :wid"),
         {"amt": amount, "wid": receiver_wallet_id},
     )
+
+    if fee > 0:
+        sys_wallet = conn.execute(
+            text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REVENUE'")
+        ).first()
+        if not sys_wallet:
+            sys_user = conn.execute(
+                text("""
+                    INSERT INTO users (full_name, phone, email, password_hash, user_type, is_verified)
+                    VALUES ('System Revenue', 'SYSTEM_REVENUE',
+                            'revenue@poishagoapp.internal', 'SYSTEM_HASH', 'personal', true)
+                    ON CONFLICT (phone) DO NOTHING
+                    RETURNING user_id
+                """)
+            ).first()
+            if sys_user:
+                conn.execute(
+                    text("""
+                        INSERT INTO wallets (user_id, wallet_number, balance, is_active)
+                        VALUES (:uid, 'SYSTEM_REVENUE', 0.00, true)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"uid": sys_user[0]},
+                )
+            sys_wallet = conn.execute(
+                text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REVENUE'")
+            ).first()
+            
+        if sys_wallet:
+            conn.execute(
+                text("UPDATE wallets SET balance = balance + :fee WHERE wallet_id = :wid"),
+                {"fee": fee, "wid": sys_wallet[0]}
+            )
 
     reward_row = conn.execute(
         text("SELECT current_points, tier FROM reward_points WHERE user_id = :uid FOR UPDATE"),
@@ -209,12 +259,12 @@ def _execute_transfer(
             INSERT INTO transactions
                 (reference_no, sender_wallet_id, receiver_wallet_id,
                  txn_type, amount, fee, status)
-            VALUES (:ref, :sw, :rw, :ttype, :amt, 0.00, 'success')
+            VALUES (:ref, :sw, :rw, :ttype, :amt, :fee, 'success')
             RETURNING txn_id
         """),
         {
             "ref": ref, "sw": sender_wallet_id, "rw": receiver_wallet_id,
-            "ttype": txn_type, "amt": amount,
+            "ttype": txn_type, "amt": amount, "fee": fee
         },
     )
     txn_id = res.first()[0]

@@ -127,7 +127,7 @@ export const CashOutPage: React.FC = () => {
       
       const res = await api.post<any>('/api/transactions/cashout', {
         agent_phone: selectedAgent.phone,
-        amount: totalDebited,
+        amount: cashOutAmt,
         pin: cashOutPin,
         otp: cashOutOtp
       });

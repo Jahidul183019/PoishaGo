@@ -96,6 +96,12 @@ export const SendMoneyPage: React.FC = () => {
   const [transferPin, setTransferPin] = useState('');
   const [transferOtp, setTransferOtp] = useState('');
 
+  const isFavoriteContact = suggestedContacts.some(c => c.phone === recipientPhone);
+  const amtParsed = parseFloat(amount);
+  const isValidAmount = !isNaN(amtParsed) && amtParsed > 0;
+  const computedFee = isValidAmount ? (isFavoriteContact ? 0.00 : 5.00) : 0.00;
+  const computedTotalDebit = isValidAmount ? amtParsed + computedFee : 0.00;
+
   const selectSuggestedContact = (name: string, phone: string) => {
     setRecipientPhone(phone);
     setRecipientName(name);
@@ -120,6 +126,7 @@ export const SendMoneyPage: React.FC = () => {
       setGeneratedReceipt({
         ref: data.transaction_id,
         amount: parseFloat(amount),
+        fee: computedFee,
         receiver: resolvedName,
         phone: recipientPhone,
         date: new Date().toLocaleDateString('en-BD', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -137,13 +144,12 @@ export const SendMoneyPage: React.FC = () => {
       return;
     }
     
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) {
+    if (!isValidAmount) {
       showToast('Please enter a valid transfer amount greater than 0.', 'error');
       return;
     }
 
-    if (user && user.balance < amt) {
+    if (user && user.balance < computedTotalDebit) {
       showToast(`Insufficient balance. Your current balance is ${formatBDT(user.balance)}`, 'error');
       return;
     }
@@ -324,12 +330,16 @@ export const SendMoneyPage: React.FC = () => {
               <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-xl flex flex-col gap-2.5 text-xs font-semibold text-[var(--text-secondary)] select-none">
                 <div className="flex justify-between">
                   <span>Transfer Commission Fee:</span>
-                  <span className="text-[#00C9A7]">৳ 0.00 (Free)</span>
+                  {computedFee === 0 ? (
+                    <span className="text-[#00C9A7]">৳ 0.00 (Free)</span>
+                  ) : (
+                    <span className="text-rose-400">৳ {computedFee.toFixed(2)}</span>
+                  )}
                 </div>
                 <div className="border-t border-[var(--border)] pt-2.5 flex justify-between text-sm font-bold text-[var(--text-primary)]">
                   <span>Total Debit Amount:</span>
                   <span className="font-sora text-[#00C9A7] font-extrabold">
-                    {amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}
+                    {formatBDT(computedTotalDebit)}
                   </span>
                 </div>
               </div>
@@ -413,7 +423,11 @@ export const SendMoneyPage: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span>Commission Fee:</span>
-              <span className="text-[#00C9A7]">৳ 0.00 (Free)</span>
+              {generatedReceipt.fee === 0 ? (
+                <span className="text-[#00C9A7]">৳ 0.00 (Free)</span>
+              ) : (
+                <span className="text-rose-400">৳ {generatedReceipt.fee.toFixed(2)}</span>
+              )}
             </div>
             <div className="flex justify-between">
               <span>Transaction ID:</span>
@@ -500,7 +514,7 @@ export const SendMoneyPage: React.FC = () => {
                 id="btn-confirm-transfer" 
                 disabled={isConfirming || transferPin.length < 6 || transferOtp.length < 6}
               >
-                {isConfirming ? 'Processing...' : `Confirm Transfer of ${amount ? formatBDT(parseFloat(amount)) : '৳ 0.00'}`}
+                {isConfirming ? 'Processing...' : `Confirm Transfer of ${amount ? formatBDT(computedTotalDebit) : '৳ 0.00'}`}
               </TapAndHoldButton>
             </div>
           </div>
