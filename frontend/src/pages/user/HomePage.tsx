@@ -258,14 +258,17 @@ export const HomePage: React.FC = () => {
                 No recent transactions on this account.
               </div>
             ) : (
-              recentTxns.map((txn, index) => (
+              recentTxns.map((txn, index) => {
+                const isDebit = txn.sender_wallet_id === user?.wallet_number;
+
+                return (
                 <div
                   key={txn.txn_id}
                   className={`p-4 flex items-center justify-between border-[var(--border)] ${index < recentTxns.length - 1 ? 'border-b' : ''
                     }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type)
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isDebit
                         ? 'bg-rose-500/15 text-rose-400'
                         : 'bg-emerald-500/15 text-emerald-400'
                       }`}>
@@ -285,11 +288,11 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <h5 className={`font-sora font-extrabold text-xs ${['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type)
+                    <h5 className={`font-sora font-extrabold text-xs ${isDebit
                         ? 'text-rose-400'
                         : 'text-[#00C9A7]'
                       }`}>
-                      {['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type) ? '-' : '+'}
+                      {isDebit ? '-' : '+'}
                       {formatBDT(txn.amount)}
                     </h5>
                     <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">
@@ -297,7 +300,8 @@ export const HomePage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

@@ -46,9 +46,7 @@ interface AuthState {
   verifyUserOTP: (email: string, code: string, purpose?: string, newPin?: string, confirmPin?: string) => Promise<{ success: boolean; message: string }>;
   resendUserOTP: (email: string, purpose?: string) => Promise<{ success: boolean; message: string }>;
 
-  loginAdmin: (username: string, r: 'SUPER_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'RISK_MANAGER') => void;
   logout: () => void;
-  logoutUser: () => void;
   updateUserBalance: (newBalance: number) => void;
   updateUserPoints: (newPoints: number) => void;
   updateUserPIN: (oldPin: string, newPin: string) => Promise<boolean>;
@@ -71,8 +69,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ token: data.access_token, isAdmin: false });
       await get().fetchUserProfile();
       return true;
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      useToastStore.getState().showToast(e.message || 'Login failed', 'error');
       return false;
     }
   },
@@ -89,7 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       return { success: true, message: data.detail || "Account created successfully!" };
     } catch (e: any) {
-      console.error("Network Error during registration:", e);
+      useToastStore.getState().showToast(e.message || 'Registration failed', 'error');
       return { success: false, message: e.message || "Registration failed." };
     }
   },
@@ -120,12 +118,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await useWalletStore.getState().fetchRewardsHistory();
       await useWalletStore.getState().fetchBillCategories();
     } catch (e: any) {
-      console.error(e);
+      if (!e.message?.includes('401')) {
+        useToastStore.getState().showToast(e.message || 'Failed to fetch profile', 'error');
+      }
       if (e.message && e.message.includes('403')) {
         useToastStore.getState().showToast("Access Denied: You do not have the required administrative clearance to view this data.", 'error');
         get().logout();
       } else {
-        get().logoutUser();
+        get().logout();
       }
     }
   },
@@ -137,8 +137,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const updated = await api.patch<any>('/api/me', { full_name: fullName, email: email || null });
       set({ user: updated, isLoggedIn: true });
       return true;
-    } catch (e) {
-      console.error('Failed to update profile:', e);
+    } catch (e: any) {
+      useToastStore.getState().showToast(e.message || 'Failed to update profile', 'error');
       return false;
     }
   },
@@ -171,7 +171,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       return { success: true, message: data.detail || "Verification successful!" };
     } catch (e: any) {
-      console.error(e);
+      useToastStore.getState().showToast(e.message || 'Invalid validation code.', 'error');
       return { success: false, message: e.message || "Invalid validation code." };
     }
   },
@@ -184,20 +184,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await api.post<any>('/api/send-otp', body);
       return { success: true, message: data.detail || "Verification mail dispatched!" };
     } catch (e: any) {
-      console.error(e);
+      useToastStore.getState().showToast(e.message || 'Failed to issue new code instance.', 'error');
       return { success: false, message: e.message || "Failed to issue new code instance." };
     }
   },
 
-  loginAdmin: (username, role) => {
-    localStorage.setItem('isAdminMode', 'true');
-    set({
-      user: null,
-      admin: { username, role, permissions: [] },
-      isLoggedIn: true,
-      isAdmin: true
-    });
-  },
+
 
   logout: () => {
     localStorage.removeItem('token');
@@ -205,11 +197,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
   },
 
-  logoutUser: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('isAdminMode');
-    set({ user: null, admin: null, isLoggedIn: false, isAdmin: false, token: null });
-  },
+
 
   updateUserBalance: (newBalance) => {
     set((state) => {
@@ -237,8 +225,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await api.post<any>('/api/change-pin', { old_pin: oldPin, new_pin: newPin });
       await get().fetchUserProfile();
       return true;
-    } catch (e) {
-      console.error('Failed to update PIN:', e);
+    } catch (e: any) {
+      useToastStore.getState().showToast(e.message || 'Failed to update PIN', 'error');
       return false;
     }
   },
@@ -263,8 +251,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       });
       return true;
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      useToastStore.getState().showToast(e.message || 'Admin login failed', 'error');
       return false;
     }
   },

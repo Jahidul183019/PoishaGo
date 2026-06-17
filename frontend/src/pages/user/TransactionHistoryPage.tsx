@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore, WalletTransaction } from '../../store/useWalletStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -21,6 +22,7 @@ import {
 export const TransactionHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { transactions } = useWalletStore();
+  const { user } = useAuthStore();
 
   const [expandedTxnId, setExpandedTxnId] = useState<number | null>(null);
 
@@ -250,7 +252,7 @@ export const TransactionHistoryPage: React.FC = () => {
               ) : (
                 paginatedTxns.map((txn) => {
                   const isExpanded = expandedTxnId === txn.txn_id;
-                  const isDebit = ['send_money', 'cash_out', 'bill_pay', 'mobile_recharge'].includes(txn.txn_type);
+                  const isDebit = txn.sender_wallet_id === user?.wallet_number;
 
                   return (
                     <React.Fragment key={txn.txn_id}>
@@ -319,11 +321,11 @@ export const TransactionHistoryPage: React.FC = () => {
                                 <div className="flex flex-col gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
                                   <div className="flex justify-between">
                                     <span>Charged commission fee:</span>
-                                    <span className="text-white">{formatBDT(txn.fee)}</span>
+                                    <span className="text-[var(--text-primary)]">{formatBDT(txn.fee)}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Settled Timestamp ID:</span>
-                                    <span className="text-white font-mono">{new Date(txn.txn_at).toLocaleString()}</span>
+                                    <span className="text-[var(--text-primary)] font-mono">{new Date(txn.txn_at).toLocaleString()}</span>
                                   </div>
                                 </div>
                               </div>

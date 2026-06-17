@@ -24,7 +24,7 @@ import {
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logoutUser, updateUserPIN, updateUserProfile } = useAuthStore();
+  const { user, logout, updateUserPIN, updateUserProfile } = useAuthStore();
 
   // Dialog triggers
   const [isPINModalOpen, setIsPINModalOpen] = useState(false);
@@ -93,7 +93,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleLogoutClick = () => {
     if (confirm('Are you sure you want to log out of PoishaGo?')) {
-      logoutUser();
+      logout();
       navigate('/login');
     }
   };

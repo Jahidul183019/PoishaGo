@@ -173,8 +173,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }));
     try {
       await api.put(`/api/notifications/${id}/read`, {});
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to mark notification as read', 'error');
       // Fallback
       await get().fetchNotifications();
     }
@@ -186,8 +186,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }));
     try {
       await api.put('/api/notifications/read-all', {});
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to mark all as read', 'error');
       await get().fetchNotifications();
     }
   },
@@ -198,8 +198,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }));
     try {
       await api.delete(`/api/notifications/${id}`);
-    } catch (err) {
-      console.error('Failed to clear notification:', err);
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to clear notification', 'error');
       await get().fetchNotifications();
     }
   },
@@ -208,8 +208,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ notifications: [] });
     try {
       await api.delete('/api/notifications');
-    } catch (err) {
-      console.error('Failed to clear all notifications:', err);
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to clear all notifications', 'error');
       await get().fetchNotifications();
     }
   },
@@ -259,7 +259,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const data = await api.get<RewardRedeemOption[]>('/api/rewards/options');
       set({ rewardOptions: data });
     } catch (err: any) {
-      console.error('Failed to fetch reward options:', err.message);
+      useToastStore.getState().showToast(err.message || 'Failed to fetch reward options', 'error');
     }
   },
 
@@ -269,7 +269,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const data = await api.get<any[]>('/api/bill/categories');
       set({ billCategories: data });
     } catch (err: any) {
-      console.error('Failed to fetch bill categories:', err.message);
+      useToastStore.getState().showToast(err.message || 'Failed to fetch bill categories', 'error');
     }
   },
 
@@ -279,7 +279,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const data = await api.get<any[]>('/api/rewards/history');
       set({ pointsRedeemedHistory: data });
     } catch (err: any) {
-      console.error('Failed to fetch rewards history:', err.message);
+      useToastStore.getState().showToast(err.message || 'Failed to fetch rewards history', 'error');
     }
   },
 
@@ -316,7 +316,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const data = await api.get<CashbackCampaign[]>('/api/campaigns');
       set({ campaigns: data });
     } catch (err: any) {
-      console.error('Failed to fetch campaigns:', err.message);
+      useToastStore.getState().showToast(err.message || 'Failed to fetch campaigns', 'error');
     } finally {
       set({ isLoadingCampaigns: false });
     }
@@ -437,7 +437,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   broadcastNotification: async (message) => {
     try {
-      await api.post('/api/admin/broadcast-notification', { message });
+      await api.post('/api/broadcast-notification', { message });
       useToastStore.getState().showToast('Notification broadcasted successfully!', 'success');
     } catch (err: any) {
       useToastStore.getState().showToast(err.message || 'Failed to broadcast notification', 'error');

@@ -318,11 +318,11 @@ export const AdminTransactionsPage: React.FC = () => {
                                 <div className="flex flex-col gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
                                   <div className="flex justify-between">
                                     <span>Charged commission fee:</span>
-                                    <span className="text-white">{formatBDT(txn.fee)}</span>
+                                    <span className="text-[var(--text-primary)]">{formatBDT(txn.fee)}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Settled Timestamp ID:</span>
-                                    <span className="text-white font-mono">{new Date(txn.txn_at).toLocaleString()}</span>
+                                    <span className="text-[var(--text-primary)] font-mono">{new Date(txn.txn_at).toLocaleString()}</span>
                                   </div>
                                 </div>
                               </div>

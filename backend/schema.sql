@@ -523,3 +523,4 @@ CREATE TABLE support_messages (
     message     TEXT NOT NULL,
     sent_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+

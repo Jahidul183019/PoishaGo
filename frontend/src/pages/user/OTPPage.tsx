@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import OTPInput from '../../components/ui/OTPInput';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 import { ShieldCheck, MessageSquare, RefreshCw, ArrowLeft } from 'lucide-react';
+import otpHero from '../../assets/otp_hero.png';
 
 export const OTPPage: React.FC = () => {
   const navigate = useNavigate();
@@ -194,7 +195,7 @@ export const OTPPage: React.FC = () => {
               <img
                 className="w-full h-full object-cover"
                 alt="Security Interface"
-                src="/otp_hero.png"
+                src={otpHero}
               />
             </div>
           </div>

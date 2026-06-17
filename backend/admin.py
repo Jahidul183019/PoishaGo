@@ -368,7 +368,7 @@ def broadcast_notification(
                 INSERT INTO notifications (user_id, message, notif_type, is_read, created_at)
                 SELECT user_id, :msg, :type, false, NOW()
                 FROM users
-                WHERE user_type != 'admin'  -- Optional: avoid notifying other admins
+                WHERE user_id NOT IN (SELECT user_id FROM admins)
             """),
             {"msg": req.message, "type": req.notif_type}
         )
