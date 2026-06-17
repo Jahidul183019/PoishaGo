@@ -30,6 +30,7 @@ export const SendMoneyPage: React.FC = () => {
   const { toasts, showToast, dismissToast } = useToast();
 
   const [suggestedContacts, setSuggestedContacts] = useState<{contact_id?: number, name: string, phone: string, initials: string}[]>([]);
+  const [feesConfig, setFeesConfig] = useState<any>({ send_money_flat: 5.00 });
 
   const { execute: loadContacts } = useApiCall({
     showToast,
@@ -44,6 +45,9 @@ export const SendMoneyPage: React.FC = () => {
 
   React.useEffect(() => {
     fetchContacts();
+    api.get('/api/transactions/fees')
+      .then(res => setFeesConfig(res.data))
+      .catch(err => console.error('Failed to fetch fees config', err));
   }, []);
 
   // Add contact modal state
@@ -99,7 +103,9 @@ export const SendMoneyPage: React.FC = () => {
   const isFavoriteContact = suggestedContacts.some(c => c.phone === recipientPhone);
   const amtParsed = parseFloat(amount);
   const isValidAmount = !isNaN(amtParsed) && amtParsed > 0;
-  const computedFee = isValidAmount ? (isFavoriteContact ? 0.00 : 5.00) : 0.00;
+  
+  const standardFee = feesConfig.send_money_flat || 5.00;
+  const computedFee = isValidAmount ? (isFavoriteContact ? 0.00 : standardFee) : 0.00;
   const computedTotalDebit = isValidAmount ? amtParsed + computedFee : 0.00;
 
   const selectSuggestedContact = (name: string, phone: string) => {

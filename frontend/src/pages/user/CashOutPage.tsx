@@ -25,8 +25,12 @@ export const CashOutPage: React.FC = () => {
   const { user, updateUserBalance, fetchUserProfile } = useAuthStore();
 
   const [agentsList, setAgentsList] = useState<any[]>([]);
+  const [feesConfig, setFeesConfig] = useState<any>({ cashout_percentage: 0.015 });
 
   useEffect(() => {
+    api.get('/api/transactions/fees')
+      .then(res => setFeesConfig(res.data))
+      .catch(err => console.error('Failed to fetch fees config', err));
     api.get<any[]>('/api/agents')
       .then(data => {
         setAgentsList(data);
@@ -50,15 +54,16 @@ export const CashOutPage: React.FC = () => {
 
   const selectedAgent = agentsList.find(a => a.id === selectedAgentId) || agentsList[0];
 
-  // Dynamic fee calculation: fee = amount * 0.015, live update
+  // Dynamic fee calculation from config
   const getAmountValues = () => {
     const amt = parseFloat(amount) || 0;
-    const fee = amt * 0.015;
+    const feeRate = feesConfig.cashout_percentage || 0.015;
+    const fee = amt * feeRate;
     const totalDeduction = amt + fee;
-    return { amt, fee, totalDeduction };
+    return { amt, fee, totalDeduction, feeRate };
   };
 
-  const { amt: cleanAmt, fee: cleanFee, totalDeduction: cleanTotal } = getAmountValues();
+  const { amt: cleanAmt, fee: cleanFee, totalDeduction: cleanTotal, feeRate: currentFeeRate } = getAmountValues();
 
   const { execute: sendOtp, isLoading: isSendingOtp } = useApiCall({
     successMessage: 'OTP sent to your email successfully',
@@ -77,7 +82,8 @@ export const CashOutPage: React.FC = () => {
       await fetchUserProfile();
       
       const cashOutAmt = parseFloat(amount);
-      const feeAmt = cashOutAmt * 0.015;
+      const feeRate = feesConfig.cashout_percentage || 0.015;
+      const feeAmt = cashOutAmt * feeRate;
       const totalDebited = cashOutAmt + feeAmt;
       
       setReceipt({
@@ -122,7 +128,8 @@ export const CashOutPage: React.FC = () => {
 
     confirmCashOut(async () => {
       const cashOutAmt = parseFloat(amount);
-      const feeAmt = cashOutAmt * 0.015;
+      const feeRate = feesConfig.cashout_percentage || 0.015;
+      const feeAmt = cashOutAmt * feeRate;
       const totalDebited = cashOutAmt + feeAmt;
       
       const res = await api.post<any>('/api/transactions/cashout', {
@@ -238,7 +245,7 @@ export const CashOutPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Standard Out Fee (1.5%):</span>
+                  <span>Standard Out Fee ({(currentFeeRate * 100).toFixed(1)}%):</span>
                   <span className="text-rose-400">
                     {amount ? formatBDT(cleanFee) : '৳ 0.00'}
                   </span>
@@ -326,7 +333,7 @@ export const CashOutPage: React.FC = () => {
               <span className="text-[var(--text-primary)] text-right">{receipt.location}</span>
             </div>
             <div className="flex justify-between">
-              <span>Cash Out Fee (1.5%):</span>
+              <span>Cash Out Fee ({(currentFeeRate * 100).toFixed(1)}%):</span>
               <span className="text-rose-400">{formatBDT(receipt.fee)}</span>
             </div>
             <div className="flex justify-between">

@@ -63,6 +63,19 @@ class RechargeRequest(BaseModel):
     pin: str
 
 
+# ── Config endpoints ────────────────────────────────────────────────────────────
+
+@router.get("/transactions/fees")
+def get_transaction_fees():
+    """Returns the current transaction fee configuration."""
+    return {
+        "cashout_percentage": 0.015,
+        "send_money_flat": 5.00,
+        "cashin_flat": 0.00,
+        "bill_payment_flat": 0.00,
+        "mobile_recharge_flat": 0.00
+    }
+
 # ── Shared transaction helper ─────────────────────────────────────────────────
 
 def _execute_transfer(

@@ -26,8 +26,12 @@ export const CashInPage: React.FC = () => {
   const { user, updateUserBalance, fetchUserProfile } = useAuthStore();
 
   const [agentsList, setAgentsList] = useState<any[]>([]);
+  const [feesConfig, setFeesConfig] = useState<any>({ cashin_flat: 0.00 });
 
   useEffect(() => {
+    api.get('/api/transactions/fees')
+      .then(res => setFeesConfig(res.data))
+      .catch(err => console.error('Failed to fetch fees config', err));
     api.get<any[]>('/api/agents')
       .then(data => {
         setAgentsList(data);
@@ -204,7 +208,7 @@ export const CashInPage: React.FC = () => {
                   />
                 </div>
                 <p className="text-[10px] text-[var(--text-secondary)] pl-0.5">
-                  Deposit fee: <strong className="text-[#00C9A7]">৳0.00 (Zero Commission Fee)</strong>
+                  Deposit fee: <strong className="text-[#00C9A7]">৳{(feesConfig.cashin_flat || 0.00).toFixed(2)} (Zero Commission Fee)</strong>
                 </p>
               </div>
 
