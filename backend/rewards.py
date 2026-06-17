@@ -90,6 +90,7 @@ _REWARD_TIERS = [
         "colorStyle":  "orange",
         "borderClass": "border-orange-500/20",
         "bgClass":     "from-orange-500/10",
+        "rate":        0.10,
     },
     {
         "id":          "silver",
@@ -99,6 +100,7 @@ _REWARD_TIERS = [
         "colorStyle":  "slate",
         "borderClass": "border-slate-400/20",
         "bgClass":     "from-slate-400/10",
+        "rate":        0.125,
     },
     {
         "id":          "gold",
@@ -108,6 +110,7 @@ _REWARD_TIERS = [
         "colorStyle":  "yellow",
         "borderClass": "border-yellow-500/20",
         "bgClass":     "from-yellow-500/10",
+        "rate":        0.15,
     },
     {
         "id":          "platinum",
@@ -117,6 +120,7 @@ _REWARD_TIERS = [
         "colorStyle":  "blue",
         "borderClass": "border-blue-400/20",
         "bgClass":     "from-blue-400/10",
+        "rate":        0.175,
     },
 ]
 
@@ -330,12 +334,10 @@ def convert_points_to_cash(
         if not row or row["current_points"] < req.points:
             raise HTTPException(400, "Insufficient points for conversion.")
 
-        # 2. Determine conversion rate based on input requirements
+        # 2. Determine conversion rate dynamically from the static configuration
         tier = row["tier"]
-        rate = 0.10  # Bronze
-        if tier == "silver":   rate = 0.125
-        elif tier == "gold":   rate = 0.15
-        elif tier == "platinum": rate = 0.175
+        tier_config = next((t for t in _REWARD_TIERS if t["id"] == tier), None)
+        rate = tier_config["rate"] if tier_config else 0.10
 
         bdt_amount = round(req.points * rate, 2)
 

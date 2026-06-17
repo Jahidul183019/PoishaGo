@@ -96,10 +96,8 @@ export const RewardsPage: React.FC = () => {
   };
 
   const getTierRate = () => {
-    if (user?.tier === 'platinum') return 0.175;
-    if (user?.tier === 'gold') return 0.15;
-    if (user?.tier === 'silver') return 0.125;
-    return 0.10;
+    const tierConfig = rewardTiers.find((t) => t.id === (user?.tier || 'bronze'));
+    return tierConfig?.rate || 0.10;
   };
 
   const isEligible = (user?.current_points || 0) >= 100;
