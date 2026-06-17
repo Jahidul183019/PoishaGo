@@ -39,7 +39,7 @@ def get_banners(db: Session = Depends(get_db)):
                     action_text
                 FROM promotional_banners
                 WHERE is_active = true
-                ORDER BY created_at DESC
+                ORDER BY banner_id DESC
             """)
         ).mappings().all()
     return [dict(r) for r in rows]
