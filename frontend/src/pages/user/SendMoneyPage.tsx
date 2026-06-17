@@ -45,8 +45,8 @@ export const SendMoneyPage: React.FC = () => {
 
   React.useEffect(() => {
     fetchContacts();
-    api.get('/api/transactions/fees')
-      .then(res => setFeesConfig(res.data))
+    api.get<any>('/api/transactions/fees')
+      .then(res => setFeesConfig(res || { send_money_flat: 5.00 }))
       .catch(err => console.error('Failed to fetch fees config', err));
   }, []);
 
