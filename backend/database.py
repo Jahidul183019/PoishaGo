@@ -11,9 +11,9 @@ from sqlalchemy.pool import NullPool
 from config import settings
 
 engine = create_engine(
-    settings.DATABASE_URL,                     //from config.py
-    poolclass=NullPool,                        //for every request new connection
-    connect_args={"prepare_threshold": None}   //extra configuration of postgresql driver
+    settings.DATABASE_URL,                     # from config.py
+    poolclass=NullPool,                        # for every request new connection
+    connect_args={"prepare_threshold": None}   # extra configuration of postgresql driver
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) //database doesnt save automatically
@@ -23,6 +23,6 @@ def get_db():
     """FastAPI dependency — yields a DB session and closes it on exit."""
     db: Session = SessionLocal()
     try:
-        yield db //sending db to route
+        yield db    #sending db to route
     finally:
         db.close()
