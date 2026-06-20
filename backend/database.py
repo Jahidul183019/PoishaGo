@@ -16,7 +16,7 @@ engine = create_engine(
     connect_args={"prepare_threshold": None}   # extra configuration of postgresql driver
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) //database doesnt save automatically
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) # database doesnt save automatically
 
 
 def get_db():
