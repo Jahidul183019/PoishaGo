@@ -191,9 +191,9 @@ def _execute_transfer(
     if reward_row:
         curr_pts, curr_tier = reward_row[0], reward_row[1]
         rate = 0.1
-        if curr_tier == "silver":     rate = 0.15
-        elif curr_tier == "gold":     rate = 0.2
-        elif curr_tier == "platinum": rate = 0.25
+        if curr_tier == "silver":     rate = 0.125
+        elif curr_tier == "gold":     rate = 0.15
+        elif curr_tier == "platinum": rate = 0.20
 
         earned  = int(amount * rate)
         new_pts = curr_pts + earned
@@ -614,9 +614,9 @@ def cash_in(
         if reward_row:
             curr_pts, curr_tier = reward_row[0], reward_row[1]
             rate = 0.1
-            if curr_tier == "silver":     rate = 0.15
-            elif curr_tier == "gold":     rate = 0.2
-            elif curr_tier == "platinum": rate = 0.25
+            if curr_tier == "silver":     rate = 0.125
+            elif curr_tier == "gold":     rate = 0.15
+            elif curr_tier == "platinum": rate = 0.20
 
             earned  = int(req.amount * rate)
             new_pts = curr_pts + earned
