@@ -1,9 +1,11 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import api, { API_BASE_URL } from '../../utils/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import {
+
   Headphones, Send, MessageCircle, ArrowLeft, User, CheckCircle,
   Clock, AlertCircle, Filter,
 } from 'lucide-react';
@@ -45,7 +47,7 @@ export const AdminSupportPage: React.FC = () => {
       const data = await api.get<Ticket[]>(`/api/admin/support/tickets?status=${statusFilter}`);
       setTickets(data);
     } catch (err) {
-      console.error('Failed to fetch tickets:', err);
+      logger.error('Failed to fetch tickets:', err);
     }
   }, [statusFilter]);
 
@@ -69,7 +71,7 @@ export const AdminSupportPage: React.FC = () => {
       const msgs = await api.get<ChatMessage[]>(`/api/admin/support/tickets/${ticket.ticket_id}/messages`);
       setMessages(msgs);
     } catch (err) {
-      console.error('Failed to load messages:', err);
+      logger.error('Failed to load messages:', err);
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export const AdminSupportPage: React.FC = () => {
       setMessages((prev) => [...prev, msg]);
     };
 
-    ws.onerror = () => console.error('WebSocket error');
+    ws.onerror = () => logger.error('WebSocket error');
     wsRef.current = ws;
   };
 
@@ -109,7 +111,7 @@ export const AdminSupportPage: React.FC = () => {
       await api.patch(`/api/admin/support/tickets/${activeTicket.ticket_id}/resolve`, {});
       setActiveTicket({ ...activeTicket, status: 'RESOLVED' });
     } catch (err) {
-      console.error('Failed to resolve ticket:', err);
+      logger.error('Failed to resolve ticket:', err);
     }
   };
 

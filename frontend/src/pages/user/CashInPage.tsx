@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -12,6 +13,7 @@ import OTPInput from '../../components/ui/OTPInput';
 import { useToast, useToastStore } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
 import { 
+
   ArrowLeft, 
   MapPin, 
   Wallet, 
@@ -31,7 +33,7 @@ export const CashInPage: React.FC = () => {
   useEffect(() => {
     api.get<any>('/api/transactions/fees')
       .then(res => setFeesConfig(res || { cashin_flat: 0.00 }))
-      .catch(err => console.error('Failed to fetch fees config', err));
+      .catch(err => logger.error('Failed to fetch fees config', err));
     api.get<any[]>('/api/agents')
       .then(data => {
         setAgentsList(data);

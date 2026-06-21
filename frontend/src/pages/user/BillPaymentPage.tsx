@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -11,6 +12,7 @@ import OTPInput from '../../components/ui/OTPInput';
 import { useToast } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
 import { 
+
   ArrowLeft, 
   Zap, 
   Droplet, 
@@ -66,7 +68,7 @@ export const BillPaymentPage: React.FC = () => {
         const res = await api.get<any>('/api/bill/providers');
         setCategoryCompanies(res || {});
       } catch (err) {
-        console.error('Failed to fetch bill providers', err);
+        logger.error('Failed to fetch bill providers', err);
       }
     };
     fetchProviders();

@@ -1,6 +1,8 @@
+import { logger } from '../../utils/logger';
 // frontend/src/components/ui/ErrorBoundary.tsx
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+
 
 interface Props {
   children: ReactNode;
@@ -21,7 +23,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // In production, send to a logging service like Sentry
-    console.error('[ErrorBoundary caught]:', error, info);
+    logger.error('[ErrorBoundary caught]:', error, info);
   }
 
   handleReset = () => {

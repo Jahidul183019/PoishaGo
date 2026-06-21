@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -7,6 +8,7 @@ import api from '../../utils/api';
 import { TierBadge, StatusBadge } from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import {
+
   Eye,
   EyeOff,
   X,
@@ -37,7 +39,7 @@ export const HomePage: React.FC = () => {
         const res = await api.get<any[]>('/api/banners');
         setBanners(res || []);
       } catch (err) {
-        console.error('Failed to fetch banners', err);
+        logger.error('Failed to fetch banners', err);
       }
     };
     fetchBanners();

@@ -1,9 +1,11 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import api, { API_BASE_URL } from '../../utils/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import {
+
   HelpCircle, Plus, Send, MessageCircle, ArrowLeft, CheckCircle2, Clock,
 } from 'lucide-react';
 
@@ -43,7 +45,7 @@ export const HelpCenterPage: React.FC = () => {
       const data = await api.get<Ticket[]>('/api/support/tickets');
       setTickets(data);
     } catch (err) {
-      console.error('Failed to fetch tickets:', err);
+      logger.error('Failed to fetch tickets:', err);
     }
   }, []);
 
@@ -67,7 +69,7 @@ export const HelpCenterPage: React.FC = () => {
       const msgs = await api.get<ChatMessage[]>(`/api/support/tickets/${ticket.ticket_id}/messages`);
       setMessages(msgs);
     } catch (err) {
-      console.error('Failed to load messages:', err);
+      logger.error('Failed to load messages:', err);
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export const HelpCenterPage: React.FC = () => {
       setMessages((prev) => [...prev, msg]);
     };
 
-    ws.onerror = () => console.error('WebSocket error');
+    ws.onerror = () => logger.error('WebSocket error');
     wsRef.current = ws;
   };
 
@@ -116,7 +118,7 @@ export const HelpCenterPage: React.FC = () => {
       await fetchTickets();
       openTicket(ticket);
     } catch (err) {
-      console.error('Failed to create ticket:', err);
+      logger.error('Failed to create ticket:', err);
     }
   };
 

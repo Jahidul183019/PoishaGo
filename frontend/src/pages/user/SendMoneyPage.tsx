@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -12,6 +13,7 @@ import OTPInput from '../../components/ui/OTPInput';
 import { useToast, useToastStore } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
 import { 
+
   ArrowLeft, 
   UserCheck, 
   Send, 
@@ -47,7 +49,7 @@ export const SendMoneyPage: React.FC = () => {
     fetchContacts();
     api.get<any>('/api/transactions/fees')
       .then(res => setFeesConfig(res || { send_money_flat: 5.00 }))
-      .catch(err => console.error('Failed to fetch fees config', err));
+      .catch(err => logger.error('Failed to fetch fees config', err));
   }, []);
 
   // Add contact modal state
