@@ -116,7 +116,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await useWalletStore.getState().fetchNotifications();
       await useWalletStore.getState().fetchRewardOptions();
       await useWalletStore.getState().fetchRewardsHistory();
-      await useWalletStore.getState().fetchBillCategories();
     } catch (e: any) {
       if (!e.message?.includes('401')) {
         useToastStore.getState().showToast(e.message || 'Failed to fetch profile', 'error');

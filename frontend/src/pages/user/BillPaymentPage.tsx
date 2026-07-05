@@ -2,7 +2,6 @@ import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useWalletStore } from '../../store/useWalletStore';
 import api from '../../utils/api';
 import { formatBDT } from '../../utils/format';
 import Button from '../../components/ui/Button';
@@ -11,8 +10,8 @@ import Card from '../../components/ui/Card';
 import OTPInput from '../../components/ui/OTPInput';
 import { useToast } from '../../hooks/useToast';
 import { useApiCall } from '../../hooks/useApiCall';
+import { BILL_CATEGORIES } from '../../config/billCategories';
 import { 
-
   ArrowLeft, 
   Zap, 
   Droplet, 
@@ -21,29 +20,20 @@ import {
   BookOpen, 
   Tv, 
   ChevronRight,
-  Tag,
   User, 
   Receipt, 
   CheckCircle, 
   AlertCircle 
 } from 'lucide-react';
 
-// Map icon_id strings to actual Lucide components
-const iconMap: Record<string, any> = {
-  'Zap': Zap,
-  'Droplet': Droplet,
-  'Flame': Flame,
-  'Globe': Globe,
-  'BookOpen': BookOpen,
-  'Tv': Tv,
-  'Tag': Tag
-};
+// Map icon strings from config to actual Lucide components
+const ICONS: Record<string, any> = { Zap, Droplet, Flame, Globe, BookOpen, Tv };
 
 
 export const BillPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, fetchUserProfile } = useAuthStore();
-  const { billCategories, fetchBillCategories } = useWalletStore();
+
   const { toasts, showToast, dismissToast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -58,10 +48,6 @@ export const BillPaymentPage: React.FC = () => {
   const [categoryCompanies, setCategoryCompanies] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    if (billCategories.length === 0) {
-      fetchBillCategories();
-    }
-    
     // Fetch dynamic bill providers
     const fetchProviders = async () => {
       try {
@@ -72,7 +58,7 @@ export const BillPaymentPage: React.FC = () => {
       }
     };
     fetchProviders();
-  }, [billCategories, fetchBillCategories]);
+  }, []);
 
   const handleSelectCategory = (catId: string) => {
     setSelectedCategory(catId);
@@ -189,16 +175,16 @@ export const BillPaymentPage: React.FC = () => {
       {/* STEP 1: CATEGORY GRID SPLITS */}
       {currentStep === 1 && (
         <div className="grid grid-cols-2 gap-4 select-none">
-          {Array.isArray(billCategories) && billCategories.length > 0 ? billCategories.map((cat) => {
-            const IconComp = iconMap[cat.icon_id];
+          {BILL_CATEGORIES.map((cat) => {
+            const Icon = ICONS[cat.icon];
             return (
               <button
                 key={cat.id}
                 onClick={() => handleSelectCategory(cat.id)}
                 className="bg-[var(--bg-card)] border border-[var(--border)] hover:border-cyan-400/25 p-5 rounded-2xl flex flex-col gap-4 text-left transition-all hover:-translate-y-0.5 group outline-none"
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 duration-200 ${cat.color}`}>
-                  {IconComp && <IconComp size={18} />}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 duration-200 ${cat.color} ${cat.bg} ${cat.border}`}>
+                  {Icon && <Icon size={18} />}
                 </div>
                 <div>
                   <h4 className="font-sora font-bold text-sm text-[var(--text-primary)]">
@@ -210,11 +196,7 @@ export const BillPaymentPage: React.FC = () => {
                 </div>
               </button>
             );
-          }) : (
-            <div className="col-span-2 py-12 text-center text-xs text-[var(--text-secondary)] font-semibold">
-              Loading biller registries from central bank clearing house...
-            </div>
-          )}
+          })}
         </div>
       )}
 

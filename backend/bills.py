@@ -1,10 +1,14 @@
 """
 routers/bills.py
 ----------------
-Bill categories configuration.
+Bill providers configuration.
 
 Frontend pages:
-  BillPaymentPage  → GET  /api/bill/categories
+  BillPaymentPage  → GET  /api/bill/providers
+
+Note: Bill categories (id, label, icon, color) have been moved to
+frontend/src/config/billCategories.ts as static presentation config.
+Only bill_providers (real business data) remains in the database.
 """
 
 from fastapi import APIRouter, Depends
@@ -15,12 +19,6 @@ from database import get_db
 
 router = APIRouter(prefix="/api", tags=["Bills"])
 
-
-@router.get("/bill/categories")
-def get_bill_categories(db: Session = Depends(get_db)):
-    with db.connection().engine.connect() as conn:
-        rows = conn.execute(text("SELECT id, label, icon_id, color FROM bill_categories ORDER BY created_at ASC")).mappings().all()
-    return [dict(r) for r in rows]
 
 @router.get("/bill/providers")
 def get_bill_providers(db: Session = Depends(get_db)):
@@ -36,5 +34,3 @@ def get_bill_providers(db: Session = Depends(get_db)):
         providers_map[cat].append(r["name"])
         
     return providers_map
-
-

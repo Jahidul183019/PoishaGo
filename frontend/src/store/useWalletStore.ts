@@ -87,7 +87,6 @@ interface WalletState {
   campaigns: CashbackCampaign[];
   notifications: AppNotification[];
   rewardOptions: RewardRedeemOption[];
-  billCategories: any[];
   pointsRedeemedHistory: Array<{
     id: number;
     points: number;
@@ -118,7 +117,6 @@ interface WalletState {
   fetchAdminTransactions: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
   fetchRewardOptions: () => Promise<void>;
-  fetchBillCategories: () => Promise<void>;
   fetchRewardsHistory: () => Promise<void>;
   fetchUsers: () => Promise<void>;
   fetchFraudFlags: () => Promise<void>;
@@ -133,9 +131,7 @@ interface WalletState {
   resolveFraudFlag: (id: number) => Promise<void>;
   addRewardOption: (option: Omit<RewardRedeemOption, 'id'>) => Promise<void>;
   deleteRewardOption: (id: number) => Promise<void>;
-  addBillCategory: (category: any) => Promise<void>;
   broadcastNotification: (message: string) => Promise<void>;
-  deleteBillCategory: (id: string) => Promise<void>;
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -150,7 +146,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   campaigns: [],
   notifications: [],
   rewardOptions: [],
-  billCategories: [],
   pointsRedeemedHistory: [],
 
   isLoadingTransactions: false,
@@ -263,15 +258,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
   },
 
-  // ── Fetch: Bill categories ────────────────────────────────────────────────
-  fetchBillCategories: async () => {
-    try {
-      const data = await api.get<any[]>('/api/bill/categories');
-      set({ billCategories: data });
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Failed to fetch bill categories', 'error');
-    }
-  },
+
 
   // ── Fetch: Rewards history ────────────────────────────────────────────────
   fetchRewardsHistory: async () => {
@@ -414,26 +401,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
   },
 
-  // ── Admin: Bill categories ────────────────────────────────────────────────
-  addBillCategory: async (category) => {
-    try {
-      await api.post('/api/admin/bill/categories', category);
-      await get().fetchBillCategories();
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Failed to add bill category', 'error');
-    }
-  },
 
-  deleteBillCategory: async (id) => {
-    try {
-      await api.delete(`/api/admin/bill/categories/${id}`);
-      set((state) => ({
-        billCategories: state.billCategories.filter((c) => c.id !== id),
-      }));
-    } catch (err: any) {
-      useToastStore.getState().showToast(err.message || 'Failed to delete bill category', 'error');
-    }
-  },
 
   broadcastNotification: async (message) => {
     try {

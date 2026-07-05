@@ -5,6 +5,12 @@ drop table if exists reward_points cascade;
 drop table if exists notifications cascade;
 drop table if exists audit_logs cascade;
 drop table if exists bill_payments cascade;
+drop table if exists support_messages cascade;
+drop table if exists support_tickets cascade;
+drop table if exists bill_providers cascade;
+drop table if exists bill_categories cascade;
+drop table if exists promotional_banners cascade;
+drop table if exists reward_options cascade;
 drop table if exists fraud_flags cascade;
 drop table if exists admin_permissions cascade;
 drop table if exists admins cascade;
@@ -491,21 +497,11 @@ INSERT INTO reward_options (title, points_required, value_bdt, category) VALUES
     ('৳200 Daraz Voucher', 2000, 200.0, 'voucher'),
     ('৳500 Wallet Cashback', 5000, 500.0, 'cashback');
 
-CREATE TABLE bill_categories (
-    id VARCHAR(50) PRIMARY KEY,
-    label VARCHAR(255) NOT NULL,
-    icon_id VARCHAR(50) NOT NULL,
-    color VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
-INSERT INTO bill_categories (id, label, icon_id, color) VALUES
-    ('electricity', 'Electricity', 'Zap', 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'),
-    ('water', 'Water Bill', 'Droplet', 'text-blue-400 bg-blue-500/10 border-blue-500/20'),
-    ('gas', 'Gas', 'Flame', 'text-orange-400 bg-orange-500/10 border-orange-500/20'),
-    ('internet', 'Internet', 'Globe', 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'),
-    ('education', 'Education', 'BookOpen', 'text-green-400 bg-green-500/10 border-green-500/20'),
-    ('tv', 'Cable TV', 'Tv', 'text-purple-400 bg-purple-500/10 border-purple-500/20');
+-- Note: Bill categories (id, label, icon, color) have been moved to
+-- frontend/src/config/billCategories.ts as static presentation config.
+-- Only bill_providers (real business data) remains in the database.
+
 
 CREATE TABLE promotional_banners (
     banner_id SERIAL PRIMARY KEY,
@@ -520,7 +516,7 @@ INSERT INTO promotional_banners (title, description, action_text) VALUES
 
 CREATE TABLE bill_providers (
     provider_id SERIAL PRIMARY KEY,
-    category VARCHAR(50) REFERENCES bill_categories(id),
+    category VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL
 );
 

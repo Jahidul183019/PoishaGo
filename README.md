@@ -22,7 +22,7 @@
 ### 💸 Core Financial Suite
 - **Send Money**: Instant peer-to-peer transfers with dynamic, server-controlled commission fees.
 - **Agent Cash In & Out**: Secure deposit and withdrawal mechanics with verified agent networks.
-- **Bill Payments**: Automated integration with utility providers, fully dynamic and fetched from the database.
+- **Bill Payments**: Automated integration with utility providers. Categories are static frontend config; providers are dynamically fetched from the database.
 - **Mobile Recharge**: Instant top-ups across all major telecommunication operators.
 - **Dynamic Content Delivery**: Promotional banners, transaction fees, and reward configurations are completely database-driven via REST APIs, allowing real-time updates without app redeployments.
 

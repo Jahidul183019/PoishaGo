@@ -13,7 +13,7 @@ transactions → SendMoneyPage, CashOutPage, CashInPage, BillPaymentPage,
 user       → SendMoneyPage(contacts), NotificationsPage,
                CashInPage/CashOutPage(agents), AdminUserTxnMgmtPage(users)
 rewards    → RewardsPage, AdminConfigPage(reward options)
-bills      → BillPaymentPage(categories), AdminConfigPage(bill categories)
+bills      → BillPaymentPage(providers)
 admin      → AdminFraudDetectionPage(fraud-flags), AdminOccasionsPage(campaigns)
 """
 
@@ -63,7 +63,7 @@ app.include_router(auth.router)           # /api/register, /api/login, /api/me, 
 app.include_router(transactions.router)   # /api/transactions/*, /api/recharge, /api/admin/transactions
 app.include_router(user.router)           # /api/contacts, /api/notifications, /api/agents, /api/users
 app.include_router(rewards.router)        # /api/rewards/*, /api/admin/rewards/*
-app.include_router(bills.router)          # /api/bill/categories, /api/admin/bill/categories
+app.include_router(bills.router)          # /api/bill/providers
 app.include_router(admin.router)          # /api/fraud-flags, /api/campaigns
 app.include_router(support.router)        # /api/support/*, /api/ws/support/*
 
