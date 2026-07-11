@@ -319,12 +319,8 @@ PoishaGo/
 
 ---
 
-## Future Roadmap
+## Future Scope
 
-- Add rate limiting to authentication and OTP endpoints.
-- Add `SELECT ... FOR UPDATE` row locking on wallet balance checks during transfers.
-- Add ticket-ownership verification to the support WebSocket handler.
-- Replace the static-threshold fraud engine with a trained risk-scoring model, using admin review decisions as labeled feedback.
-- Support multi-currency wallets with exchange-rate history.
-- Partition the `transactions` table by date range for scale.
-- Add an automated SQL/regression test suite for constraint and business-rule correctness.
+- Multi-currency support
+- ML-based fraud scoring
+- Table partitioning for transactions at scale
