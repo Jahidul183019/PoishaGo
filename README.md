@@ -321,6 +321,7 @@ PoishaGo/
 
 ## Future Scope
 
-- Multi-currency support
-- ML-based fraud scoring
-- Table partitioning for transactions at scale
+- **Multi-currency support** — extend wallets and transactions beyond BDT with exchange-rate tracking.
+- **ML-based fraud scoring** — replace static rule thresholds with a trained model using transaction patterns.
+- **Table partitioning for transactions at scale** — partition by date to keep performance stable as volume grows.
+- **Rate limiting on auth/OTP endpoints** — add brute-force protection for login and verification.
