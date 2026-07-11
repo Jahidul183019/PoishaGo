@@ -54,9 +54,7 @@
 
 ## Introduction
 
-PoishaGo is a full-stack Mobile Financial Service (MFS) platform built as the lab project for CSE-2201 (Database Management System) at the University of Dhaka. It models a real-world digital wallet product in the spirit of bKash/Nagad — peer-to-peer transfers, agent cash-in/cash-out, utility bill payments, and mobile recharge — backed by a genuinely normalized 20-table PostgreSQL schema rather than a toy example.
-
-The database is the authority. Every business rule that matters — transfer limits, fraud thresholds, reward-tier boundaries, admin permissions — is enforced first at the FastAPI application layer and backed by PostgreSQL constraints (`CHECK`, `FOREIGN KEY`, `UNIQUE`) as the last line of defense, so the system stays consistent even if application logic has a bug. The single connection point for all money movement is the `_execute_transfer` helper in [backend/transactions.py](backend/transactions.py), which every send-money, cash-out, cash-in, and bill-payment endpoint routes through — this keeps balance updates, fee calculation, reward accrual, and fraud-relevant logging consistent across every transaction type instead of duplicating logic per endpoint.
+PoishaGo is a full-stack, state-of-the-art Mobile Financial Service (MFS) application engineered to deliver secure, lightning-fast, and deeply immersive digital banking experiences. Built to emulate and improve upon industry giants like bKash, PoishaGo offers peer-to-peer transfers, merchant payments, utility bill processing, and agent banking—all wrapped in a meticulously crafted, mobile-first UI.
 
 ### Key Objectives
 
