@@ -126,9 +126,10 @@ PoishaGo is a full-stack, state-of-the-art Mobile Financial Service (MFS) applic
 
 ## System Architecture
 
-<p align="center">
-  <img src="docs/schema-diagram.png" alt="PoishaGo database schema diagram" width="90%">
-</p>
+<div align="center">
+  <img src="docs/schema-diagram.png" alt="PoishaGo full database schema — all 20 tables" width="100%" style="max-width:960px;border:1px solid #e4e8f2;border-radius:8px;">
+  <p><em>Full schema diagram — all 20 tables with column-level detail</em></p>
+</div>
 
 The full schema and entity-relationship diagrams are maintained alongside the lab report; see [backend/schema.sql](backend/schema.sql) for the authoritative DDL.
 
@@ -150,9 +151,10 @@ The full schema and entity-relationship diagrams are maintained alongside the la
 - Full DDL lives in [backend/schema.sql](backend/schema.sql); supporting indexes in [backend/indexes.sql](backend/indexes.sql).
 - Every table is proven to satisfy BCNF with documented non-trivial functional dependencies — see the full DBMS lab report for the complete normalization proof, ER diagram, and 27 sample queries covering joins, subqueries, set operations, views, and aggregate functions.
 
-<p align="center">
-  <img src="docs/er-diagram.png" alt="PoishaGo entity-relationship diagram" width="90%">
-</p>
+<div align="center">
+  <img src="docs/er-diagram.png" alt="PoishaGo entity-relationship diagram" width="100%" style="max-width:1100px;border:1px solid #e4e8f2;border-radius:8px;">
+  <p><em>Entity-Relationship Diagram — 20 entities connected through primary and foreign keys</em></p>
+</div>
 
 ---
 
