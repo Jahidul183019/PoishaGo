@@ -147,7 +147,7 @@ The full schema and entity-relationship diagrams are maintained alongside the la
 
 ## Database Design
 
-- **20 tables** spanning users, wallets, transactions, OTP verification, transaction limits, admin RBAC, fraud detection, bill payments, audit logs, notifications, rewards, occasion cashbacks, favorite contacts, and support tickets.
+- **20 tables** spanning users, wallets, transactions, OTP verification, transaction limits, admin RBAC, fraud detection, bill payments, bill providers, audit logs, notifications, rewards, occasion cashbacks, promotional banners, favorite contacts, and support tickets.
 - Full DDL lives in [backend/schema.sql](backend/schema.sql); supporting indexes in [backend/indexes.sql](backend/indexes.sql).
 - Every table is proven to satisfy BCNF with documented non-trivial functional dependencies — see the full DBMS lab report for the complete normalization proof, ER diagram, and 27 sample queries covering joins, subqueries, set operations, views, and aggregate functions.
 
