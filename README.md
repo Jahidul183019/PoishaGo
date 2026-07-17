@@ -36,6 +36,7 @@
 | Service | URL |
 |---------|-----|
 | Live App | [https://poisha-go.vercel.app](https://poisha-go.vercel.app) |
+| Demo Video | [https://youtu.be/awSXqrr5GCM?si=JjkWrgGme4-V84wp](https://youtu.be/awSXqrr5GCM?si=JjkWrgGme4-V84wp) |
 | Backend API | Render-hosted (see deployment config) |
 | Database | Supabase (PostgreSQL) |
 | GitHub Repo | [https://github.com/Jahidul183019/PoishaGo](https://github.com/Jahidul183019/PoishaGo) |
