@@ -13,9 +13,6 @@ load_dotenv()
 class Settings:
     APP_NAME: str = "PoishaGo API"
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    
-    # CORS
-    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "https://poisha-go.vercel.app,http://localhost:3000,http://127.0.0.1:3000")
 
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
