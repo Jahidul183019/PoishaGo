@@ -24,7 +24,7 @@ def main():
         print("Error: DATABASE_URL environment variable not set in .env")
         sys.exit(1)
 
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=4)
     hashed_password = pwd_context.hash(args.password)
 
     try:
