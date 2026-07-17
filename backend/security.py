@@ -8,7 +8,7 @@ import bcrypt
 
 def hash_pin(plain: str) -> str:
     """Return a bcrypt hash of the given plaintext PIN."""
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(rounds=4)
     return bcrypt.hashpw(plain.encode('utf-8'), salt).decode('utf-8')
     # Step 1: plain text PIN → convert to bytes (encode)
     # Step 2: bcrypt hashes it using the salt
