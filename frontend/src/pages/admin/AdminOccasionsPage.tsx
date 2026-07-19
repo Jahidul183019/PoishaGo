@@ -114,7 +114,7 @@ export const AdminOccasionsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {campaigns.length === 0 ? (
             <p className="p-8 text-center text-xs text-[var(--text-secondary)] md:col-span-2">
-              No active cashbacks configured. Click launching above!
+              No active campaigns configured. Click launching above!
             </p>
           ) : (
             campaigns.map((camp) => (
@@ -137,7 +137,7 @@ export const AdminOccasionsPage: React.FC = () => {
                         {camp.name}
                       </h4>
                       <p className="text-[10px] text-amber-400 font-semibold mt-1">
-                        Rebate Multiplier: {camp.percent}% Instant Cashback
+                        Multiplier: {camp.percent}% Instant Bonus
                       </p>
                     </div>
                   </div>
@@ -160,11 +160,11 @@ export const AdminOccasionsPage: React.FC = () => {
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-3 rounded-lg grid grid-cols-2 gap-1 text-[11px] font-semibold text-[var(--text-secondary)] my-4.5">
                   <div>
                     <span>Max cap amount:</span>
-                    <strong className="block text-white mt-0.5">{formatBDT(camp.max_limit)}</strong>
+                    <strong className="block text-[var(--text-primary)] mt-0.5">{formatBDT(camp.max_limit)}</strong>
                   </div>
                   <div>
                     <span>Active until:</span>
-                    <strong className="block text-white mt-0.5">{camp.end_date}</strong>
+                    <strong className="block text-[var(--text-primary)] mt-0.5">{camp.end_date}</strong>
                   </div>
                 </div>
 
@@ -201,12 +201,12 @@ export const AdminOccasionsPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Launch New Cashback Campaign"
+        title="Launch New Campaign"
       >
         <form onSubmit={handleCreateCampaignSubmit} className="flex flex-col gap-4 select-none">
 
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2 text-center">
-            Specify automated cashback parameters. Transacting citizens meeting criteria automatically earn instantaneous purse deposits!
+            Specify automated campaign parameters. Transacting citizens meeting criteria automatically earn instantaneous bonuses!
           </p>
 
           {/* Title */}
@@ -248,7 +248,7 @@ export const AdminOccasionsPage: React.FC = () => {
             {/* Percentage rebate rate */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                Cashback Rate %
+                Bonus Rate %
               </label>
               <input
                 type="number"
