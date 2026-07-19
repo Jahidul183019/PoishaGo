@@ -108,7 +108,7 @@ def _execute_transfer(
 
     receiver_info = conn.execute(
         text("""
-            SELECT u.user_id, w.wallet_id, w.is_active
+            SELECT u.user_id, w.wallet_id, w.is_active, u.user_type
             FROM users u
             LEFT JOIN wallets w ON u.user_id = w.user_id
             WHERE u.phone = :p
@@ -121,6 +121,8 @@ def _execute_transfer(
         raise HTTPException(400, "Receiver account is unverified and cannot receive money.")
     if not receiver_info[2]: # w.is_active
         raise HTTPException(403, "Receiver account is blocked and cannot receive money.")
+    if txn_type == "cashout" and receiver_info[3] != 'agent':
+        raise HTTPException(400, "Cash out is only available to registered agent accounts.")
 
     sender_wallet_id   = sender_wallet[0]
     receiver_wallet_id = receiver_info[1]
@@ -608,13 +610,17 @@ def cash_in(
 
             agent_wallet = conn.execute(
                 text("""
-                    SELECT w.wallet_id, w.balance, u.user_id, w.is_active
+                    SELECT w.wallet_id, w.balance, u.user_id, w.is_active, u.user_type
                     FROM wallets w JOIN users u ON u.user_id = w.user_id
                     WHERE u.phone = :p FOR UPDATE
                 """),
                 {"p": req.agent_phone},
             ).first()
-            if not agent_wallet or agent_wallet[1] < req.amount:
+            if not agent_wallet:
+                raise HTTPException(400, "Agent not found.")
+            if agent_wallet[4] != 'agent':
+                raise HTTPException(400, "Cash in can only be performed by registered agents.")
+            if agent_wallet[1] < req.amount:
                 raise HTTPException(400, "Agent has insufficient funds.")
             if not agent_wallet[3]:
                 raise HTTPException(403, "Agent account is blocked.")
