@@ -165,8 +165,10 @@ def get_rewards_history(
     with db.connection().engine.connect() as conn:
         # Query the transactions ledger for reward system credits,
         # then join audit_logs to recover the actual points spent.
-        # Convert logs use {"points": N, "bdt": M}
-        # Claim logs use {"user_id": X, "amount": M, "title": "..."}
+        #
+        # Audit log JSON shapes:
+        #   USER_CONVERT_POINTS → target_id=user_id, new_value={"points": N, "bdt": M}
+        #   USER_CLAIM_REWARD   → target_id=option_id, new_value={"user_id": X, "amount": M, "title": "..."}
         rows = conn.execute(
             text("""
                 SELECT
@@ -181,14 +183,16 @@ def get_rewards_history(
                 JOIN wallets sw ON sw.wallet_id = t.sender_wallet_id
                 LEFT JOIN audit_logs al
                     ON al.action IN ('USER_CONVERT_POINTS', 'USER_CLAIM_REWARD')
+                   AND COALESCE(
+                           (al.new_value->>'bdt')::numeric,
+                           (al.new_value->>'amount')::numeric
+                       ) = t.amount
                    AND (
-                        COALESCE(
-                            (al.new_value->>'bdt')::numeric,
-                            (al.new_value->>'amount')::numeric
-                        ) = t.amount
+                        (al.action = 'USER_CONVERT_POINTS' AND al.target_id = :uid_int)
+                        OR
+                        (al.action = 'USER_CLAIM_REWARD' AND (al.new_value->>'user_id')::int = :uid_int)
                    )
-                   AND (al.new_value->>'user_id')::int = :uid_int
-                   AND al.logged_at BETWEEN t.txn_at - interval '5 seconds' AND t.txn_at + interval '5 seconds'
+                   AND al.logged_at BETWEEN t.txn_at - interval '10 seconds' AND t.txn_at + interval '10 seconds'
                 WHERE t.receiver_wallet_id = (SELECT wallet_id FROM wallets WHERE user_id = :uid)
                   AND sw.wallet_number = 'SYSTEM_REWARDS'
                 ORDER BY t.txn_at DESC
