@@ -308,6 +308,16 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       set({ isLoadingCampaigns: false });
     }
   },
+  // ── Convert Points ──────────────────────────────────────────────────────────
+  convertPointsToCash: async (points: number) => {
+    try {
+      await api.post('/api/rewards/convert', { points });
+      useToastStore.getState().showToast('Points converted to cash successfully!', 'success');
+    } catch (err: any) {
+      useToastStore.getState().showToast(err.message || 'Failed to convert points', 'error');
+      throw err;
+    }
+  },
 
   // ── Admin: Toggle user status ─────────────────────────────────────────────
   toggleCitizenStatus: async (userId, currentStatus) => {

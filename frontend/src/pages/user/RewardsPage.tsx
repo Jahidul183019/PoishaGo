@@ -90,9 +90,14 @@ export const RewardsPage: React.FC = () => {
     if (isNaN(pts) || pts < 100) return;
     
     setIsSubmitting(true);
-    await convertPointsToCash(pts);
-    await fetchUserProfile();
-    setIsSubmitting(false);
+    try {
+      await convertPointsToCash(pts);
+      await fetchUserProfile();
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getTierRate = () => {
