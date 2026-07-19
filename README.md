@@ -251,7 +251,7 @@ SENDER_EMAIL=your_verified_sender_email@example.com
 | `/api/recharge` | POST | Mobile recharge |
 | `/api/transactions` | GET | Transaction history for the authenticated user |
 | `/api/admin/transactions` | GET | All transactions (admin, permission-gated) |
-| `/api/admin/fraud-flags` | GET | Fraud review queue sorted by risk score |
+| `/api/fraud-flags` | GET | Fraud review queue sorted by risk score |
 | `/api/support/tickets` | GET / POST | List or create support tickets |
 | `/api/ws/support/{ticket_id}` | WebSocket | Real-time support chat |
 
