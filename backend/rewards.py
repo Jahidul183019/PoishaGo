@@ -240,13 +240,13 @@ def redeem_rewards(
         wallet_row = conn.execute(
             text("""
                 UPDATE wallets SET balance = balance + :bdt
-                WHERE user_id = :uid
+                WHERE user_id = :uid AND is_active = true
                 RETURNING wallet_id
             """),
             {"bdt": bdt_to_add, "uid": user_id},
         ).first()
         if not wallet_row:
-            raise HTTPException(404, "Wallet not found.")
+            raise HTTPException(403, "Wallet not found or account is blocked.")
 
         wallet_id = wallet_row[0]
 
@@ -373,10 +373,13 @@ def convert_points_to_cash(
 
         # 4. Credit Wallet
         wallet_row = conn.execute(
-            text("UPDATE wallets SET balance = balance + :amt WHERE user_id = :uid RETURNING wallet_id"),
+            text("UPDATE wallets SET balance = balance + :amt WHERE user_id = :uid AND is_active = true RETURNING wallet_id"),
             {"amt": bdt_amount, "uid": user_id}
         ).first()
         
+        if not wallet_row:
+            raise HTTPException(403, "Wallet not found or account is blocked.")
+            
         wallet_id = wallet_row[0]
 
         # 5. Log Transaction

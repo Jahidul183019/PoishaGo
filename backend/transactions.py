@@ -98,15 +98,17 @@ def _execute_transfer(
         raise HTTPException(401, "Invalid PIN.")
 
     sender_wallet = conn.execute(
-        text("SELECT wallet_id, balance FROM wallets WHERE user_id = :uid"),
+        text("SELECT wallet_id, balance, is_active FROM wallets WHERE user_id = :uid"),
         {"uid": sender_user_id},
     ).first()
     if not sender_wallet:
         raise HTTPException(400, "Sender wallet not found.")
+    if not sender_wallet[2]: # is_active
+        raise HTTPException(403, "Your account is blocked.")
 
     receiver_info = conn.execute(
         text("""
-            SELECT u.user_id, w.wallet_id
+            SELECT u.user_id, w.wallet_id, w.is_active
             FROM users u
             LEFT JOIN wallets w ON u.user_id = w.user_id
             WHERE u.phone = :p
@@ -117,6 +119,8 @@ def _execute_transfer(
         raise HTTPException(400, "Receiver not found.")
     if not receiver_info[1]:
         raise HTTPException(400, "Receiver account is unverified and cannot receive money.")
+    if not receiver_info[2]: # w.is_active
+        raise HTTPException(403, "Receiver account is blocked and cannot receive money.")
 
     sender_wallet_id   = sender_wallet[0]
     receiver_wallet_id = receiver_info[1]
