@@ -61,6 +61,8 @@ export const AdminOccasionsPage: React.FC = () => {
       percent: pct,
       max_limit: maxCap,
       min_txn_amount: 0,
+      eligible_txn_type: 'all',
+      start_date: new Date().toISOString().split('T')[0],
       is_active: true,
       end_date: validUntilDate
     });
@@ -222,7 +224,7 @@ export const AdminOccasionsPage: React.FC = () => {
               placeholder="e.g. Eid-Ul-Adha Salami Rebate"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-amber-400"
               required
             />
           </div>
@@ -235,7 +237,7 @@ export const AdminOccasionsPage: React.FC = () => {
             <select
               value={occasionType}
               onChange={(e) => setOccasionType(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400 appearance-none cursor-pointer"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-amber-400 appearance-none cursor-pointer"
               required
             >
               <option value="eid">Eid Holiday</option>
@@ -258,7 +260,7 @@ export const AdminOccasionsPage: React.FC = () => {
                 placeholder="15"
                 value={percentageBack}
                 onChange={(e) => setPercentageBack(e.target.value)}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-amber-400"
                 required
               />
             </div>
@@ -273,7 +275,7 @@ export const AdminOccasionsPage: React.FC = () => {
                 placeholder="500"
                 value={capacityCap}
                 onChange={(e) => setCapacityCap(e.target.value)}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-amber-400"
                 required
               />
             </div>
@@ -290,13 +292,13 @@ export const AdminOccasionsPage: React.FC = () => {
               placeholder="e.g. June 30, 2026"
               value={validUntilDate}
               onChange={(e) => setValidUntilDate(e.target.value)}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-white outline-none focus:border-amber-400"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-xs font-semibold text-[var(--text-primary)] outline-none focus:border-amber-400"
               required
             />
           </div>
 
           {errorText && (
-            <p className="text-xs text-rose-400 font-semibold text-center bg-rose-500/10 p-2 rounded-lg">
+            <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold text-center bg-rose-500/10 p-2 rounded-lg">
               {errorText}
             </p>
           )}

@@ -55,6 +55,8 @@ export interface CashbackCampaign {
   percent: number;
   max_limit: number;
   min_txn_amount: number;
+  eligible_txn_type: string;
+  start_date: string;
   is_active: boolean;
   end_date: string;
   created_at: string;
