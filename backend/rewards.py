@@ -233,6 +233,19 @@ def redeem_rewards(
         if user_pts is None or user_pts < opt["points_required"]:
             raise HTTPException(400, f"You need at least {opt['points_required']} points to claim this reward.")
 
+        # 1.6 Double Redemption Check
+        already_claimed = conn.execute(
+            text("""
+                SELECT 1 FROM audit_logs 
+                WHERE action = 'USER_CLAIM_REWARD' 
+                  AND target_id = :opt_id 
+                  AND new_value::jsonb ->> 'user_id' = :uid
+            """),
+            {"opt_id": req.option_id, "uid": str(user_id)}
+        ).first()
+        if already_claimed:
+            raise HTTPException(400, "You have already claimed this reward milestone.")
+
         bdt_to_add = float(opt["value_bdt"])
         reward_title = opt["title"]
 

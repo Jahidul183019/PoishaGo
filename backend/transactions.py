@@ -98,7 +98,7 @@ def _execute_transfer(
         raise HTTPException(401, "Invalid PIN.")
 
     sender_wallet = conn.execute(
-        text("SELECT wallet_id, balance, is_active FROM wallets WHERE user_id = :uid"),
+        text("SELECT wallet_id, balance, is_active FROM wallets WHERE user_id = :uid FOR UPDATE"),
         {"uid": sender_user_id},
     ).first()
     if not sender_wallet:
@@ -562,6 +562,8 @@ def cash_in(
     otp_clean = req.otp.strip()
 
     with db.connection().engine.connect() as conn:
+        if req.amount <= 0:
+            raise HTTPException(400, "Amount must be greater than 0.")
         try:
             otp_row = conn.execute(
                 text("""
@@ -608,7 +610,7 @@ def cash_in(
                 text("""
                     SELECT w.wallet_id, w.balance, u.user_id, w.is_active
                     FROM wallets w JOIN users u ON u.user_id = w.user_id
-                    WHERE u.phone = :p
+                    WHERE u.phone = :p FOR UPDATE
                 """),
                 {"p": req.agent_phone},
             ).first()
