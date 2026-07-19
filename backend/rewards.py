@@ -163,22 +163,37 @@ def get_rewards_history(
     db: Session = Depends(get_db),
 ):
     with db.connection().engine.connect() as conn:
-        # We now query the main transactions ledger for records where the
-        # Rewards System was the sender.
+        # Query the transactions ledger for reward system credits,
+        # then join audit_logs to recover the actual points spent.
+        # Convert logs use {"points": N, "bdt": M}
+        # Claim logs use {"user_id": X, "amount": M, "title": "..."}
         rows = conn.execute(
             text("""
                 SELECT
                     t.txn_id                                  AS id,
-                    0                                         AS points,
+                    COALESCE(
+                        (al.new_value->>'points')::int,
+                        0
+                    )                                         AS points,
                     t.amount                                  AS bdt,
                     to_char(t.txn_at, 'YYYY-MM-DD')           AS date
                 FROM transactions t
                 JOIN wallets sw ON sw.wallet_id = t.sender_wallet_id
+                LEFT JOIN audit_logs al
+                    ON al.action IN ('USER_CONVERT_POINTS', 'USER_CLAIM_REWARD')
+                   AND (
+                        COALESCE(
+                            (al.new_value->>'bdt')::numeric,
+                            (al.new_value->>'amount')::numeric
+                        ) = t.amount
+                   )
+                   AND (al.new_value->>'user_id')::int = :uid_int
+                   AND al.logged_at BETWEEN t.txn_at - interval '5 seconds' AND t.txn_at + interval '5 seconds'
                 WHERE t.receiver_wallet_id = (SELECT wallet_id FROM wallets WHERE user_id = :uid)
                   AND sw.wallet_number = 'SYSTEM_REWARDS'
                 ORDER BY t.txn_at DESC
             """),
-            {"uid": user_id},
+            {"uid": user_id, "uid_int": int(user_id)},
         ).mappings().all()
     return [dict(r) for r in rows]
 
