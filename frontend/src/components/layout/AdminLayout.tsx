@@ -26,7 +26,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'User Directory', path: '/admin/users', icon: Users, perm: 'MANAGE_USERS' },
     { label: 'Transactions History', path: '/admin/transactions', icon: History, perm: 'MANAGE_TRANSACTIONS' },
     { label: 'Fraud Alerts', path: '/admin/fraud', icon: ShieldAlert, perm: 'REVIEW_FRAUD' },
-    { label: 'Rewards & Cashbacks', path: '/admin/occasions', icon: Award, perm: 'MANAGE_CAMPAIGNS' },
+    { label: 'Campaign Manager', path: '/admin/occasions', icon: Award, perm: 'MANAGE_CAMPAIGNS' },
     { label: 'Configurations', path: '/admin/config', icon: Settings, perm: 'MANAGE_CONFIG' },
     { label: 'Support Tickets', path: '/admin/support', icon: Headphones, perm: 'HANDLE_COMPLAINTS' },
   ];

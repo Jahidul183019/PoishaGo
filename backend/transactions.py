@@ -606,7 +606,7 @@ def cash_in(
 
             agent_wallet = conn.execute(
                 text("""
-                    SELECT w.wallet_id, w.balance, u.user_id
+                    SELECT w.wallet_id, w.balance, u.user_id, w.is_active
                     FROM wallets w JOIN users u ON u.user_id = w.user_id
                     WHERE u.phone = :p
                 """),
@@ -614,13 +614,17 @@ def cash_in(
             ).first()
             if not agent_wallet or agent_wallet[1] < req.amount:
                 raise HTTPException(400, "Agent has insufficient funds.")
+            if not agent_wallet[3]:
+                raise HTTPException(403, "Agent account is blocked.")
 
             user_wallet = conn.execute(
-                text("SELECT wallet_id FROM wallets WHERE user_id = :uid"),
+                text("SELECT wallet_id, is_active FROM wallets WHERE user_id = :uid"),
                 {"uid": uid_int},
             ).first()
             if not user_wallet:
                 raise HTTPException(400, "User wallet not found.")
+            if not user_wallet[1]:
+                raise HTTPException(403, "Your account is blocked.")
 
             conn.execute(
                 text("UPDATE wallets SET balance = balance - :amt WHERE wallet_id = :wid"),

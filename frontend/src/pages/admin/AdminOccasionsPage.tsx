@@ -4,16 +4,16 @@ import { formatBDT } from '../../utils/format';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import { 
-  CalendarCheck2, 
-  Plus, 
-  Trash2, 
-  CheckCircle, 
-  X, 
-  TrendingUp, 
-  Flame, 
-  Gift, 
-  Clock 
+import {
+  CalendarCheck2,
+  Plus,
+  Trash2,
+  CheckCircle,
+  X,
+  TrendingUp,
+  Flame,
+  Gift,
+  Clock
 } from 'lucide-react';
 
 export const AdminOccasionsPage: React.FC = () => {
@@ -78,7 +78,7 @@ export const AdminOccasionsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300 select-none">
-      
+
       {/* Page Header Headers info */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
         <div>
@@ -118,20 +118,18 @@ export const AdminOccasionsPage: React.FC = () => {
             </p>
           ) : (
             campaigns.map((camp) => (
-              <Card 
-                key={camp.id} 
-                className={`relative flex flex-col justify-between p-5.5 border transition-all ${
-                  camp.is_active 
-                    ? 'border-amber-400/30 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent' 
+              <Card
+                key={camp.id}
+                className={`relative flex flex-col justify-between p-5.5 border transition-all ${camp.is_active
+                    ? 'border-amber-400/30 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent'
                     : 'border-[var(--border)] opacity-65'
-                }`}
+                  }`}
               >
                 {/* Upper description header */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      camp.is_active ? 'bg-amber-500/10 text-amber-400 animate-pulse' : 'bg-slate-800 text-slate-500'
-                    }`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${camp.is_active ? 'bg-amber-500/10 text-amber-400 animate-pulse' : 'bg-slate-800 text-slate-500'
+                      }`}>
                       <Flame size={16} />
                     </div>
                     <div>
@@ -173,25 +171,22 @@ export const AdminOccasionsPage: React.FC = () => {
                 {/* Toggle status control row */}
                 <div className="flex items-center justify-between border-t border-[var(--border)] pt-4 select-none">
                   <span className="text-[11px] text-[var(--text-secondary)]">Campaign Status:</span>
-                  
+
                   <div className="flex items-center gap-2.5">
-                    <span className={`text-[10px] uppercase font-mono font-bold ${
-                      camp.is_active ? 'text-[#00C9A7]' : 'text-slate-400'
-                    }`}>
+                    <span className={`text-[10px] uppercase font-mono font-bold ${camp.is_active ? 'text-[#00C9A7]' : 'text-slate-400'
+                      }`}>
                       {camp.is_active ? 'Active' : 'Paused / Inactive'}
                     </span>
-                    
+
                     {/* Toggle switch visual */}
                     <button
                       onClick={() => toggleCampaignStatus(camp.id)}
-                      className={`relative w-10 h-5.5 rounded-full transition-colors duration-200 outline-none ${
-                        camp.is_active ? 'bg-[#00C9A7]' : 'bg-slate-700'
-                      }`}
+                      className={`relative w-10 h-5.5 rounded-full transition-colors duration-200 outline-none ${camp.is_active ? 'bg-[#00C9A7]' : 'bg-slate-700'
+                        }`}
                       id={`toggle-campaign-${camp.id}`}
                     >
-                      <div className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ${
-                        camp.is_active ? 'translate-x-4.5' : 'translate-x-0'
-                      }`} />
+                      <div className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 ${camp.is_active ? 'translate-x-4.5' : 'translate-x-0'
+                        }`} />
                     </button>
                   </div>
                 </div>
@@ -209,7 +204,7 @@ export const AdminOccasionsPage: React.FC = () => {
         title="Launch New Cashback Campaign"
       >
         <form onSubmit={handleCreateCampaignSubmit} className="flex flex-col gap-4 select-none">
-          
+
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed px-2 text-center">
             Specify automated cashback parameters. Transacting citizens meeting criteria automatically earn instantaneous purse deposits!
           </p>
@@ -249,7 +244,7 @@ export const AdminOccasionsPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            
+
             {/* Percentage rebate rate */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
