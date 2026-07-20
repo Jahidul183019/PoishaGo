@@ -84,11 +84,11 @@ def get_fraud_flags(
                 SELECT
                     flag_id,
                     reference_no        AS txn_id,
-                    flagged_user        AS user_name,
+                    flagged_user,
                     phone,
                     rule_triggered,
                     risk_score,
-                    (reviewed_by_name IS NOT NULL) AS reviewed,
+                    reviewed_by_name,
                     flagged_at
                 FROM vw_fraud_dashboard
                 ORDER BY flagged_at DESC
@@ -99,11 +99,11 @@ def get_fraud_flags(
         {
             "flag_id":       r["flag_id"],
             "txn_id":        r["txn_id"],
-            "user_name":     r["user_name"],
+            "flagged_user":  r["flagged_user"],
             "phone":         r["phone"],
             "rule_triggered": r["rule_triggered"],
             "risk_score":    r["risk_score"],
-            "reviewed":      bool(r["reviewed"]),
+            "reviewed_by_name": r["reviewed_by_name"],
             "flagged_at":    r["flagged_at"].isoformat(),
         }
         for r in rows
