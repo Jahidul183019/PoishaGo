@@ -97,6 +97,41 @@ def _execute_transfer(
     if not pw_row or not verify_pin(sender_pin, pw_row[0]):
         raise HTTPException(401, "Invalid PIN.")
 
+    # --- Transaction Limits Check ---
+    limits_row = conn.execute(
+        text("SELECT max_txn, daily_limit, monthly_limit, max_daily_txn_count FROM transaction_limits WHERE user_id = :uid"),
+        {"uid": sender_user_id}
+    ).first()
+    
+    if limits_row:
+        max_txn, daily_limit, monthly_limit, max_daily_txn_count = limits_row
+        if amount > max_txn:
+            raise HTTPException(403, f"Amount ৳{amount:,.2f} exceeds your single-transaction limit of ৳{max_txn:,.2f}.")
+            
+        stats_row = conn.execute(
+            text("""
+                SELECT 
+                    COALESCE(SUM(CASE WHEN CAST(txn_at AS DATE) = CURRENT_DATE THEN 1 ELSE 0 END), 0) AS daily_count,
+                    COALESCE(SUM(CASE WHEN CAST(txn_at AS DATE) = CURRENT_DATE THEN amount ELSE 0 END), 0) AS daily_sum,
+                    COALESCE(SUM(amount), 0) AS monthly_sum
+                FROM transactions 
+                WHERE sender_wallet_id = (SELECT wallet_id FROM wallets WHERE user_id = :uid)
+                  AND status = 'success'
+                  AND txn_at >= date_trunc('month', CURRENT_DATE)
+            """),
+            {"uid": sender_user_id}
+        ).first()
+        
+        if stats_row:
+            daily_count, daily_sum, monthly_sum = stats_row
+            if daily_count >= max_daily_txn_count:
+                raise HTTPException(403, f"You have reached your maximum of {max_daily_txn_count} transactions per day.")
+            if float(daily_sum) + amount > daily_limit:
+                raise HTTPException(403, f"This transaction exceeds your daily limit of ৳{daily_limit:,.2f}.")
+            if float(monthly_sum) + amount > monthly_limit:
+                raise HTTPException(403, f"This transaction exceeds your monthly limit of ৳{monthly_limit:,.2f}.")
+    # --- End Limits Check ---
+
     sender_wallet = conn.execute(
         text("SELECT wallet_id, balance, is_active FROM wallets WHERE user_id = :uid FOR UPDATE"),
         {"uid": sender_user_id},
