@@ -174,14 +174,23 @@ export const AdminFraudDetectionPage: React.FC = () => {
                     {isActive && (
                       <button
                         onClick={() => {
-                          toggleCitizenStatus(flag.user_id, 'active');
+                          const user = users.find(u => u.user_id === flag.user_id);
+                          toggleCitizenStatus(flag.user_id, user?.status || 'active');
                           fetchFraudFlags();
                         }}
-                        className="py-2 px-3.5 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/15 hover:border-rose-500/40 text-rose-400 text-xs font-bold rounded-xl transition-all outline-none flex items-center gap-1 cursor-pointer"
+                        className={`py-2 px-3.5 border text-xs font-bold rounded-xl transition-all outline-none flex items-center gap-1 cursor-pointer ${
+                          users.find(u => u.user_id === flag.user_id)?.status === 'blocked'
+                            ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                            : 'bg-rose-500/10 hover:bg-rose-500/15 border-rose-500/15 hover:border-rose-500/40 text-rose-400'
+                        }`}
                         title="Block citizen device access"
                       >
                         <UserX size={14} />
-                        <span>Block client access</span>
+                        <span>
+                          {users.find(u => u.user_id === flag.user_id)?.status === 'blocked' 
+                            ? 'Client Blocked' 
+                            : 'Block client access'}
+                        </span>
                       </button>
                     )}
 

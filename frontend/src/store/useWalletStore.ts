@@ -334,6 +334,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
             : u
         ),
       }));
+      useToastStore.getState().showToast(
+        currentStatus === 'active' ? 'User access blocked successfully.' : 'User access restored successfully.', 
+        'success'
+      );
     } catch (err: any) {
       useToastStore.getState().showToast(err.message || 'Failed to toggle user status', 'error');
     }
