@@ -24,7 +24,7 @@
 
 ## Team
 
-**CSE-2201 DBMS Lab Group**
+**CSE-2202 DBMS Lab Group**
 
 | # | Member |
 |---|--------|
