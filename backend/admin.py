@@ -82,16 +82,21 @@ def get_fraud_flags(
         rows = conn.execute(
             text("""
                 SELECT
-                    flag_id,
-                    reference_no        AS txn_id,
-                    flagged_user,
-                    phone,
-                    rule_triggered,
-                    risk_score,
-                    reviewed_by_name,
-                    flagged_at
-                FROM vw_fraud_dashboard
-                ORDER BY flagged_at DESC
+                    ff.flag_id,
+                    t.reference_no        AS txn_id,
+                    u.user_id             AS user_id,
+                    u.full_name           AS flagged_user,
+                    u.phone,
+                    ff.rule_triggered,
+                    ff.risk_score,
+                    adm_user.full_name    AS reviewed_by_name,
+                    ff.flagged_at
+                FROM fraud_flags ff
+                JOIN users u ON ff.user_id = u.user_id
+                JOIN transactions t ON ff.txn_id = t.txn_id
+                LEFT JOIN admins a ON ff.reviewed_by = a.admin_id
+                LEFT JOIN users adm_user ON a.user_id = adm_user.user_id
+                ORDER BY ff.flagged_at DESC
             """)
         ).mappings().all()
 
@@ -99,6 +104,7 @@ def get_fraud_flags(
         {
             "flag_id":       r["flag_id"],
             "txn_id":        r["txn_id"],
+            "user_id":       r["user_id"],
             "flagged_user":  r["flagged_user"],
             "phone":         r["phone"],
             "rule_triggered": r["rule_triggered"],

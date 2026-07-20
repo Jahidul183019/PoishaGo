@@ -37,6 +37,7 @@ export interface UserAccount {
 export interface FraudFlag {
   flag_id: number;
   txn_id: number;
+  user_id: number;
   flagged_user: string;
   phone: string;
   reference_no: string;

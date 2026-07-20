@@ -174,10 +174,8 @@ export const AdminFraudDetectionPage: React.FC = () => {
                     {isActive && (
                       <button
                         onClick={() => {
-                          const user = users.find(u => u.phone === flag.phone);
-                          if (user) {
-                            toggleCitizenStatus(user.user_id, user.status);
-                          }
+                          toggleCitizenStatus(flag.user_id, 'active');
+                          fetchFraudFlags();
                         }}
                         className="py-2 px-3.5 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/15 hover:border-rose-500/40 text-rose-400 text-xs font-bold rounded-xl transition-all outline-none flex items-center gap-1 cursor-pointer"
                         title="Block citizen device access"
