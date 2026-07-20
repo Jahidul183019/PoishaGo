@@ -379,16 +379,7 @@ def send_money(
                 conn, uid_int, req.pin, req.amount, req.receiver_phone, "transfer"
             )
 
-            if req.amount >= 40000:
-                conn.execute(
-                    text("""
-                        INSERT INTO fraud_flags (txn_id, user_id, rule_triggered, risk_score)
-                        VALUES (:tid, :uid, :rule, :score)
-                    """),
-                    {"tid": txn_id, "uid": uid_int,
-                     "rule": "Large Swift Transaction Flag (>= \u09f340,000)",
-                     "score": random.randint(75, 95)}
-                )
+
 
             conn.commit()
         except Exception as e:
