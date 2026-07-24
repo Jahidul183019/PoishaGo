@@ -163,6 +163,9 @@ def _execute_transfer(
     receiver_wallet_id = receiver_info[1]
     receiver_user_id   = receiver_info[0]
 
+    if sender_user_id == receiver_user_id:
+        raise HTTPException(400, "You cannot send money to your own number.")
+
     fee = 0.0
     if txn_type == "cashout":
         fee = amount * 0.015
@@ -655,6 +658,8 @@ def cash_in(
                 raise HTTPException(400, "Agent not found.")
             if agent_wallet[4] != 'agent':
                 raise HTTPException(400, "Cash in can only be performed by registered agents.")
+            if agent_wallet[2] == uid_int:
+                raise HTTPException(400, "You cannot cash in on your own number.")
             if agent_wallet[1] < req.amount:
                 raise HTTPException(400, "Agent has insufficient funds.")
             if not agent_wallet[3]:
