@@ -162,7 +162,7 @@ export const SendMoneyPage: React.FC = () => {
       return;
     }
 
-    sendTransferOtp(() => api.post('/api/send-transfer-otp', {}));
+    sendTransferOtp(() => api.post('/api/transactions/send/send-otp', {}));
   };
 
   const handleConfirmTransfer = () => {
