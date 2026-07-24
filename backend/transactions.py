@@ -102,27 +102,12 @@ def _execute_transfer(
         text("SELECT max_txn, daily_limit, monthly_limit, max_daily_txn_count FROM transaction_limits WHERE user_id = :uid"),
         {"uid": sender_user_id}
     ).first()
-
-    def _notify_limit_blocked(msg: str):
-        """Save a persistent in-app notification so the user sees it in their notification bell."""
-        try:
-            conn.execute(
-                text("""
-                    INSERT INTO notifications (user_id, message, notif_type)
-                    VALUES (:uid, :msg, 'in_app')
-                """),
-                {"uid": sender_user_id, "msg": f"⚠️ Transaction Blocked: {msg}"}
-            )
-        except Exception:
-            pass  # Never let notification failure block the error response
-
+    
     if limits_row:
         max_txn, daily_limit, monthly_limit, max_daily_txn_count = limits_row
         if amount > max_txn:
-            err_msg = f"Amount ৳{amount:,.2f} exceeds your single-transaction limit of ৳{max_txn:,.2f}."
-            _notify_limit_blocked(err_msg)
-            raise HTTPException(403, err_msg)
-
+            raise HTTPException(403, f"Amount ৳{amount:,.2f} exceeds your single-transaction limit of ৳{max_txn:,.2f}.")
+            
         stats_row = conn.execute(
             text("""
                 SELECT 
@@ -136,25 +121,16 @@ def _execute_transfer(
             """),
             {"uid": sender_user_id}
         ).first()
-
+        
         if stats_row:
             daily_count, daily_sum, monthly_sum = stats_row
             if daily_count >= max_daily_txn_count:
-                err_msg = f"You have reached your daily limit of {max_daily_txn_count} transactions. Your limit resets at midnight."
-                _notify_limit_blocked(err_msg)
-                raise HTTPException(403, err_msg)
+                raise HTTPException(403, f"You have reached your maximum of {max_daily_txn_count} transactions per day.")
             if float(daily_sum) + amount > daily_limit:
-                remaining = daily_limit - float(daily_sum)
-                err_msg = f"This transaction of ৳{amount:,.2f} exceeds your daily spending limit of ৳{daily_limit:,.2f}. You have ৳{remaining:,.2f} remaining today."
-                _notify_limit_blocked(err_msg)
-                raise HTTPException(403, err_msg)
+                raise HTTPException(403, f"This transaction exceeds your daily limit of ৳{daily_limit:,.2f}.")
             if float(monthly_sum) + amount > monthly_limit:
-                remaining = monthly_limit - float(monthly_sum)
-                err_msg = f"This transaction of ৳{amount:,.2f} exceeds your monthly spending limit of ৳{monthly_limit:,.2f}. You have ৳{remaining:,.2f} remaining this month."
-                _notify_limit_blocked(err_msg)
-                raise HTTPException(403, err_msg)
+                raise HTTPException(403, f"This transaction exceeds your monthly limit of ৳{monthly_limit:,.2f}.")
     # --- End Limits Check ---
-
 
     sender_wallet = conn.execute(
         text("SELECT wallet_id, balance, is_active FROM wallets WHERE user_id = :uid FOR UPDATE"),

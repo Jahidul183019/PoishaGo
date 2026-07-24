@@ -112,29 +112,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } : null
       });
 
-      // Fetch secondary data silently — failures here should never affect the main flow
-      await Promise.allSettled([
-        useWalletStore.getState().fetchTransactions(),
-        useWalletStore.getState().fetchNotifications(),
-        useWalletStore.getState().fetchRewardOptions(),
-        useWalletStore.getState().fetchRewardsHistory(),
-      ]);
+      await useWalletStore.getState().fetchTransactions();
+      await useWalletStore.getState().fetchNotifications();
+      await useWalletStore.getState().fetchRewardOptions();
+      await useWalletStore.getState().fetchRewardsHistory();
     } catch (e: any) {
-      const is401 = e.message?.includes('401');
-      const is403 = e.message?.includes('403');
-
-      if (is401 || is403) {
-        // Session expired or forbidden — logout is correct
-        if (is403) {
-          useToastStore.getState().showToast(
-            'Access Denied: You do not have the required permissions.',
-            'error'
-          );
-        }
+      if (!e.message?.includes('401')) {
+        useToastStore.getState().showToast(e.message || 'Failed to fetch profile', 'error');
+      }
+      if (e.message && e.message.includes('403')) {
+        useToastStore.getState().showToast("Access Denied: You do not have the required administrative clearance to view this data.", 'error');
+        get().logout();
+      } else {
         get().logout();
       }
-      // For any other error (network glitch, 502, etc.) do NOT logout and do NOT show toast.
-      // The caller (e.g. transaction onSuccess) already has its own success state.
     }
   },
 
