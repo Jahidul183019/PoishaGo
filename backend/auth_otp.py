@@ -287,16 +287,36 @@ def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depend
             }
 
         elif purpose == 'login':
-            conn.commit()
-            import jwt
-            expire = datetime.now(timezone.utc) + timedelta(minutes=10)
-            to_encode = {"sub": str(user_id), "scope": "pin_reset", "exp": expire}
-            reset_token = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-            return {
-                "status": "success",
-                "detail": "OTP verified for PIN reset.",
-                "reset_token": reset_token
-            }
+            if payload.new_pin:
+                if payload.new_pin != payload.confirm_new_pin:
+                    raise HTTPException(status_code=400, detail="PINs do not match.")
+                
+                # Reset the PIN right here
+                conn.execute(
+                    text("UPDATE users SET password_hash = :ph WHERE user_id = :uid"),
+                    {"ph": hash_pin(payload.new_pin), "uid": user_id},
+                )
+                conn.commit()
+                
+                # Return access token so the user is instantly logged in
+                token = create_access_token({"sub": str(user_id)})
+                return {
+                    "status": "success",
+                    "detail": "PIN reset successfully! You are now logged in.",
+                    "access_token": token,
+                    "token_type": "bearer"
+                }
+            else:
+                conn.commit()
+                import jwt
+                expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+                to_encode = {"sub": str(user_id), "scope": "pin_reset", "exp": expire}
+                reset_token = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+                return {
+                    "status": "success",
+                    "detail": "OTP verified for PIN reset.",
+                    "reset_token": reset_token
+                }
 
         else:
             # Generic success for other purposes (e.g., transfer)
