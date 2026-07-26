@@ -40,7 +40,7 @@
 | Backend API | Render-hosted (see deployment config) |
 | Database | Supabase (PostgreSQL) |
 | GitHub Repo | [https://github.com/Jahidul183019/PoishaGo](https://github.com/Jahidul183019/PoishaGo) |
-| Course | CSE-2201, Database Management System — University of Dhaka |
+| Course | CSE-2202, Database Management System Lab — University of Dhaka |
 
 ## Project Highlights
 
