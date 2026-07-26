@@ -11,6 +11,7 @@ Frontend pages:
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+import json
 
 from database import get_db
 from dependencies import get_current_admin, require_permission
@@ -188,7 +189,7 @@ def toggle_user_status(
                 INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
                 VALUES (:aid, 'TOGGLE_WALLET_STATUS', 'wallets', :uid, :val)
             """),
-            {"aid": admin["admin_id"], "uid": user_id, "val": f'{{"is_active": {str(new_status).lower()}}}'}
+            {"aid": admin["admin_id"], "uid": user_id, "val": json.dumps({"is_active": new_status})}
         )
         conn.commit()
     return {"message": "Wallet status updated", "is_active": new_status}
@@ -233,8 +234,8 @@ def adjust_user_balance(
             """),
             {
                 "aid": admin["admin_id"], "wid": wallet[0],
-                "old": f'{{"balance": {old_balance}}}',
-                "new": f'{{"balance": {new_balance}}}'
+                "old": json.dumps({"balance": old_balance}),
+                "new": json.dumps({"balance": new_balance})
             }
         )
         conn.commit()
@@ -356,7 +357,7 @@ def toggle_campaign(
                 INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
                 VALUES (:aid, 'TOGGLE_CAMPAIGN', 'occasion_cashbacks', :tid, :val)
             """),
-            {"aid": admin["admin_id"], "tid": occasion_id, "val": f'{{"is_active": {str(new_status).lower()}}}'}
+            {"aid": admin["admin_id"], "tid": occasion_id, "val": json.dumps({"is_active": new_status})}
         )
         conn.commit()
     return {"message": "Campaign status updated", "is_active": new_status}
@@ -374,7 +375,6 @@ def broadcast_notification(
                 INSERT INTO notifications (user_id, message, notif_type, is_read, created_at)
                 SELECT user_id, :msg, :type, false, NOW()
                 FROM users
-                WHERE user_id NOT IN (SELECT user_id FROM admins)
             """),
             {"msg": req.message, "type": req.notif_type}
         )
@@ -385,7 +385,7 @@ def broadcast_notification(
                 INSERT INTO audit_logs (admin_id, action, target_table, new_value)
                 VALUES (:aid, 'SYSTEM_BROADCAST', 'notifications', :val)
             """),
-            {"aid": admin["admin_id"], "val": f'{{"message": "{req.message}", "type": "{req.notif_type}"}}'}
+            {"aid": admin["admin_id"], "val": json.dumps({"message": req.message, "type": req.notif_type})}
         )
         conn.commit()
     

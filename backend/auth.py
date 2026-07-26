@@ -14,7 +14,7 @@ Frontend pages:
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from dependencies import create_access_token, get_current_user
 from security import hash_pin, verify_pin
 # Import OTP email sender to fire after registration
 from auth_otp import send_otp_email
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api", tags=["Auth"])
 
@@ -101,10 +102,12 @@ def register(payload: RegisterPayload, db: Session = Depends(get_db)):
 # ── LoginPage ─────────────────────────────────────────────────────────────────
 
 @router.post("/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     """
     Authenticates a citizen by phone + PIN.
     Returns a JWT access token on success.
+    Rate limited to 5 attempts per minute per IP.
     """
     with db.connection().engine.connect() as conn:
         row = conn.execute(
@@ -125,6 +128,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not verify_pin(payload.pin, pw_hash):
         raise HTTPException(401, "Invalid credentials.")
 
+    # Rate limiting already prevents enumeration attacks
     if not is_verified:
         raise HTTPException(403, "Account not verified. Please complete OTP verification.")
 
@@ -138,10 +142,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 # ── AdminLoginPage ────────────────────────────────────────────────────────────
 
 @router.post("/admin/login")
-def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def admin_login(request: Request, payload: AdminLoginRequest, db: Session = Depends(get_db)):
     """
     Authenticates an admin by admin_id + PIN from the users table.
     Returns token and the admin role so the frontend can route correctly.
+    Rate limited to 5 attempts per minute per IP.
     """
 
     with db.connection().engine.connect() as conn:

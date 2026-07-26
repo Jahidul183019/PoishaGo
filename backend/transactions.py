@@ -16,6 +16,7 @@ Frontend pages:
 
 import random
 import secrets
+from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -163,9 +164,9 @@ def _execute_transfer(
     receiver_wallet_id = receiver_info[1]
     receiver_user_id   = receiver_info[0]
 
-    fee = 0.0
+    fee = Decimal("0")
     if txn_type == "cashout":
-        fee = amount * 0.015
+        fee = Decimal(str(amount)) * Decimal("0.015")
     elif txn_type == "transfer":
         is_favorite = conn.execute(
             text("""
@@ -175,9 +176,9 @@ def _execute_transfer(
             """),
             {"sender_id": sender_user_id, "receiver_id": receiver_user_id}
         ).first()
-        fee = 0.0 if is_favorite else 5.00
+        fee = Decimal("0") if is_favorite else Decimal("5.00")
         
-    total_deduction = amount + fee
+    total_deduction = Decimal(str(amount)) + fee
 
     if sender_wallet[1] < total_deduction:
         raise HTTPException(400, "Insufficient funds to cover amount and fees.")
@@ -188,7 +189,7 @@ def _execute_transfer(
     )
     conn.execute(
         text("UPDATE wallets SET balance = balance + :amt WHERE wallet_id = :wid"),
-        {"amt": amount, "wid": receiver_wallet_id},
+        {"amt": float(amount), "wid": receiver_wallet_id},
     )
 
     if fee > 0:
@@ -307,7 +308,7 @@ def _execute_transfer(
         {"oid": sender_user_id, "cid": receiver_user_id}
     )
 
-    ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+    ref = f"TXN{secrets.token_hex(6).upper()}"
     res = conn.execute(
         text("""
             INSERT INTO transactions
@@ -318,12 +319,12 @@ def _execute_transfer(
         """),
         {
             "ref": ref, "sw": sender_wallet_id, "rw": receiver_wallet_id,
-            "ttype": txn_type, "amt": amount, "fee": fee
+            "ttype": txn_type, "amt": float(amount), "fee": float(fee)
         },
     )
     txn_id = res.first()[0]
 
-    return ref, txn_id, cashback_applied, campaign_name
+    return ref, txn_id, float(cashback_applied), campaign_name
 
 
 # ── POST /api/transactions/send/send-otp ─────────────────────────────────────
@@ -422,7 +423,7 @@ def send_money(
                     """),
                     {"tid": txn_id, "uid": uid_int,
                      "rule": "Large Swift Transaction Flag (>= \u09f350,000)",
-                     "score": random.randint(75, 95)}
+                     "score": secrets.randbelow(21) + 75}
                 )
 
             conn.commit()
@@ -534,7 +535,7 @@ def cash_out(
                     """),
                     {"tid": txn_id, "uid": uid_int,
                      "rule": "Large Withdrawal Alert (>= \u09f340,000)",
-                     "score": random.randint(80, 98)}
+                     "score": secrets.randbelow(19) + 80}
                 )
 
             conn.commit()
@@ -722,7 +723,7 @@ def cash_in(
                 {"oid": uid_int, "cid": agent_wallet[2]}
             )
 
-            ref = f"TXN{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+            ref = f"TXN{secrets.token_hex(6).upper()}"
             res = conn.execute(
                 text("""
                     INSERT INTO transactions
@@ -743,7 +744,7 @@ def cash_in(
                     """),
                     {"tid": txn_id, "uid": uid_int,
                      "rule": "Large Deposit Flag (>= \u09f340,000)",
-                     "score": random.randint(70, 90)}
+                     "score": secrets.randbelow(21) + 70}
                 )
 
             conn.commit()

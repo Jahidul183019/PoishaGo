@@ -236,6 +236,16 @@ async def support_chat(websocket: WebSocket, ticket_id: int, token: str = Query(
             {"uid": uid},
         ).scalar()
         sender_name = name_row or "Unknown"
+
+        # Verify ticket ownership — non-admin users can only join their own tickets
+        if sender_type == "USER":
+            ticket_owner = db.execute(
+                text("SELECT user_id FROM support_tickets WHERE ticket_id = :tid"),
+                {"tid": ticket_id},
+            ).scalar()
+            if ticket_owner is None or ticket_owner != uid:
+                await websocket.close(code=4003)
+                return
     finally:
         db.close()
 

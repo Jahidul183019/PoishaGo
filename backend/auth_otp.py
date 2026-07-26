@@ -13,7 +13,7 @@ import secrets
 import requests
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -23,6 +23,7 @@ from dependencies import create_access_token
 from config import settings
 from database import get_db
 from dependencies import get_current_user
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api", tags=["OTP"])
 
@@ -81,12 +82,13 @@ def send_otp_email(receiver_email: str, otp_code: str) -> None:
 # ── /api/send-otp  (OTPPage — resend / password-reset) ───────────────────────
 
 @router.post("/send-otp")
-def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def send_otp(request: Request, payload: SendOTPRequest, db: Session = Depends(get_db)):
     """
     Generates a fresh OTP for a verified or unverified account.
-    OTPPage uses this for both:
-      - resend during registration  (purpose = 'register')
-      - password-reset flow         (purpose = 'register' — same table)
+    Rate limited to 3/min per IP.
+    Enforces 60-second cooldown between OTPs for the same user+purpose.
+    Invalidates all previous unused OTPs for the same user+purpose.
     """
     email_clean = payload.email.strip().lower()
 
@@ -100,11 +102,34 @@ def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="No account registered with this email.")
 
         user_id = row[0]
-        otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
-        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
         purpose = (payload.purpose or 'register').strip().lower()
         if purpose not in ('register', 'login', 'transfer'):
             purpose = 'register'
+
+        # 60-second cooldown — check if an OTP was sent recently
+        recent = conn.execute(
+            text("""
+                SELECT 1 FROM otp_verifications
+                WHERE user_id = :uid AND purpose = :purpose AND is_used = false
+                  AND created_at > NOW() - INTERVAL '60 seconds'
+                LIMIT 1
+            """),
+            {"uid": user_id, "purpose": purpose},
+        ).first()
+        if recent:
+            raise HTTPException(429, "Please wait at least 60 seconds before requesting a new code.")
+
+        # Invalidate all previous unused OTPs for this user+purpose
+        conn.execute(
+            text("""
+                UPDATE otp_verifications SET is_used = true
+                WHERE user_id = :uid AND purpose = :purpose AND is_used = false
+            """),
+            {"uid": user_id, "purpose": purpose},
+        )
+
+        otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
 
         conn.execute(
             text("""
@@ -152,7 +177,8 @@ def send_transfer_otp(user_id: str = Depends(get_current_user), db: Session = De
 # ── /api/verify-otp  (OTPPage — confirm code) ────────────────────────────────
 
 @router.post("/verify-otp")
-def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depends(get_db)):
     """
     Validates the 6-digit OTP and marks the user as verified.
     Also creates a wallet for the user if one doesn't exist yet.

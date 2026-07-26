@@ -14,7 +14,8 @@ Frontend pages:
                   → DELETE /api/admin/rewards/options/{id}
 """
 
-import random
+import json
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -298,7 +299,7 @@ def redeem_rewards(
                 text("SELECT wallet_id FROM wallets WHERE wallet_number = 'SYSTEM_REWARDS'")
             ).first()
 
-        ref = f"RWD{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+        ref = f"RWD{secrets.token_hex(6).upper()}"
         conn.execute(
             text("""
                 INSERT INTO transactions
@@ -316,7 +317,7 @@ def redeem_rewards(
             """),
             {
                 "opt_id": req.option_id,
-                "val": f'{{"user_id": {user_id}, "amount": {bdt_to_add}, "title": "{reward_title}"}}'
+                "val": json.dumps({"user_id": int(user_id), "amount": bdt_to_add, "title": reward_title})
             }
         )
 
@@ -405,7 +406,7 @@ def convert_points_to_cash(
             # ... (System wallet creation omitted for brevity, same as redeem_rewards)
             pass
 
-        ref = f"CNV{int(datetime.now(timezone.utc).timestamp())}{random.randint(100, 999)}"
+        ref = f"CNV{secrets.token_hex(6).upper()}"
         conn.execute(
             text("""
                 INSERT INTO transactions
@@ -421,7 +422,7 @@ def convert_points_to_cash(
                 INSERT INTO audit_logs (admin_id, action, target_table, target_id, new_value)
                 VALUES (NULL, 'USER_CONVERT_POINTS', 'reward_points', :uid, :val)
             """),
-            {"uid": user_id, "val": f'{{"points": {req.points}, "bdt": {bdt_amount}}}'}
+            {"uid": user_id, "val": json.dumps({"points": req.points, "bdt": bdt_amount})}
         )
 
         conn.execute(

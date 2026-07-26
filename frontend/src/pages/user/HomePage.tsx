@@ -85,7 +85,7 @@ export const HomePage: React.FC = () => {
             <h4 className="font-sora font-bold text-sm text-white flex items-center gap-1.5 leading-tight">
               {banner.title}
             </h4>
-            <p className="text-[11px] text-slate-200 mt-1 pl-0.5 leading-relaxed" dangerouslySetInnerHTML={{ __html: banner.description }} />
+            <p className="text-[11px] text-slate-200 mt-1 pl-0.5 leading-relaxed">{banner.description}</p>
             {banner.action_text && (
               <button className="mt-2 text-xs font-semibold bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors">
                 {banner.action_text}

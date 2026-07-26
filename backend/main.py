@@ -20,28 +20,37 @@ admin      → AdminFraudDetectionPage(fraud-flags), AdminOccasionsPage(campaign
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import logging
 
 from config import settings
+from rate_limit import limiter
 import auth_otp, auth, transactions, user, rewards, bills, admin, support
 
 logger = logging.getLogger(__name__)
 
+# ── App initialization ────────────────────────────────────────────────────────
+# Disable Swagger UI and OpenAPI schema in production
 app = FastAPI(
     title=settings.APP_NAME,
     version="2.0.0",
     description="PoishaGo Digital Wallet — Bangladesh",
     debug=settings.DEBUG,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
+# ── Rate limiter ──────────────────────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
+# Environment-based origins — localhost only when DEBUG=true
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://poisha-go.vercel.app",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,11 +78,15 @@ app.include_router(support.router)        # /api/support/*, /api/ws/support/*
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
+# Minimal info in production — no version or DB status leakage
 @app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
-    return {
-        "status":    "online",
-        "app":       settings.APP_NAME,
-        "version":   "2.0.0",
-        "db":        "connected",
-    }
+    if settings.DEBUG:
+        return {
+            "status":    "online",
+            "app":       settings.APP_NAME,
+            "version":   "2.0.0",
+            "db":        "connected",
+        }
+    return {"status": "online"}
+
