@@ -95,6 +95,7 @@ class ChangePinRequest(BaseModel):
 
 
 class ResetPinRequest(BaseModel):
+    reset_token: str
     new_pin: str = Field(..., min_length=6, max_length=6)
     confirm_pin: str = Field(..., min_length=6, max_length=6)
 

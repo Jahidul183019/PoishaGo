@@ -229,10 +229,25 @@ def get_me(user_id: str = Depends(get_current_user), db: Session = Depends(get_d
 
 
 @router.post("/reset-pin")
-def reset_pin(payload: ResetPinRequest, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+def reset_pin(payload: ResetPinRequest, db: Session = Depends(get_db)):
     """Allows a verified user (with a valid token) to set a new PIN without providing the old one.
     This is intended to be used after an OTP-based verification that returned a short-lived JWT.
     """
+    import jwt as pyjwt
+    from config import settings
+    
+    try:
+        token_payload = pyjwt.decode(payload.reset_token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        if token_payload.get("scope") != "pin_reset":
+            raise HTTPException(403, "Invalid token scope")
+        user_id = token_payload.get("sub")
+        if not user_id:
+            raise HTTPException(401, "Invalid or expired reset token")
+    except pyjwt.ExpiredSignatureError:
+        raise HTTPException(401, "Reset session expired, please verify OTP again")
+    except pyjwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid or expired reset token")
+
     if not payload.new_pin or len(payload.new_pin) != 6:
         raise HTTPException(400, "Invalid PIN format")
 

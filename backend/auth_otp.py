@@ -99,7 +99,8 @@ def send_otp(request: Request, payload: SendOTPRequest, db: Session = Depends(ge
         ).first()
 
         if not row:
-            raise HTTPException(status_code=404, detail="No account registered with this email.")
+            # FIX: Prevent email enumeration by returning generic success
+            return {"status": "success", "detail": "If this email is registered, a verification code has been sent."}
 
         user_id = row[0]
         purpose = (payload.purpose or 'register').strip().lower()
@@ -141,7 +142,7 @@ def send_otp(request: Request, payload: SendOTPRequest, db: Session = Depends(ge
         conn.commit()
 
     send_otp_email(email_clean, otp_code)
-    return {"status": "success", "detail": "Verification code sent."}
+    return {"status": "success", "detail": "If this email is registered, a verification code has been sent."}
 @router.post("/send-transfer-otp")
 def send_transfer_otp(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     """
@@ -287,27 +288,16 @@ def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depend
             }
 
         elif purpose == 'login':
-            if payload.new_pin and payload.new_pin != payload.confirm_new_pin:
-                raise HTTPException(status_code=400, detail="New PIN and confirmation PIN do not match.")
-            
-            # If new_pin is provided (Reset Flow), use it. Otherwise fallback to OTP as temp PIN.
-            final_pin = payload.new_pin if payload.new_pin else otp_clean
-            
-            # Ensure new PIN is not the same as the old PIN
-            current_pw_row = conn.execute(
-                text("SELECT password_hash FROM users WHERE user_id = :uid"),
-                {"uid": user_id}
-            ).first()
-            if current_pw_row and verify_pin(final_pin, current_pw_row[0]):
-                raise HTTPException(status_code=400, detail="New PIN cannot be the same as your old PIN.")
-
-            conn.execute(
-                text("UPDATE users SET password_hash = :ph WHERE user_id = :uid"),
-                {"ph": hash_pin(final_pin), "uid": user_id},
-            )
             conn.commit()
-            token = create_access_token({"sub": str(user_id)})
-            return {"access_token": token, "token_type": "bearer"}
+            import jwt
+            expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+            to_encode = {"sub": str(user_id), "scope": "pin_reset", "exp": expire}
+            reset_token = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+            return {
+                "status": "success",
+                "detail": "OTP verified for PIN reset.",
+                "reset_token": reset_token
+            }
 
         else:
             # Generic success for other purposes (e.g., transfer)
