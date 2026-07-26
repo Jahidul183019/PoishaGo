@@ -190,7 +190,7 @@ def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depend
     with db.connection().engine.connect() as conn:
         # 1. Resolve user
         user_row = conn.execute(
-            text("SELECT user_id FROM users WHERE email = :e"),
+            text("SELECT user_id, password_hash FROM users WHERE email = :e"),
             {"e": email_clean},
         ).first()
 
@@ -198,6 +198,7 @@ def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depend
             raise HTTPException(status_code=404, detail="User not found.")
 
         user_id = user_row[0]
+        current_hash = user_row[1]
 
         # 2. Find latest valid unused OTP
         purpose = (payload.purpose or 'register').strip().lower()
@@ -290,6 +291,9 @@ def verify_otp(request: Request, payload: VerifyOTPRequest, db: Session = Depend
             if payload.new_pin:
                 if payload.new_pin != payload.confirm_new_pin:
                     raise HTTPException(status_code=400, detail="PINs do not match.")
+                
+                if verify_pin(payload.new_pin, current_hash):
+                    raise HTTPException(status_code=400, detail="New PIN cannot be the same as your old PIN.")
                 
                 # Reset the PIN right here
                 conn.execute(
