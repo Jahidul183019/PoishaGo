@@ -6,4 +6,5 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
-*.pdf
+docs/PoishaGo_Report.docx
+docs/PoishaGo_Report.pdf
