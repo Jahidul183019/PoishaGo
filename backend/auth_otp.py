@@ -99,7 +99,6 @@ def send_otp(request: Request, payload: SendOTPRequest, db: Session = Depends(ge
         ).first()
 
         if not row:
-            # FIX: Prevent email enumeration by returning generic success
             return {"status": "success", "detail": "If this email is registered, a verification code has been sent."}
 
         user_id = row[0]
