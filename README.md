@@ -320,9 +320,20 @@ PoishaGo/
 
 ---
 
+## Limitations
+
+- **No Automated e-KYC Verification** — Currently accepts manual NID text input. No live face-matching and NID OCR to verify identities before wallet activation.
+- **Third-party OTP Dependency** — Synchronously relies on email API for OTPs. No SMS OTP fallback, creating a single point of failure.
+- **Monolithic Architecture** — All backend services run on a single server instance. If one component (like live chat) crashes under heavy load, the entire financial platform goes down.
+- **No Bank Account Integration** — Currently doesn't connect to real banking systems. A production system should integrate with banking APIs for account linking, direct bank transfers.
+- **No Payment Gateway Integration** — Online merchant payments are unavailable. Production systems connect with payment gateways for secure e-commerce transactions.
+
 ## Future Scope
 
-- **Multi-currency support** — extend wallets and transactions beyond BDT with exchange-rate tracking.
-- **ML-based fraud scoring** — replace static rule thresholds with a trained model using transaction patterns.
-- **Table partitioning for transactions at scale** — partition by date to keep performance stable as volume grows.
-- **Rate limiting on auth/OTP endpoints** — add brute-force protection for login and verification.
+- **Multi-currency support** — Extend wallets and transactions beyond BDT with exchange-rate tracking.
+- **ML-based fraud scoring** — Replace static rule thresholds with a trained model over transaction patterns.
+- **Table partitioning** — Split high-volume tables (like transactions) into smaller, date-based partitions to improve query speed and database scalability.
+- **SSL Commerz / Payment Gateway Integration (Add Money)** — Integrate external payment gateways (Visa, Mastercard) to allow users to instantly load funds from traditional bank accounts.
+- **QR Code Scanning (Scan to Pay)** — Integrate camera support to scan QR codes for merchant payments and peer-to-peer transfers, reducing human error from manual phone number entry.
+- **Microservices Architecture** — Split the monolithic FastAPI backend into independent microservices (Auth, Transactions, Support) to ensure high availability and independent scaling under load.
+- **Biometric Authentication** — Implement fingerprint and facial recognition (FaceID) for faster, more secure login and transaction authorization, replacing the manual 6-digit PIN.
