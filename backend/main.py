@@ -31,15 +31,15 @@ import auth_otp, auth, transactions, user, rewards, bills, admin, support
 logger = logging.getLogger(__name__)
 
 # ── App initialization ────────────────────────────────────────────────────────
-# Disable Swagger UI and OpenAPI schema in production
+# Enable Swagger UI and OpenAPI schema (even in production)
 app = FastAPI(
     title=settings.APP_NAME,
     version="2.0.0",
     description="PoishaGo Digital Wallet — Bangladesh",
     debug=settings.DEBUG,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
-    openapi_url="/openapi.json" if settings.DEBUG else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
